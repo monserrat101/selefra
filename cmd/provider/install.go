@@ -86,7 +86,7 @@ func install(ctx context.Context, args []string) error {
 		p, err := provider.Download(ctx, pr, true)
 		continueFlag := false
 		for _, provider := range configYaml.Selefra.Providers {
-			providerName := utils.GetNameBySource(*provider.Source)
+			providerName := *provider.Source
 			if strings.ToLower(providerName) == strings.ToLower(p.Name) && strings.ToLower(provider.Version) == strings.ToLower(p.Version) {
 				continueFlag = true
 				break
@@ -128,8 +128,10 @@ func install(ctx context.Context, args []string) error {
 		}
 
 		if initRes != nil && initRes.Diagnostics != nil {
-			_ = ui.PrintDiagnostic(initRes.Diagnostics.GetDiagnosticSlice())
-			return nil
+			err := ui.PrintDiagnostic(initRes.Diagnostics.GetDiagnosticSlice())
+			if err != nil {
+				return nil
+			}
 		}
 
 		res, err := plugProvider.GetProviderInformation(ctx, &shard.GetProviderInformationRequest{})

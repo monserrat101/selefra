@@ -111,9 +111,9 @@ func CheckSelefraConfig(ctx context.Context, s config.SelefraConfig) error {
 	hasError := false
 	for _, p := range s.Selefra.Providers {
 		if p.Path == "" {
-			p.Path = utils.GetPathBySource(*p.Source)
+			p.Path = utils.GetPathBySource(*p.Source, p.Version)
 		}
-		var providersName = utils.GetNameBySource(*p.Source)
+		var providersName = *p.Source
 		plug, err := plugin.NewManagedPlugin(p.Path, providersName, p.Version, "", nil)
 		if err != nil {
 			hasError = true

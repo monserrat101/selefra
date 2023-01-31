@@ -133,7 +133,7 @@ func SetSelefraProvider(provider registry.ProviderBinary, selefraConfig *config.
 	if selefraConfig != nil {
 		selefraConfig.Selefra.Providers = append(selefraConfig.Selefra.Providers, &config.ProviderRequired{
 			Name:    provider.Name,
-			Source:  &source,
+			Source:  &strings.Split(source, "@")[0],
 			Version: provider.Version,
 		})
 	}

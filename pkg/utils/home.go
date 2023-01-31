@@ -10,7 +10,6 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func Home() (string, string, error) {
@@ -159,16 +158,7 @@ func CreateSource(path, version, latest string) (string, string) {
 	return "selefra/" + path + "@" + version, ""
 }
 
-func GetNameBySource(source string) string {
-	path := filepath.Base(source)
-	arr := strings.Split(path, "@")
-	if len(arr) > 0 {
-		return arr[0]
-	}
-	return ""
-}
-
-func GetPathBySource(source string) string {
+func GetPathBySource(source, version string) string {
 	_, config, err := Home()
 	if err != nil {
 		return ""
@@ -182,7 +172,7 @@ func GetPathBySource(source string) string {
 	if err != nil {
 		return ""
 	}
-	return configMap[source]
+	return configMap[source+"@"+version]
 }
 
 const ROW = "https://raw.githubusercontent.com/selefra/registry"

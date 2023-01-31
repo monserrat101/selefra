@@ -55,8 +55,8 @@ func Remove(names []string) error {
 		return err
 	}
 	for _, p := range cof.Selefra.Providers {
-		name := utils.GetNameBySource(*p.Source)
-		path := utils.GetPathBySource(*p.Source)
+		name := *p.Source
+		path := utils.GetPathBySource(*p.Source, p.Version)
 		prov := registry.ProviderBinary{
 			Provider: registry.Provider{
 				Name:    name,
@@ -86,7 +86,7 @@ func Remove(names []string) error {
 			if err != nil {
 				return err
 			}
-			delete(configMap, *p.Source)
+			delete(configMap, *p.Source+"@"+p.Version)
 			c, err = json.Marshal(configMap)
 			if err != nil {
 				return err

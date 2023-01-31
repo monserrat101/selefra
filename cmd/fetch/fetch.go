@@ -78,9 +78,9 @@ func Fetch(ctx context.Context, cof *config.SelefraConfig, p *config.ProviderReq
 	}
 
 	if p.Path == "" {
-		p.Path = utils.GetPathBySource(*p.Source)
+		p.Path = utils.GetPathBySource(*p.Source, p.Version)
 	}
-	var providersName = utils.GetNameBySource(*p.Source)
+	var providersName = *p.Source
 	ui.PrintSuccessF("%s %s@%s pull infrastructure data:\n", cp.Name, providersName, p.Version)
 	ui.PrintCustomizeLnNotShow(fmt.Sprintf("Pulling %s@%s Please wait for resource information ...", providersName, p.Version))
 	plug, err := plugin.NewManagedPlugin(p.Path, providersName, p.Version, "", nil)

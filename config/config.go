@@ -250,7 +250,7 @@ func GetSchemaKey(required *ProviderRequired, cp CliProviders) string {
 		return pre + "public"
 	}
 	sourceArr := strings.Split(*required.Source, "/")
-	source := strings.Replace(sourceArr[1], "/", "_", -1)
+	source := strings.Replace(sourceArr[1]+"@"+required.Version, "/", "_", -1)
 	source = strings.Replace(source, "@", "_", -1)
 	source = strings.Replace(source, ".", "", -1)
 	s := source + "_" + cp.Name
