@@ -274,13 +274,18 @@ func RunRules(ctx context.Context, s config.SelefraConfig, c *client.Client, pro
 	defer issueCancel()
 	issueChan := make(chan *issue.Req, 100)
 	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
 	go func() {
-		<-ticker.C
-		ui.PrintErrorLn("Report issue timeout")
-		_, _ = grpcClient.Cli.UploadLogStatus()
-		issueCancel()
-		panic("Report issue timeout")
-		return
+		select {
+		case <-ticker.C:
+			ui.PrintErrorLn("Report issue timeout")
+			_, _ = grpcClient.Cli.UploadLogStatus()
+			issueCancel()
+			panic("Report issue timeout")
+			return
+		case <-issueCtx.Done():
+			return
+		}
 	}()
 
 	go UploadIssueFunc(issueCtx, issueChan, ticker)

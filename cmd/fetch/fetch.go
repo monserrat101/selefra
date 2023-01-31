@@ -29,6 +29,7 @@ func NewFetchCmd() *cobra.Command {
 		Long:  "Fetch resources from configured providers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			global.CMD = "fetch"
+			errFlag := false
 			ctx := cmd.Context()
 			var cof = &config.SelefraConfig{}
 
@@ -42,20 +43,25 @@ func NewFetchCmd() *cobra.Command {
 			for _, p := range cof.Selefra.Providers {
 				confs, err := tools.GetProviders(cof, p.Name)
 				if err != nil {
+					ui.PrintErrorLn(err.Error())
+					errFlag = true
 					return err
 				}
 				for i := range confs {
 					err = Fetch(ctx, cof, p, confs[i])
 					if err != nil {
+						ui.PrintErrorLn(err.Error())
+						errFlag = true
 						return err
 					}
 				}
 			}
-
-			ui.PrintErrorF(`
+			if errFlag {
+				ui.PrintErrorF(`
 This may be exception, view detailed exception in %s.`,
-				filepath.Join(*global.WORKSPACE, "logs"))
+					filepath.Join(*global.WORKSPACE, "logs"))
 
+			}
 			return nil
 		},
 	}
@@ -168,7 +174,7 @@ func Fetch(ctx context.Context, cof *config.SelefraConfig, p *config.ProviderReq
 		res, err := recv.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				progbar.Current(p.Name+"@"+p.Version, total, "done")
+				progbar.Current(p.Name+"@"+p.Version, total, "Done")
 				progbar.Done(p.Name + "@" + p.Version)
 				break
 			}

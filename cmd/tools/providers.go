@@ -52,8 +52,16 @@ func SetProviders(DefaultConfigTemplate string, provider registry.ProviderBinary
 				Tag:  "!!map",
 				Content: append([]*yaml.Node{
 					{
+						Kind:  yaml.ScalarNode,
+						Value: "name",
+					},
+					{
+						Kind:  yaml.ScalarNode,
+						Value: provider.Name,
+					},
+					{
 						Kind:        yaml.ScalarNode,
-						Value:       "name",
+						Value:       "provider",
 						FootComment: DefaultConfigTemplate,
 					},
 					{
@@ -72,6 +80,15 @@ func SetProviders(DefaultConfigTemplate string, provider registry.ProviderBinary
 					{
 						Kind:  yaml.ScalarNode,
 						Value: "name",
+					},
+					{
+						Kind:  yaml.ScalarNode,
+						Value: provider.Name,
+					},
+					{
+						Kind:        yaml.ScalarNode,
+						Value:       "provider",
+						FootComment: DefaultConfigTemplate,
 					},
 					{
 						Kind:  yaml.ScalarNode,

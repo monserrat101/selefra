@@ -40,6 +40,7 @@ var typeMap = map[string]bool{
 type CliProviders struct {
 	Name          string   `yaml:"name" json:"name"`
 	Cache         string   `yaml:"cache" json:"cache"`
+	Provider      string   `yaml:"provider" json:"provider"`
 	MaxGoroutines uint64   `yaml:"max_goroutines" json:"max_goroutines"`
 	Resources     []string `yaml:"resources" json:"resources"`
 	LogLevel      string   `yaml:"log_level" json:"log_level"`
