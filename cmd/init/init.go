@@ -280,6 +280,11 @@ func initFunc(cmd *cobra.Command, args []string) error {
 		}
 	}
 	dir, _ := os.ReadDir(*global.WORKSPACE)
+	for i, v := range dir {
+		if v.Name() == "logs" {
+			dir = append(dir[0:i], dir[i+1:]...)
+		}
+	}
 	if len(dir) != 0 && !force {
 		return fmt.Errorf("%s is not empty; Rerun in an empty directory, or use -- force/-f to force overwriting in the current directory\n", *global.WORKSPACE)
 	}
