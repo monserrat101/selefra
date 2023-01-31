@@ -3,7 +3,7 @@ selefra:
     cli_version: '{{version}}'
     providers:
         - name: aws
-          source: selefra/aws@latest
+          source: selefra/aws
           version: latest
 providers:
     - name: aws_01
