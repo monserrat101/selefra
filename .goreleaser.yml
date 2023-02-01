@@ -3,11 +3,14 @@ builds:
   - env: [CGO_ENABLED=0]
     goos:
       - linux
-      #- windows
+      - windows
       - darwin
     goarch:
       - amd64
       - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
 
     id: "selefra"
     binary:
