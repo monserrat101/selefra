@@ -84,12 +84,12 @@ func setSelefraConfig(cmd *cobra.Command) (*config.Config, error) {
 
 	cloudConfig := &config.Cloud{
 		Project:      c.Name,
-		Organization: global.ORGNAME,
+		Organization: global.OrgName(),
 		HostName:     "",
 	}
 	c.Cloud = cloudConfig
 
-	if err = httpClient.SetUpStage(global.LOGINTOKEN, c.Name, httpClient.Creating); err != nil {
+	if err = httpClient.SetUpStage(global.Token(), c.Name, httpClient.Creating); err != nil {
 		return c, err
 	}
 
@@ -110,8 +110,6 @@ func setProviderConfig(cmd *cobra.Command, configYaml *config.SelefraConfig) err
 	}
 	initHeaderOutput(provs)
 
-	token, err := utils.GetCredentialsToken()
-
 	namespace, _, err := utils.Home()
 	if err != nil {
 		return err
@@ -128,8 +126,8 @@ func setProviderConfig(cmd *cobra.Command, configYaml *config.SelefraConfig) err
 		if err != nil {
 			return fmt.Errorf("	Installed %s@%s failed：%s", p.Name, p.Version, err.Error())
 		} else {
-			if token != "" && err == nil {
-				_ = httpClient.SetUpStage(token, configYaml.Selefra.Cloud.Project, httpClient.Failed)
+			if global.Token() != "" {
+				_ = httpClient.SetUpStage(global.Token(), configYaml.Selefra.Cloud.Project, httpClient.Failed)
 			}
 			ui.PrintSuccessF("	Installed %s@%s verified", p.Name, p.Version)
 		}
@@ -141,8 +139,9 @@ func setProviderConfig(cmd *cobra.Command, configYaml *config.SelefraConfig) err
 
 		plugProvider := plug.Provider()
 		opt, err := json.Marshal(storage)
+		workspace := global.WorkSpace()
 		initRes, err := plugProvider.Init(ctx, &shard.ProviderInitRequest{
-			Workspace: global.WORKSPACE,
+			Workspace: &workspace,
 			Storage: &shard.Storage{
 				Type:           0,
 				StorageOptions: opt,
@@ -197,7 +196,7 @@ func createYaml(cmd *cobra.Command) (*config.SelefraConfig, error) {
 		return &configYaml, err
 	}
 	var str []byte
-	if global.LOGINTOKEN != "" {
+	if global.Token() != "" {
 		var initConfigYaml config.SelefraConfigInitWithLogin
 		err = yaml.Unmarshal(waitStr, &initConfigYaml)
 		if err != nil {
@@ -215,7 +214,7 @@ func createYaml(cmd *cobra.Command) (*config.SelefraConfig, error) {
 		str, err = yaml.Marshal(initConfigYaml)
 	}
 
-	rulePath := filepath.Join(*global.WORKSPACE, "rules")
+	rulePath := filepath.Join(global.WorkSpace(), "rules")
 	_, err = os.Stat(rulePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -231,11 +230,11 @@ func createYaml(cmd *cobra.Command) (*config.SelefraConfig, error) {
 		return &configYaml, err
 	}
 
-	err = os.WriteFile(filepath.Join(*global.WORKSPACE, "module.yaml"), []byte(strings.TrimSpace(moduleComment)), 0644)
+	err = os.WriteFile(filepath.Join(global.WorkSpace(), "module.yaml"), []byte(strings.TrimSpace(moduleComment)), 0644)
 	if err != nil {
 		return &configYaml, err
 	}
-	err = os.WriteFile(filepath.Join(*global.WORKSPACE, "selefra.yaml"), str, 0644)
+	err = os.WriteFile(filepath.Join(global.WorkSpace(), "selefra.yaml"), str, 0644)
 
 	ui.PrintSuccessF(`
 Selefra has been successfully initialized! 
@@ -251,17 +250,16 @@ To perform an initial analysis, run selefra apply
 func initFunc(cmd *cobra.Command, args []string) error {
 	if err := setInitGlobalVariable(args); err != nil {
 		return err
-
 	}
 	// check if workspace dir exist
-	_, err := os.Stat(*global.WORKSPACE)
+	_, err := os.Stat(global.WorkSpace())
 	if errors.Is(err, os.ErrNotExist) {
-		err = os.Mkdir(*global.WORKSPACE, 0755)
+		err = os.Mkdir(global.WorkSpace(), 0755)
 		if err != nil {
 			return nil
 		}
 	}
-	dir, _ := os.ReadDir(*global.WORKSPACE)
+	dir, _ := os.ReadDir(global.WorkSpace())
 
 	// ignore logs dir
 	for i, v := range dir {
@@ -273,7 +271,7 @@ func initFunc(cmd *cobra.Command, args []string) error {
 	// workspace must be empty or set force flag
 	force, _ := cmd.PersistentFlags().GetBool("force")
 	if len(dir) != 0 && !force {
-		return fmt.Errorf("%s is not empty; Rerun in an empty directory, or use -- force/-f to force overwriting in the current directory\n", *global.WORKSPACE)
+		return fmt.Errorf("%s is not empty; Rerun in an empty directory, or use -- force/-f to force overwriting in the current directory\n", global.WorkSpace())
 	}
 
 	// when relevance was set, user must be login
@@ -288,7 +286,7 @@ func initFunc(cmd *cobra.Command, args []string) error {
 	_, clientErr := config.GetClientStr()
 	if !errors.Is(clientErr, config.NoClient) { // workspace already init by selefra
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Printf("Error:%s is already init. Continue and overwrite it?[Y/N]\n", *global.WORKSPACE)
+		fmt.Printf("Error:%s is already init. Continue and overwrite it?[Y/N]\n", global.WorkSpace())
 		text, err := reader.ReadString('\n')
 		text = strings.TrimSpace(strings.ToLower(text))
 		if err != nil {
@@ -300,8 +298,8 @@ func initFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	cof, err := createYaml(cmd)
-	if err == nil && global.LOGINTOKEN != "" {
-		_ = httpClient.SetUpStage(global.LOGINTOKEN, cof.Selefra.Cloud.Project, httpClient.Failed)
+	if err == nil && global.Token() != "" {
+		_ = httpClient.SetUpStage(global.Token(), cof.Selefra.Cloud.Project, httpClient.Failed)
 	}
 	return err
 }
@@ -316,7 +314,7 @@ func setInitGlobalVariable(args []string) error {
 	if len(args) > 0 {
 		dirname = args[0]
 	}
-	*global.WORKSPACE = filepath.Join(wd, dirname)
+	global.Init("init", filepath.Join(wd, dirname), "")
 
 	return nil
 }
@@ -347,13 +345,13 @@ func getProvidersList() ([]string, error) {
 func getProjectName() (projectName string) {
 	defer func() {
 		if projectName == "" {
-			projectName = filepath.Base(*global.WORKSPACE)
+			projectName = filepath.Base(global.WorkSpace())
 		}
 	}()
 	var err error
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Printf("project name:(%s)", filepath.Base(*global.WORKSPACE))
+	fmt.Printf("project name:(%s)", filepath.Base(global.WorkSpace()))
 
 	projectName, err = reader.ReadString('\n')
 	if err != nil {
