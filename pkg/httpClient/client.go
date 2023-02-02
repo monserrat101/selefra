@@ -239,14 +239,15 @@ const Failed = "failed"
 
 const Success = "success"
 
-func SetupStag(token, project, stag string) error {
+// SetUpStage sync project stage to selefra cloud
+func SetUpStage(token, project, stage string) error {
 	if token == "" {
 		return errors.New("token is empty")
 	}
 	var info = make(map[string]string)
 	info["token"] = token
 	info["project_name"] = project
-	info["stag"] = stag
+	info["stag"] = stage // stag is a typo to stage
 	res, err := CliHttpClient[SetupStagRes]("POST", "/cli/update_setup_stag", info)
 	if err != nil {
 		return err

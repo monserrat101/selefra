@@ -78,7 +78,7 @@ func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
 	err = test.CheckSelefraConfig(ctx, *cof)
 	if err != nil {
 		if global.LOGINTOKEN != "" && cof.Selefra.Cloud != nil && err == nil {
-			_ = httpClient.SetupStag(global.LOGINTOKEN, cof.Selefra.Cloud.Project, httpClient.Failed)
+			_ = httpClient.SetUpStage(global.LOGINTOKEN, cof.Selefra.Cloud.Project, httpClient.Failed)
 		}
 		return nil, nil, err
 	}

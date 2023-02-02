@@ -100,7 +100,7 @@ func Apply(ctx context.Context) error {
 	}()
 	if err != nil {
 		if token != "" && s.Selefra.Cloud != nil && err == nil {
-			_ = httpClient.SetupStag(token, s.Selefra.Cloud.Project, httpClient.Failed)
+			_ = httpClient.SetUpStage(token, s.Selefra.Cloud.Project, httpClient.Failed)
 		}
 		ui.PrintErrorLn(err.Error())
 		return nil
@@ -108,7 +108,7 @@ func Apply(ctx context.Context) error {
 	err = s.GetConfig()
 	if err != nil {
 		if token != "" && s.Selefra.Cloud != nil && err == nil {
-			_ = httpClient.SetupStag(token, s.Selefra.Cloud.Project, httpClient.Failed)
+			_ = httpClient.SetUpStage(token, s.Selefra.Cloud.Project, httpClient.Failed)
 		}
 		ui.PrintErrorLn("Client creation error:" + err.Error())
 		return nil
@@ -141,7 +141,7 @@ func Apply(ctx context.Context) error {
 			c, e := client.CreateClientFromConfig(ctx, &s.Selefra, uid, s.Selefra.Providers[i], cp)
 			if e != nil {
 				if token != "" && s.Selefra.Cloud != nil && err == nil {
-					_ = httpClient.SetupStag(token, s.Selefra.Cloud.Project, httpClient.Failed)
+					_ = httpClient.SetUpStage(token, s.Selefra.Cloud.Project, httpClient.Failed)
 				}
 				ui.PrintErrorLn("Client creation error:" + e.Error())
 				return nil
@@ -149,7 +149,7 @@ func Apply(ctx context.Context) error {
 			modules, err := config.GetModulesByPath()
 			if err != nil {
 				if token != "" && s.Selefra.Cloud != nil && err == nil {
-					err = httpClient.SetupStag(token, s.Selefra.Cloud.Project, httpClient.Failed)
+					err = httpClient.SetUpStage(token, s.Selefra.Cloud.Project, httpClient.Failed)
 				}
 				ui.PrintErrorLn("Client creation error:" + err.Error())
 				return nil
@@ -183,7 +183,7 @@ Loading Selefra analysis code ...
 		err = UploadWorkspace(project)
 		if err != nil {
 			ui.PrintErrorLn(err.Error())
-			sErr := httpClient.SetupStag(token, project, httpClient.Failed)
+			sErr := httpClient.SetUpStage(token, project, httpClient.Failed)
 			if sErr != nil {
 				ui.PrintErrorLn(sErr.Error())
 			}

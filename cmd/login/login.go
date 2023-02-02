@@ -2,7 +2,7 @@ package login
 
 import (
 	"bufio"
-	"github.com/selefra/selefra/config"
+	"errors"
 	"github.com/selefra/selefra/global"
 	"github.com/selefra/selefra/pkg/httpClient"
 	"github.com/selefra/selefra/pkg/utils"
@@ -12,69 +12,102 @@ import (
 	"strings"
 )
 
+var ErrLoginFailed = errors.New("login failed, please check your token")
+
 func NewLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "login",
-		Short: "Login to selefra using token",
-		Long:  "Login to selefra using token",
+		Use:   "login [token]",
+		Short: "Login to selefra cloud using token",
+		Long:  "Login to selefra cloud using token",
 		RunE:  RunFunc,
 	}
+
 	cmd.SetHelpFunc(cmd.HelpFunc())
 	return cmd
 }
 
 func RunFunc(cmd *cobra.Command, args []string) error {
-	s := config.SelefraConfig{}
-	err := s.GetConfig()
-	if err != nil {
-		ui.PrintErrorLn(err.Error())
-		return err
+	var err error
+	if len(args) > 0 {
+		err = MustLogin(args[0])
 	}
-	var token string
-	if len(args) == 0 {
-		credentials, err := utils.GetCredentialsPath()
+
+	err = MustLogin("")
+
+	return err
+}
+
+// ShouldLogin should login to selefra cloud
+// if login successfully, global token will be set, else return an error
+func ShouldLogin(token string) error {
+	var err error
+
+	if token == "" {
+		token, err = utils.GetCredentialsToken()
 		if err != nil {
+			ui.PrintErrorLn(err.Error())
 			return err
 		}
-		ui.PrintCustomizeFNotN(ui.InfoColor, `
+	}
+
+	res, err := httpClient.Login(token)
+	if err != nil {
+		return ErrLoginFailed
+	}
+	displayLoginSuccess(res.Data.OrgName, res.Data.TokenName, token)
+
+	global.LOGINTOKEN = token
+
+	return nil
+}
+
+// MustLogin unless the user enters wrong token, login is guaranteed
+func MustLogin(token string) error {
+	var err error
+
+	if err := ShouldLogin(token); err == nil {
+		return nil
+	}
+
+	token, err = getInputToken()
+	if err != nil {
+		return errors.New("input token failed")
+	}
+	if err = ShouldLogin(token); err == nil {
+		return nil
+	}
+
+	return ErrLoginFailed
+}
+
+func getInputToken() (string, error) {
+	credentialPath, err := utils.GetCredentialsPath()
+	if err != nil {
+		return "", err
+	}
+	ui.PrintCustomizeFNotN(ui.InfoColor, `
 Selefra will login for login app.selefra.io  using your browser.
 If login is successful, Terraform will store the token in plain text in
 the following file for use by subsequent commands:
 	%s
 
 	Enter your access token from https://app.selefra.io/settings/access_tokens
-	or hit <ENTER> to log in using your browser:`, credentials)
-		reader := bufio.NewReader(os.Stdin)
-		token, err = reader.ReadString('\n')
-		if err != nil {
-			return nil
-		}
-		token = strings.TrimSpace(strings.Replace(token, "\n", "", -1))
-		if token == "" {
-			ui.PrintErrorLn("No token provided")
-			return nil
-		}
-	} else {
-		token = args[0]
-	}
-	err = CliLogin(token)
+	or hit <ENTER> to log in using your browser:`, credentialPath)
+	reader := bufio.NewReader(os.Stdin)
+	rawToken, err := reader.ReadString('\n')
 	if err != nil {
-		ui.PrintErrorLn("The token is invalid. Please execute selefra to log out or log in again")
-		return err
+		return "", err
 	}
-	return nil
+	token := strings.TrimSpace(strings.Replace(rawToken, "\n", "", -1))
+	if token == "" {
+		ui.PrintErrorLn("No token provided")
+		return "", errors.New("no token provided")
+	}
+
+	return token, nil
 }
 
-func CliLogin(token string) error {
-	res, err := httpClient.Login(token)
-	if err != nil {
-		return err
-	}
-	Success(res.Data.OrgName, res.Data.TokenName, token)
-	return nil
-}
-
-func Success(orgName, userName, token string) {
+func displayLoginSuccess(orgName, tokenName, token string) {
 	err := utils.SetCredentials(token)
 	if global.LOGINTOKEN == "" {
 		global.LOGINTOKEN = token
@@ -85,9 +118,9 @@ func Success(orgName, userName, token string) {
 		return
 	}
 	ui.PrintSuccessF(`
-Retrieved token for user: %s.
+Retrieved token for user: %s. 
 
 Welcome to Selefra Cloud!
 
-Logged in to selefra as %s (https://app.selefra.io/%s)`, userName, orgName, orgName)
+Logged in to selefra as %s (https://app.selefra.io/%s)`, tokenName, orgName, orgName)
 }

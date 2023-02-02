@@ -1,7 +1,6 @@
 package logout
 
 import (
-	"github.com/selefra/selefra/config"
 	"github.com/selefra/selefra/pkg/httpClient"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/selefra/selefra/ui"
@@ -11,43 +10,34 @@ import (
 func NewLogoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logout",
-		Short: "Logout to selefra",
-		Long:  "Logout to selefra",
+		Short: "Logout to selefra cloud",
+		Long:  "Logout to selefra cloud",
 		RunE:  RunFunc,
 	}
 
-	cmd.SetHelpFunc(cmd.HelpFunc())
 	return cmd
 }
 
 func RunFunc(cmd *cobra.Command, args []string) error {
-	s := config.SelefraConfig{}
-	err := s.GetConfig()
+	token, err := utils.GetCredentialsToken()
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
 		return err
 	}
-	path, err := utils.GetCredentialsPath()
+
+	return shouldLogout(token)
+}
+
+func shouldLogout(token string) error {
+	err := httpClient.Logout(token)
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.PrintErrorLn("Logout error:" + err.Error())
 		return nil
 	}
-	token, err := utils.GetCredentialsToken()
-	if token != "" && err == nil {
-		err := httpClient.Logout(token)
-		if err != nil {
-			ui.PrintErrorLn("Logout error:" + err.Error())
-			return nil
-		}
-		err = utils.SetCredentials("")
-		if err != nil {
-			ui.PrintErrorLn(err.Error())
-		}
+
+	err = utils.SetCredentials("")
+	if err != nil {
+		ui.PrintErrorLn(err.Error())
 	}
 
-	ui.PrintSuccessF(`Removing the stored credentials for app.selefra.io from the following file:
-    %s
-
-Success! Selefra has removed the stored Access Token for app.selefra.io.`, path)
 	return nil
 }
