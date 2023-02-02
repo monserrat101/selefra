@@ -16,10 +16,11 @@ var ErrLoginFailed = errors.New("login failed, please check your token")
 
 func NewLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "login [token]",
-		Short: "Login to selefra cloud using token",
-		Long:  "Login to selefra cloud using token",
-		RunE:  RunFunc,
+		Use:              "login [token]",
+		Short:            "Login to selefra cloud using token",
+		Long:             "Login to selefra cloud using token",
+		PersistentPreRun: global.DefaultWrappedInit(),
+		RunE:             RunFunc,
 	}
 
 	cmd.SetHelpFunc(cmd.HelpFunc())
@@ -56,7 +57,8 @@ func ShouldLogin(token string) error {
 	}
 	displayLoginSuccess(res.Data.OrgName, res.Data.TokenName, token)
 
-	global.LOGINTOKEN = token
+	global.LOGINTOKEN = token // TODO will deprecate
+	global.SetToken(token)
 
 	return nil
 }
