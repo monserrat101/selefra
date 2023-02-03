@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/selefra/selefra/pkg/grpcClient"
-	"github.com/selefra/selefra/pkg/grpcClient/proto/log"
+	logPb "github.com/selefra/selefra/pkg/grpcClient/proto/log"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
@@ -19,6 +20,181 @@ import (
 	"github.com/selefra/selefra/global"
 	"github.com/selefra/selefra/pkg/logger"
 )
+
+type uiPrinter struct {
+	// log record logs
+	log *logger.Logger
+
+	// fw handle a file pointer to logs file
+	fw *os.File
+
+	// rpcClient is a grpc client, it send logs to grpc server
+	rpcClient *grpcClient.RpcClient
+
+	// step store the steps for uiPrinter
+	step int32
+}
+
+func newUiPrinter() *uiPrinter {
+	ua := &uiPrinter{
+		step: 0,
+	}
+
+	ua.log, _ = logger.NewLogger(logger.Config{
+		FileLogEnabled:    true,
+		ConsoleLogEnabled: false,
+		EncodeLogsAsJson:  true,
+		ConsoleNoColor:    true,
+		Source:            "client",
+		Directory:         "logs",
+		Level:             "info",
+	})
+
+	flag := strings.ToLower(os.Getenv("SELEFRA_CLOUD_FLAG"))
+	if flag == "true" || flag == "enable" {
+		_, err := os.Stat("ws.log")
+		if err != nil {
+			if !os.IsNotExist(err) {
+				panic("Unknown error," + err.Error())
+			}
+			ua.fw, err = os.Create("ws.log")
+		} else {
+			ua.fw, err = os.OpenFile("ws.log", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+		}
+		if err != nil {
+			panic("ws log file open error," + err.Error())
+		}
+	}
+
+	ua.rpcClient = grpcClient.Client()
+
+	return ua
+}
+
+var (
+	printerOnce sync.Once
+	printer     *uiPrinter
+)
+
+func (p *uiPrinter) write2fw(color *color.Color, msg string) {
+
+	jsonLog := LogJSON{
+		Cmd:   global.Cmd(),
+		Stag:  global.Stage(),
+		Msg:   msg,
+		Time:  time.Now(),
+		Level: getLevel(color),
+	}
+	byteLog, err := json.Marshal(jsonLog)
+	if err != nil {
+		p.log.Error(err.Error())
+		return
+	}
+
+	strLog := string(byteLog)
+	_, _ = p.fw.WriteString(strLog + "\n")
+}
+
+// print do 2 things: 1. store msg to log file; 2. send msg to rpc server if rpc client exist
+// print do not show anything
+func (p *uiPrinter) print(color *color.Color, msg string) {
+	// write to file
+	p.write2fw(color, msg)
+
+	// send to rpc
+	if p.rpcClient != nil {
+		logStreamClient := p.rpcClient.LogStreamClient()
+		p.step++
+		if color == ErrorColor {
+			p.rpcClient.SetStatus("error")
+		}
+
+		if err := logStreamClient.Send(&logPb.ConnectMsg{
+			ActionName: "",
+			Data: &logPb.LogJOSN{
+				Cmd:   global.Cmd(),
+				Stag:  global.Stage(),
+				Msg:   msg,
+				Time:  timestamppb.Now(),
+				Level: getLevel(color),
+			},
+			Index: p.step,
+			Msg:   "",
+			BaseInfo: &logPb.BaseConnectionInfo{
+				Token:  p.rpcClient.GetToken(),
+				TaskId: p.rpcClient.GetTaskID(),
+			},
+		}); err != nil {
+			p.write2fw(ErrorColor, err.Error())
+			return
+		}
+	}
+
+	return
+}
+
+// printf The behavior of printf is like fmt.Printf that it will format the info
+// when withLn is true, it will show format info with a "\n" and call print, else without a "\n"
+func (p *uiPrinter) printf(color *color.Color, withLn bool, format string, args ...any) {
+	// logger to terminal
+	if p.log != nil {
+		if color == ErrorColor {
+			if _, f, l, ok := runtime.Caller(2); ok {
+				printer.log.Log(hclog.Error, "%s %s:%d", fmt.Sprintf(format, args...), f, l)
+			}
+		}
+		p.log.Log(color2level(color), format, args...)
+	}
+
+	msg := fmt.Sprintf(format, args...)
+
+	p.print(color, msg)
+
+	if withLn {
+		_, _ = color.Printf(format+"\n", args...)
+		return
+	}
+
+	_, _ = color.Printf(format, args...)
+
+}
+
+// println The behavior of println is like fmt.Println
+// it will show the log info and then call print
+func (p *uiPrinter) println(color *color.Color, args ...any) {
+	// logger to terminal
+	if p.log != nil {
+		if color == ErrorColor {
+			if _, f, l, ok := runtime.Caller(2); ok {
+				printer.log.Log(hclog.Error, "%s %s:%d", fmt.Sprintln(args...), f, l)
+			}
+		}
+		p.log.Log(color2level(color), fmt.Sprintln(args...))
+	}
+
+	msg := fmt.Sprint(args...)
+
+	p.print(color, msg)
+
+	_, _ = color.Println(args...)
+
+	return
+}
+
+func color2level(color *color.Color) hclog.Level {
+	switch color {
+	case ErrorColor:
+		return hclog.Error
+	case WarningColor:
+		return hclog.Warn
+	case InfoColor:
+		return hclog.Info
+	case SuccessColor:
+		return hclog.Info
+	default:
+		return hclog.Info
+	}
+}
 
 var levelMap = map[string]int{
 	"trace":   0,
@@ -38,8 +214,7 @@ var levelColor = []*color.Color{
 	ErrorColor,
 }
 
-var step int32 = 0
-
+// var step int32 = 0
 var defaultLogger, _ = logger.NewLogger(logger.Config{
 	FileLogEnabled:    true,
 	ConsoleLogEnabled: false,
@@ -62,24 +237,10 @@ func StoLogger() (*logger.StoLogger, error) {
 	})
 }
 
-var wsLogger *os.File
-
 func init() {
-	flag := strings.ToLower(os.Getenv("SELEFRA_CLOUD_FLAG"))
-	if flag == "true" || flag == "enable" {
-		_, err := os.Stat("ws.log")
-		if err != nil {
-			if !os.IsNotExist(err) {
-				panic("Unknown error," + err.Error())
-			}
-			wsLogger, err = os.Create("ws.log")
-		} else {
-			wsLogger, err = os.OpenFile("ws.log", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
-		}
-		if err != nil {
-			panic("ws log file open error," + err.Error())
-		}
-	}
+	printerOnce.Do(func() {
+		printer = newUiPrinter()
+	})
 }
 
 const (
@@ -95,7 +256,7 @@ var (
 	SuccessColor = color.New(color.FgGreen, color.Bold)
 )
 
-type LogJOSN struct {
+type LogJSON struct {
 	Cmd   string    `json:"cmd"`
 	Stag  string    `json:"stag"`
 	Msg   string    `json:"msg"`
@@ -119,158 +280,52 @@ func getLevel(c *color.Color) string {
 	return level
 }
 
-func createLog(msg string, c *color.Color) string {
-	l := LogJOSN{
-		Cmd:   global.CMD,
-		Stag:  global.STAG,
-		Msg:   msg,
-		Time:  time.Now(),
-		Level: getLevel(c),
-	}
-	b, err := json.Marshal(l)
-	if err != nil {
-		return ""
-	}
-	sb := string(b)
-	if wsLogger != nil {
-		_, _ = wsLogger.WriteString(sb + "\n")
-	}
-	return sb
-}
-
 func PrintErrorF(format string, a ...interface{}) {
-	_, f, l, ok := runtime.Caller(1)
-	if ok {
-		if defaultLogger != nil {
-			defaultLogger.Log(hclog.Error, "%s %s:%d", fmt.Sprintf(format, a...), f, l)
-		}
-	}
-	PrintCustomizeF(ErrorColor, format, a...)
+	printer.printf(ErrorColor, false, format, a...)
 }
 
 func PrintWarningF(format string, a ...interface{}) {
-	if defaultLogger != nil {
-		defaultLogger.Log(hclog.Warn, format, a...)
-	}
-	PrintCustomizeF(WarningColor, format, a...)
+	printer.printf(WarningColor, false, format, a...)
 }
 
 func PrintSuccessF(format string, a ...interface{}) {
-	if defaultLogger != nil {
-		defaultLogger.Log(hclog.Info, format, a...)
-	}
-	PrintCustomizeF(SuccessColor, format, a...)
-
+	printer.printf(SuccessColor, false, format, a...)
 }
 
 func PrintInfoF(format string, a ...interface{}) {
-	if defaultLogger != nil {
-		defaultLogger.Log(hclog.Info, format, a...)
-	}
-	PrintCustomizeF(InfoColor, format, a...)
+	printer.printf(InfoColor, false, format, a...)
 }
 
 func PrintErrorLn(a ...interface{}) {
-	_, f, l, ok := runtime.Caller(1)
-	if ok {
-		if defaultLogger != nil {
-			defaultLogger.Log(hclog.Error, "%s %s:%d", fmt.Sprintln(a...), f, l)
-		}
-	}
-	PrintCustomizeLn(ErrorColor, a...)
+	printer.println(ErrorColor, a...)
 }
 
 func PrintWarningLn(a ...interface{}) {
-	if defaultLogger != nil {
-		defaultLogger.Log(hclog.Warn, fmt.Sprintln(a...))
-	}
-	PrintCustomizeLn(WarningColor, a...)
-
+	printer.println(WarningColor, a...)
 }
 
 func PrintSuccessLn(a ...interface{}) {
-	if defaultLogger != nil {
-		defaultLogger.Log(hclog.Info, fmt.Sprintln(a...))
-	}
-	PrintCustomizeLn(SuccessColor, a...)
+	printer.println(SuccessColor, a...)
 }
 
 func PrintInfoLn(a ...interface{}) {
-	if defaultLogger != nil {
-		defaultLogger.Log(hclog.Info, fmt.Sprintln(a...))
-	}
-	PrintCustomizeLn(InfoColor, a...)
-}
-
-func sendMsg(c *color.Color, logCli log.Log_UploadLogStreamClient, msg string) error {
-	step++
-	createLog(msg, c)
-	if c == ErrorColor {
-		grpcClient.Cli.SetStatus("error")
-	}
-	err := logCli.Send(&log.ConnectMsg{
-		ActionName: "",
-		Data: &log.LogJOSN{
-			Cmd:   global.CMD,
-			Stag:  global.STAG,
-			Msg:   msg,
-			Time:  timestamppb.Now(),
-			Level: getLevel(c),
-		},
-		Index: step,
-		Msg:   "",
-		BaseInfo: &log.BaseConnectionInfo{
-			Token:  grpcClient.Cli.GetToken(),
-			TaskId: grpcClient.Cli.GetTaskID(),
-		},
-	})
-	return err
-}
-
-func PrintCustomizeF(c *color.Color, format string, a ...interface{}) {
-	logCli := grpcClient.Cli.GetLogUploadLogStreamClient()
-	if logCli != nil {
-		msg := fmt.Sprintf(format, a...)
-		err := sendMsg(c, logCli, msg)
-		if err != nil {
-			createLog("grpc logStream error:"+err.Error(), ErrorColor)
-		}
-	}
-	_, _ = c.Printf(format+"\n", a...)
+	printer.println(InfoColor, a...)
 }
 
 func PrintCustomizeFNotN(c *color.Color, format string, a ...interface{}) {
-	logCli := grpcClient.Cli.GetLogUploadLogStreamClient()
-	if logCli != nil {
-		msg := fmt.Sprintf(format, a...)
-		err := sendMsg(c, logCli, msg)
-		if err != nil {
-			createLog("grpc logStream error:"+err.Error(), ErrorColor)
-		}
-	}
+	printer.print(c, fmt.Sprintf(format, a...))
+
 	_, _ = c.Printf(format, a...)
 }
 
 func PrintCustomizeLn(c *color.Color, a ...interface{}) {
-	logCli := grpcClient.Cli.GetLogUploadLogStreamClient()
-	if logCli != nil {
-		str := fmt.Sprint(a...)
-		err := sendMsg(c, logCli, str)
-		if err != nil {
-			createLog("grpc logStream error:"+err.Error(), ErrorColor)
-		}
-	}
+	printer.print(c, fmt.Sprint(a...))
+
 	_, _ = c.Println(a...)
 }
 
-func PrintCustomizeLnNotShow(a string) {
-	logCli := grpcClient.Cli.GetLogUploadLogStreamClient()
-	if logCli != nil {
-		err := sendMsg(InfoColor, logCli, a)
-		if err != nil {
-			createLog("grpc logStream error:"+err.Error(), ErrorColor)
-		}
-	}
+func PrintCustomizeLnNotShow(msg string) {
+	printer.print(InfoColor, msg)
 }
 
 func SaveLogToDiagnostic(diagnostics []*schema.Diagnostic) {

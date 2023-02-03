@@ -15,9 +15,12 @@ type Variable struct {
 	mux sync.RWMutex
 
 	// token is not empty when user is login
-	token   string
-	orgName string
-	stage   string
+	token string
+
+	orgName     string
+	stage       string
+	projectName string
+	logLevel    string
 }
 
 // readOnlyVariable will only be set when programmer started
@@ -29,8 +32,6 @@ type readOnlyVariable struct {
 
 	// cmd store what command is running
 	cmd string
-
-	logLevel string
 }
 
 var g = Variable{
@@ -40,14 +41,9 @@ var g = Variable{
 	mux: sync.RWMutex{},
 }
 
-func Init(cmd, workspace, level string) {
+func Init(cmd, workspace string) {
 	g.once.Do(func() {
 		g.cmd = cmd
-		if _, ok := levelMap[level]; ok {
-			g.logLevel = level
-		} else {
-			g.logLevel = defaultLogLevel
-		}
 
 		if workspace != "" {
 			g.workspace = workspace
@@ -64,16 +60,16 @@ func Init(cmd, workspace, level string) {
 }
 
 // WrappedInit wrapper the Init function to a cobra func
-func WrappedInit(workspace, level string) func(cmd *cobra.Command, args []string) {
+func WrappedInit(workspace string) func(cmd *cobra.Command, args []string) {
 	return func(cmd *cobra.Command, args []string) {
-		Init(cmd.Name(), workspace, level)
+		Init(cmd.Name(), workspace)
 	}
 }
 
 // DefaultWrappedInit is a cobra func that will use default value to init Variable
 func DefaultWrappedInit() func(cmd *cobra.Command, args []string) {
 	return func(cmd *cobra.Command, args []string) {
-		Init(cmd.Name(), "", "")
+		Init(cmd.Name(), "")
 	}
 }
 
@@ -89,6 +85,38 @@ func SetStage(stage string) {
 	defer g.mux.Unlock()
 
 	g.stage = stage
+}
+
+func SetOrgName(orgName string) {
+	g.mux.Lock()
+	defer g.mux.Unlock()
+
+	g.orgName = orgName
+}
+
+func SetProjectName(prjName string) {
+	g.mux.Lock()
+	defer g.mux.Unlock()
+
+	g.projectName = prjName
+}
+
+func ProjectName() string {
+	g.mux.RLock()
+	defer g.mux.RUnlock()
+
+	return g.projectName
+}
+
+func SetLogLevel(level string) {
+	g.mux.Lock()
+	defer g.mux.Unlock()
+
+	if _, ok := levelMap[level]; ok {
+		g.logLevel = level
+	} else {
+		g.logLevel = defaultLogLevel
+	}
 }
 
 func WorkSpace() string {
@@ -121,6 +149,9 @@ func Stage() string {
 }
 
 func LogLevel() string {
+	g.mux.RLock()
+	defer g.mux.RUnlock()
+
 	return g.logLevel
 }
 
