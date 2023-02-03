@@ -57,9 +57,6 @@ func ShouldLogin(token string) error {
 	}
 	displayLoginSuccess(res.Data.OrgName, res.Data.TokenName, token)
 
-	global.LOGINTOKEN = token // TODO will deprecate
-	global.SetToken(token)
-
 	return nil
 }
 
@@ -111,10 +108,10 @@ the following file for use by subsequent commands:
 
 func displayLoginSuccess(orgName, tokenName, token string) {
 	err := utils.SetCredentials(token)
-	if global.LOGINTOKEN == "" {
-		global.LOGINTOKEN = token
+	if global.Token() == "" {
+		global.SetToken(token)
 	}
-	global.ORGNAME = orgName
+	global.SetOrgName(orgName)
 	if err != nil {
 		ui.PrintErrorLn(err.Error())
 		return

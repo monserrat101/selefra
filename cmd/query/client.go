@@ -10,7 +10,7 @@ import (
 
 type QueryClient struct {
 	Ctx     context.Context
-	Client  *client.Client
+	Client  *client.Client // TODO: replace by storage
 	Tables  []prompt.Suggest
 	Columns []prompt.Suggest
 }

@@ -207,11 +207,47 @@ func (c *Config) GetHostName() string {
 	return "main-api.selefra.io"
 }
 
+func GetConfig() (*SelefraConfig, error) {
+	if err := IsSelefra(); err != nil {
+		return nil, err
+	}
+
+	return getConfig()
+}
+
+func getConfig() (c *SelefraConfig, err error) {
+	config := viper.New()
+	config.SetConfigType("yaml")
+	clientByte, err := GetClientStr()
+	if err != nil {
+		return nil, err
+	}
+	err = config.ReadConfig(bytes.NewBuffer(clientByte))
+	if err != nil {
+		return nil, err
+	}
+	err = yaml.Unmarshal(clientByte, &c)
+	if err != nil {
+		return nil, err
+	}
+	global.SetLogLevel(c.Selefra.LogLevel)
+	global.SetProjectName(c.Selefra.Name)
+
+	global.SERVER = c.Selefra.GetHostName() // TODO: replace
+
+	return c, nil
+}
+
+// GetConfig deprecated gradually
 func (c *SelefraConfig) GetConfig() error {
+	if err := IsSelefra(); err != nil {
+		return err
+	}
 	_, err := c.GetConfigWithViper()
 	return err
 }
 
+// GetAllConfig load all yaml config file in [dirname]
 func GetAllConfig(dirname string, fileMap FileMap) (FileMap, error) {
 	if fileMap == nil || len(fileMap) == 0 {
 		fileMap = make(FileMap)
@@ -257,6 +293,7 @@ func GetSchemaKey(required *ProviderRequired, cp CliProviders) string {
 	return pre + s
 }
 
+// IsSelefra return an error when workspace is not a selefra workspace
 func IsSelefra() error {
 	configMap, err := readAllConfig(*global.WORKSPACE, nil)
 	if err != nil {

@@ -137,6 +137,9 @@ func Login(token string) (*Res[loginData], error) {
 }
 
 func CreateTask(token, project_name string) (*Res[TaskData], error) {
+	if token == "" {
+		return nil, nil
+	}
 	var info = make(map[string]interface{})
 	info["token"] = token
 	info["project_name"] = project_name
@@ -166,6 +169,9 @@ func Logout(token string) error {
 }
 
 func CreateProject(token, name string) (orgName string, err error) {
+	if token == "" {
+		return "", nil
+	}
 	var info = make(map[string]string)
 	info["token"] = token
 	info["name"] = name
@@ -209,6 +215,9 @@ func OutPut(token, project, taskUUID string, req []OutputReq) error {
 }
 
 func UploadWorkplace(token, project string, fileMap map[string]string) error {
+	if token == "" {
+		return nil
+	}
 
 	var workplace WorkPlaceReq
 
@@ -241,8 +250,9 @@ const Success = "success"
 
 // SetUpStage sync project stage to selefra cloud
 func SetUpStage(token, project, stage string) error {
-	if token == "" {
-		return errors.New("token is empty")
+	if token == "" || project == "" {
+		return nil
+		//return errors.New("token is empty")
 	}
 	var info = make(map[string]string)
 	info["token"] = token
