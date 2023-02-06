@@ -10,8 +10,7 @@ body:
     attributes:
       label: Related
       description: Is your feature request related to a problem?
-      placeholder: |
-        Is your feature request related to a problem?
+      placeholder: Is your feature request related to a problem?
     validations:
       required: true
   - type: textarea
@@ -19,13 +18,22 @@ body:
     attributes:
       label: Feature
       description: Describe the feature you'd like
+      placeholder: Describe the feature you'd like
+    validations:
+      required: true
   - type: textarea
     id: alternatives
     attributes:
       label: Alternatives
       description: Describe alternatives you've considered
+      placeholder: Describe alternatives you've considered
+    validations:
+      required: true
   - type: textarea
     id: reference
     attributes:
       label: Reference
       description: Teachability, Documentation, Adoption, Migration Strategy
+      placeholder: Teachability, Documentation, Adoption, Migration Strategy
+    validations:
+      required: true
