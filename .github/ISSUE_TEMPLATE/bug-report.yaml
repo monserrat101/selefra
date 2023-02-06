@@ -1,0 +1,41 @@
+name: 🐛 Bug report
+description: Report a bug to help us improve selefra
+title: "[Bug]: "
+labels: [bug]
+assignees:
+  - selefra-bot
+body:
+  - type: input
+    id: version
+    attributes:
+      label: selefra version
+      description: Please enter the project version you are currently using?
+      placeholder: 0.0.5
+    validations:
+      required: true
+  - type: dropdown
+    id: reappearance
+    attributes:
+      label: Does it still exist
+      description: Is it possible to reproduce this bug in the main branch?
+      options:
+        - Yes
+        - No
+        - Not Tested
+    validations:
+      required: true
+  - type: textarea
+    id: desc
+    attributes:
+      label: bug description
+      description: Please briefly describe the bug and how to reproduce it.
+      placeholder: |
+        1. First...
+        2. Then...
+    validations:
+      required: true
+  - type: textarea
+    id: advise
+    attributes:
+      label: Proposed changes
+      description: You can provide us with good suggestions or modification plans.

@@ -1,0 +1,31 @@
+name: 🚀 Feature Request
+description: Suggest an idea for selefra
+title: "[Feature]: "
+labels: [feature]
+assignees:
+  - selefra-bot
+body:
+  - type: textarea
+    id: desc
+    attributes:
+      label: Related
+      description: Is your feature request related to a problem?
+      placeholder: |
+        Is your feature request related to a problem?
+    validations:
+      required: true
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature
+      description: Describe the feature you'd like
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Describe alternatives you've considered
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference
+      description: Teachability, Documentation, Adoption, Migration Strategy
