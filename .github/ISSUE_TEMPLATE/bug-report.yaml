@@ -19,9 +19,9 @@ body:
       label: Does it still exist
       description: Is it possible to reproduce this bug in the main branch?
       options:
-        - Yes
-        - No
-        - Not Tested
+        - "Yes"
+        - "No"
+        - "Not Tested"
     validations:
       required: true
   - type: textarea
