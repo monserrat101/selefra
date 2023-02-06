@@ -30,13 +30,13 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 func shouldLogout(token string) error {
 	err := httpClient.Logout(token)
 	if err != nil {
-		ui.PrintErrorLn("Logout error:" + err.Error())
+		ui.Errorln("Logout error:" + err.Error())
 		return nil
 	}
 
 	err = utils.SetCredentials("")
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 	}
 
 	return nil

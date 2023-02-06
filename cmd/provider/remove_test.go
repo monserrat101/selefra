@@ -7,7 +7,7 @@ import (
 )
 
 func TestRemove(t *testing.T) {
-	*global.WORKSPACE = "../../tests/workspace/offline"
+	global.Init("TestRemove", global.WithWorkspace("../../tests/workspace/offline"))
 	err := Remove([]string{"aws"})
 	if err != nil {
 		t.Error(err)

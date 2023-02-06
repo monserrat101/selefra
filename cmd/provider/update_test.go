@@ -7,7 +7,7 @@ import (
 )
 
 func TestUpdate(t *testing.T) {
-	*global.WORKSPACE = "../../tests/workspace/offline"
+	global.Init("TestUpdate", global.WithWorkspace("../../tests/workspace/offline"))
 	ctx := context.Background()
 	arg := []string{"aws"}
 	err := update(ctx, arg)

@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/selefra/selefra/pkg/httpClient"
-	"github.com/selefra/selefra/pkg/oci"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/selefra/selefra/ui"
 	"github.com/spf13/viper"
@@ -37,19 +35,13 @@ var typeMap = map[string]bool{
 	VARIABLES: true,
 }
 
-type CliProviders struct {
+type ProviderConfig struct {
 	Name          string   `yaml:"name" json:"name"`
 	Cache         string   `yaml:"cache" json:"cache"`
 	Provider      string   `yaml:"provider" json:"provider"`
 	MaxGoroutines uint64   `yaml:"max_goroutines" json:"max_goroutines"`
 	Resources     []string `yaml:"resources" json:"resources"`
 	LogLevel      string   `yaml:"log_level" json:"log_level"`
-}
-
-func (c *SelefraConfig) GetProvider(conf string) (CliProviders, error) {
-	var cp CliProviders
-	err := json.Unmarshal([]byte(conf), &cp)
-	return cp, err
 }
 
 type Variable struct {
@@ -59,19 +51,21 @@ type Variable struct {
 	Author      string `yaml:"author" json:"author"`
 }
 
-type SelefraConfig struct {
-	Selefra   Config     `yaml:"selefra"`
-	Providers yaml.Node  `yaml:"providers"`
-	Variables []Variable `yaml:"variables"`
-}
-type SelefraConfigInit struct {
-	Selefra   ConfigInit `yaml:"selefra"`
-	Providers yaml.Node  `yaml:"providers"`
+// RootConfig is root config for selefra project
+type RootConfig struct {
+	Selefra   SelefraConfig `yaml:"selefra"`
+	Providers yaml.Node     `yaml:"providers"`
+	Variables []Variable    `yaml:"variables"`
 }
 
-type SelefraConfigInitWithLogin struct {
-	Selefra   ConfigInitWithLogin `yaml:"selefra"`
-	Providers yaml.Node           `yaml:"providers"`
+type RootConfigInit struct {
+	Selefra   SelefraConfigInit `yaml:"selefra"`
+	Providers yaml.Node         `yaml:"providers"`
+}
+
+type RootConfigInitWithLogin struct {
+	Selefra   SelefraConfigInitWithLogin `yaml:"selefra"`
+	Providers yaml.Node                  `yaml:"providers"`
 }
 
 type RulesConfig struct {
@@ -106,28 +100,33 @@ type Module struct {
 	Children []*ModuleConfig `yaml:"-" json:"children"`
 }
 
+// Cloud is config for selefra cloud
+// when user is login, cloud config exist, else not
 type Cloud struct {
 	Project      string `yaml:"project" mapstructure:"project"`
 	Organization string `yaml:"organization" mapstructure:"organization"`
 	HostName     string `yaml:"hostname" mapstructure:"hostname"`
 }
 
-type Config struct {
+// SelefraConfig is the project config
+type SelefraConfig struct {
 	Cloud      *Cloud              `yaml:"cloud" mapstructure:"cloud"`
 	Name       string              `yaml:"name" mapstructure:"name"`
 	CliVersion string              `yaml:"cli_version" mapstructure:"cli_version"`
 	LogLevel   string              `yaml:"log_level" mapstructure:"log_level"`
 	Providers  []*ProviderRequired `yaml:"providers" mapstructure:"providers"`
-	Connection *DB                 `yaml:"connection" mapstructure:"connection"`
+	//Connection *DB                 `yaml:"connection" mapstructure:"connection"`
 }
 
-type ConfigInit struct {
+// SelefraConfigInit is a subset for SelefraConfig without cloud config
+type SelefraConfigInit struct {
 	Name       string                  `yaml:"name" mapstructure:"name"`
 	CliVersion string                  `yaml:"cli_version" mapstructure:"cli_version"`
 	Providers  []*ProviderRequiredInit `yaml:"providers" mapstructure:"providers"`
 }
 
-type ConfigInitWithLogin struct {
+// SelefraConfigInitWithLogin is a subset for SelefraConfig with a cloud config
+type SelefraConfigInitWithLogin struct {
 	Cloud      *Cloud                  `yaml:"cloud" mapstructure:"cloud"`
 	Name       string                  `yaml:"name" mapstructure:"name"`
 	CliVersion string                  `yaml:"cli_version" mapstructure:"cli_version"`
@@ -165,49 +164,14 @@ type YamlKey int
 type ConfigMap map[string]map[string]string
 type FileMap map[string]string
 
-func (c *Config) GetDSN() string {
-	var db *DB
-	token, err := utils.GetCredentialsToken()
-	if token != "" && c.Cloud != nil && err == nil {
-		DSN, err := httpClient.GetDsn(token)
-		if err != nil {
-			ui.PrintErrorLn(err.Error())
-			return ""
-		}
-		return DSN
-
-	}
-	db = c.Connection
-	if db == nil {
-		err := oci.RunDB()
-		if err != nil {
-			ui.PrintErrorLn(err.Error())
-			return ""
-		}
-		db = &DB{
-			Driver:   "",
-			Type:     "postgres",
-			Username: "postgres",
-			Password: "pass",
-			Host:     "localhost",
-			Port:     "15432",
-			Database: "postgres",
-			SSLMode:  "disable",
-			Extras:   nil,
-		}
-	}
-	DSN := "host=" + db.Host + " user=" + db.Username + " password=" + db.Password + " port=" + db.Port + " dbname=" + db.Database + " " + "sslmode=disable"
-	return DSN
-}
-
-func (c *Config) GetHostName() string {
+func (c *SelefraConfig) GetHostName() string {
 	if c.Cloud != nil && c.Cloud.HostName != "" {
 		return c.Cloud.HostName
 	}
 	return "main-api.selefra.io"
 }
 
-func GetConfig() (*SelefraConfig, error) {
+func GetConfig() (*RootConfig, error) {
 	if err := IsSelefra(); err != nil {
 		return nil, err
 	}
@@ -215,7 +179,7 @@ func GetConfig() (*SelefraConfig, error) {
 	return getConfig()
 }
 
-func getConfig() (c *SelefraConfig, err error) {
+func getConfig() (c *RootConfig, err error) {
 	config := viper.New()
 	config.SetConfigType("yaml")
 	clientByte, err := GetClientStr()
@@ -233,21 +197,16 @@ func getConfig() (c *SelefraConfig, err error) {
 	global.SetLogLevel(c.Selefra.LogLevel)
 	global.SetProjectName(c.Selefra.Name)
 
+	if c.Selefra.Cloud != nil {
+		global.SetRelvPrjName(c.Selefra.Cloud.Project)
+	}
+
 	global.SERVER = c.Selefra.GetHostName() // TODO: replace
 
 	return c, nil
 }
 
-// GetConfig deprecated gradually
-func (c *SelefraConfig) GetConfig() error {
-	if err := IsSelefra(); err != nil {
-		return err
-	}
-	_, err := c.GetConfigWithViper()
-	return err
-}
-
-// GetAllConfig load all yaml config file in [dirname]
+// GetAllConfig load all yaml config file in [dirname] and return a map filename => file_content
 func GetAllConfig(dirname string, fileMap FileMap) (FileMap, error) {
 	if fileMap == nil || len(fileMap) == 0 {
 		fileMap = make(FileMap)
@@ -280,7 +239,7 @@ func GetCacheKey() string {
 	return "update_time"
 }
 
-func GetSchemaKey(required *ProviderRequired, cp CliProviders) string {
+func GetSchemaKey(required *ProviderRequired, cp ProviderConfig) string {
 	var pre string
 	if required == nil {
 		return pre + "public"
@@ -293,14 +252,16 @@ func GetSchemaKey(required *ProviderRequired, cp CliProviders) string {
 	return pre + s
 }
 
+var ErrNotSelefra = errors.New("this workspace is not selefra workspace")
+
 // IsSelefra return an error when workspace is not a selefra workspace
 func IsSelefra() error {
-	configMap, err := readAllConfig(*global.WORKSPACE, nil)
+	configMap, err := readAllConfig(global.WorkSpace(), nil)
 	if err != nil {
 		return err
 	}
 	if configMap[SELEFRA] == nil {
-		return errors.New("this workspace is not selefra workspace")
+		return ErrNotSelefra
 	}
 	return nil
 }
@@ -416,7 +377,7 @@ func fmtNodePath(nodes []*yaml.Node, path string, key string) {
 var NoClient = errors.New("There is no selefra configuration！")
 
 func GetClientStr() ([]byte, error) {
-	configMap, err := readAllConfig(*global.WORKSPACE, nil)
+	configMap, err := readAllConfig(global.WorkSpace(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -461,7 +422,7 @@ func GetClientStr() ([]byte, error) {
 }
 
 func GetModulesStr() ([]byte, error) {
-	configMap, err := readAllConfig(*global.WORKSPACE, nil)
+	configMap, err := readAllConfig(global.WorkSpace(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -500,7 +461,7 @@ func checkModuleFile(configMap map[string]string, workspace string, waitUsePath 
 		err = fmt.Errorf("the file name is not yaml:%s", waitUsePath)
 	}
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 		return err
 	}
 	if strings.Index(string(b), "modules:") > -1 {
@@ -508,7 +469,7 @@ func checkModuleFile(configMap map[string]string, workspace string, waitUsePath 
 		var module ModuleConfig
 		err = yaml.Unmarshal(b, &module)
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 			return err
 		}
 		for _, module := range module.Modules {
@@ -526,7 +487,7 @@ func getAllModules(configMap map[string]string, workspace, path string) {
 		modulesName := strings.Split(path, "/")[1]
 		modulePath, err := utils.GetHomeModulesPath(modulesName, "")
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 		}
 		waitUsePath = strings.Replace(path, "selefra", modulePath, 1)
 		workspace = modulePath + "/" + modulesName
@@ -536,43 +497,43 @@ func getAllModules(configMap map[string]string, workspace, path string) {
 		modulesName := modulesArr[2]
 		modulePath, err := utils.GetHomeModulesPath(modulesName, modulesOrg)
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 		}
 		waitUsePath = strings.Replace(path, strings.Join(modulesArr[:2], "/"), modulePath, 1)
 		workspace = modulePath + "/" + modulesName
 	} else {
 		waitUsePath = filepath.Join(workspace, path)
 		if workspace == "" {
-			workspace = *global.WORKSPACE
+			workspace = global.WorkSpace()
 		}
 	}
 	file, err := os.Stat(waitUsePath)
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 		return
 	}
 	if file.IsDir() {
 		files, err := os.ReadDir(waitUsePath)
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 			return
 		}
 		for _, file := range files {
 			f, err := file.Info()
 			if err != nil {
-				ui.PrintErrorLn(err.Error())
+				ui.Errorln(err.Error())
 				continue
 			}
 			err = checkModuleFile(configMap, workspace, waitUsePath, f)
 			if err != nil {
-				ui.PrintErrorLn(err.Error())
+				ui.Errorln(err.Error())
 				continue
 			}
 		}
 	} else {
 		err = checkModuleFile(configMap, workspace, waitUsePath, file)
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 			return
 		}
 	}
@@ -670,7 +631,7 @@ func makeUsesModule(nodesMap map[string]*yaml.Node) ([]byte, error) {
 					modulesName := modulesArr[2]
 					modulePath, err := utils.GetHomeModulesPath(modulesName, modulesOrg)
 					if err != nil {
-						ui.PrintErrorLn(err.Error())
+						ui.Errorln(err.Error())
 					}
 					moduleConfig.Modules[i].Uses[ii] = strings.Replace(use, strings.Join(modulesArr[:2], "/"), modulePath, 1)
 				}
@@ -777,7 +738,7 @@ func checkCycle(cyclePathMap map[string][]string, path string, pathList []string
 
 func GetConfigPath() (string, error) {
 
-	configMap, err := readAllConfig(*global.WORKSPACE, nil)
+	configMap, err := readAllConfig(global.WorkSpace(), nil)
 	if err != nil {
 		return "", err
 	}
@@ -794,13 +755,13 @@ func GetConfigPath() (string, error) {
 
 func GetRules() (RulesConfig, error) {
 	var rules RulesConfig
-	configMap, err := readAllConfig(*global.WORKSPACE, nil)
+	configMap, err := readAllConfig(global.WorkSpace(), nil)
 	if err != nil {
 		return rules, err
 	}
 	for rulePath, rule := range configMap[RULES] {
 		var baseRule RulesConfig
-		ws := strings.ReplaceAll(rulePath, *global.WORKSPACE+"/", "")
+		ws := strings.ReplaceAll(rulePath, global.WorkSpace()+"/", "")
 		if strings.Index(ws, string(os.PathSeparator)) < 0 {
 			err := yaml.Unmarshal([]byte(rule), &baseRule)
 			if err != nil {
@@ -808,7 +769,7 @@ func GetRules() (RulesConfig, error) {
 			}
 			for i := range baseRule.Rules {
 				baseRule.Rules[i].Path = rulePath
-				ui.PrintSuccessF("	%s - Rule %s: loading ... ", rulePath, baseRule.Rules[i].Name)
+				ui.Successf("	%s - Rule %s: loading ... ", rulePath, baseRule.Rules[i].Name)
 			}
 			rules.Rules = append(rules.Rules, baseRule.Rules...)
 		}
@@ -816,8 +777,8 @@ func GetRules() (RulesConfig, error) {
 	return rules, err
 }
 
-func (c *SelefraConfig) TestConfigByNode() error {
-	configMap, err := readAllConfig(*global.WORKSPACE, nil)
+func (c *RootConfig) TestConfigByNode() error {
+	configMap, err := readAllConfig(global.WorkSpace(), nil)
 	if err != nil {
 		return err
 	}
@@ -971,7 +932,7 @@ func checkNode(configMap map[string]*yaml.Node, bodyNode []*yaml.Node, pathStr s
 	return nil
 }
 
-func (c *SelefraConfig) GetConfigWithViper() (*viper.Viper, error) {
+func (c *RootConfig) GetConfigWithViper() (*viper.Viper, error) {
 	config := viper.New()
 	config.SetConfigType("yaml")
 	clientByte, err := GetClientStr()

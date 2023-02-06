@@ -17,33 +17,9 @@ package main
 
 import (
 	"github.com/selefra/selefra/cmd"
-	"github.com/selefra/selefra/pkg/grpcClient"
-	"github.com/selefra/selefra/ui"
-	"log"
-	"runtime/debug"
 )
 
 func main() {
-	defer func() {
-		logCli := grpcClient.Cli.GetLogUploadLogStreamClient()
-		conn := grpcClient.Cli.GetConn()
-		ui.PrintSuccessLn("Selefra exit")
-		if logCli != nil {
-			err := logCli.CloseSend()
-			if err != nil {
-				log.Fatalf("fail to close issue stream:%s", err.Error())
-			}
-		}
-		if conn != nil {
-			err := conn.Close()
-			if err != nil {
-				log.Fatalf("fail to close grpc conn:%s", err.Error())
-			}
-		}
-		if err := recover(); err != nil {
-			log.Fatalf("Panic: %v\n%s", err, debug.Stack())
-		}
-	}()
 	cmd.Execute()
 
 }

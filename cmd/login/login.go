@@ -40,13 +40,17 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 
 // ShouldLogin should login to selefra cloud
 // if login successfully, global token will be set, else return an error
-func ShouldLogin(token string) error {
+func ShouldLogin(tokens ...string) error {
 	var err error
+	var token string
+	if len(tokens) > 0 {
+		token = tokens[0]
+	}
 
 	if token == "" {
 		token, err = utils.GetCredentialsToken()
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 			return err
 		}
 	}
@@ -84,9 +88,9 @@ func getInputToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ui.PrintCustomizeFNotN(ui.InfoColor, `
+	ui.Infof(`
 Selefra will login for login app.selefra.io  using your browser.
-If login is successful, Terraform will store the token in plain text in
+If login is successful, Selefra will store the token in plain text in
 the following file for use by subsequent commands:
 	%s
 
@@ -99,7 +103,7 @@ the following file for use by subsequent commands:
 	}
 	token := strings.TrimSpace(strings.Replace(rawToken, "\n", "", -1))
 	if token == "" {
-		ui.PrintErrorLn("No token provided")
+		ui.Errorln("No token provided")
 		return "", errors.New("no token provided")
 	}
 
@@ -113,13 +117,14 @@ func displayLoginSuccess(orgName, tokenName, token string) {
 	}
 	global.SetOrgName(orgName)
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 		return
 	}
-	ui.PrintSuccessF(`
+	ui.Successf(`
 Retrieved token for user: %s. 
 
 Welcome to Selefra Cloud!
 
-Logged in to selefra as %s (https://app.selefra.io/%s)`, tokenName, orgName, orgName)
+Logged in to selefra as %s (https://app.selefra.io/%s)
+`, tokenName, orgName, orgName)
 }

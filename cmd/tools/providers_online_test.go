@@ -9,13 +9,12 @@ import (
 	"testing"
 )
 
-func getProviderAndConfigOnline() (registry.ProviderBinary, *config.SelefraConfig, error) {
-	*global.WORKSPACE = "../../tests/workspace/online"
-	global.LOGINTOKEN = "4fe8ed36488c479d0ba7292fe09a4132"
+func getProviderAndConfigOnline() (registry.ProviderBinary, *config.RootConfig, error) {
+	global.Init("getProviderAndConfigOnline", global.WithWorkspace("../../tests/workspace/online"))
+	global.SetToken("4fe8ed36488c479d0ba7292fe09a4132")
 	global.SERVER = "dev-api.selefra.io"
 	ctx := context.Background()
-	var cof = new(config.SelefraConfig)
-	err := cof.GetConfig()
+	cof, err := config.GetConfig()
 	if err != nil {
 		return registry.ProviderBinary{}, nil, err
 	}
@@ -34,11 +33,10 @@ func getProviderAndConfigOnline() (registry.ProviderBinary, *config.SelefraConfi
 }
 
 func TestGetProvidersOnline(t *testing.T) {
-	*global.WORKSPACE = "../../tests/workspace/online"
-	global.LOGINTOKEN = "4fe8ed36488c479d0ba7292fe09a4132"
+	global.Init("TestGetProvidersOnline", global.WithWorkspace("../../tests/workspace/online"))
+	global.SetToken("4fe8ed36488c479d0ba7292fe09a4132")
 	global.SERVER = "dev-api.selefra.io"
-	var s = new(config.SelefraConfig)
-	err := s.GetConfig()
+	s, err := config.GetConfig()
 	if err != nil {
 		t.Error(err)
 	}

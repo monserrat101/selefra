@@ -10,9 +10,10 @@ const Version = "{{version}}"
 
 func NewVersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "version",
-		Short: "Print Selefra's version number",
-		Long:  "Print Selefra's version number",
+		Use:              "version",
+		Short:            "Print Selefra's version number",
+		Long:             "Print Selefra's version number",
+		PersistentPreRun: global.DefaultWrappedInit(),
 		Run: func(cmd *cobra.Command, args []string) {
 			version()
 		},
@@ -21,6 +22,5 @@ func NewVersionCmd() *cobra.Command {
 }
 
 func version() {
-	global.CMD = "version"
 	fmt.Println(Version)
 }

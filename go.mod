@@ -45,6 +45,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v20.10.21+incompatible // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v20.10.21+incompatible // indirect
@@ -102,6 +103,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/term v1.2.0-beta.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
@@ -114,6 +116,8 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	go.opencensus.io v0.24.0 // indirect

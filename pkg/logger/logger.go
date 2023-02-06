@@ -189,7 +189,7 @@ func (c *Config) GetEncoderConfig() zapcore.EncoderConfig {
 }
 
 func (c *Config) GetLogWriter(level string) zapcore.WriteSyncer {
-	filename := filepath.Join(*global.WORKSPACE, c.Directory, c.Source+".log")
+	filename := filepath.Join(global.WorkSpace(), c.Directory, c.Source+".log")
 	lumberjackLogger := &lumberjack.Logger{
 		Filename:   filename,
 		MaxSize:    c.MaxSize,
@@ -247,7 +247,7 @@ func (c *Config) GetLevelPriority(level zapcore.Level) zap.LevelEnablerFunc {
 }
 
 func NewLogger(c Config) (*Logger, error) {
-	logDir := filepath.Join(*global.WORKSPACE, c.Directory)
+	logDir := filepath.Join(global.WorkSpace(), c.Directory)
 	_, err := os.Stat(logDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(logDir, 0755)

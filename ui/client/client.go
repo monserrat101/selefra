@@ -5,16 +5,16 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/selefra/selefra-provider-sdk/storage"
-	postgres "github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
-	"github.com/selefra/selefra-provider-sdk/storage_factory"
 	"github.com/selefra/selefra/config"
+	"github.com/selefra/selefra/pkg/pgstorage"
 	"github.com/selefra/selefra/pkg/registry"
 	"github.com/selefra/selefra/ui"
 )
 
+// Deprecated
 type Client struct {
 	//downloadProgress ui.Progress
-	cfg           *config.Config
+	cfg           *config.SelefraConfig
 	Providers     registry.Providers
 	Registry      interface{}
 	PluginManager interface{}
@@ -22,7 +22,7 @@ type Client struct {
 	instanceId    uuid.UUID
 }
 
-func CreateClientFromConfig(ctx context.Context, cfg *config.Config, instanceId uuid.UUID, provider *config.ProviderRequired, cp config.CliProviders) (*Client, error) {
+func CreateClientFromConfig(ctx context.Context, cfg *config.SelefraConfig, instanceId uuid.UUID, provider *config.ProviderRequired, cp config.ProviderConfig) (*Client, error) {
 
 	hub := new(interface{})
 	pm := new(interface{})
@@ -34,19 +34,32 @@ func CreateClientFromConfig(ctx context.Context, cfg *config.Config, instanceId 
 		PluginManager: pm,
 		instanceId:    instanceId,
 	}
-	if cfg.GetDSN() != "" {
-		options := postgres.NewPostgresqlStorageOptions(cfg.GetDSN())
-		schema := config.GetSchemaKey(provider, cp)
-		options.SearchPath = schema
-		sto, diag := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, options)
-		if diag != nil {
-			err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
-			if err != nil {
-				return nil, errors.New("failed to create storage")
-			}
+
+	schema := config.GetSchemaKey(provider, cp)
+	sto, diag, _ := pgstorage.Storage(ctx, pgstorage.WithSearchPath(schema))
+	if diag != nil {
+		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
+		if err != nil {
+			return nil, errors.New("failed to create pgstorage")
 		}
+	}
+	if sto != nil {
 		c.Storage = sto
 	}
+
+	//if cfg.GetDSN() != "" {
+	//	options := postgres.NewPostgresqlStorageOptions(cfg.GetDSN())
+	//	schema := config.GetSchemaKey(provider, cp)
+	//	options.SearchPath = schema
+	//	sto, diag := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, options)
+	//	if diag != nil {
+	//		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
+	//		if err != nil {
+	//			return nil, errors.New("failed to create pgstorage")
+	//		}
+	//	}
+	//	c.Storage = sto
+	//}
 	c.Providers = registry.Providers{}
 	for _, rp := range cfg.Providers {
 		c.Providers.Set(registry.Provider{Name: rp.Name, Version: rp.Version})

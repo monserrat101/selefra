@@ -9,6 +9,7 @@ import (
 	"github.com/selefra/selefra/cmd/login"
 	"github.com/selefra/selefra/cmd/tools"
 	"github.com/selefra/selefra/pkg/httpClient"
+	"github.com/selefra/selefra/pkg/pgstorage"
 	"gopkg.in/yaml.v3"
 	"net/http"
 	"os"
@@ -77,7 +78,7 @@ func initFunc(cmd *cobra.Command, args []string) error {
 
 	// 4. generate yaml file
 	if err := createYaml(cmd); err != nil {
-		_ = httpClient.SetUpStage(global.Token(), global.ProjectName(), httpClient.Failed)
+		_ = httpClient.TrySetUpStage(global.ProjectName(), httpClient.Failed)
 	}
 
 	return nil
@@ -85,10 +86,11 @@ func initFunc(cmd *cobra.Command, args []string) error {
 
 var storage *postgresql_storage.PostgresqlStorageOptions
 
-func setStorage(ctx context.Context, config *config.Config) error {
-	storage = postgresql_storage.NewPostgresqlStorageOptions(config.GetDSN())
-
-	_, diag := postgresql_storage.NewPostgresqlStorage(ctx, storage)
+func setStorage(ctx context.Context, config *config.SelefraConfig) error {
+	_, diag, err := pgstorage.PgStorage(ctx)
+	if err != nil {
+		ui.Errorln(err.Error())
+	}
 	if diag != nil {
 		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
 		if err != nil {
@@ -101,13 +103,9 @@ func setStorage(ctx context.Context, config *config.Config) error {
 	return nil
 }
 
-func setSelefraConfig(cmd *cobra.Command) (*config.Config, error) {
-	c := &config.Config{}
+func setSelefraConfig(cmd *cobra.Command) (*config.SelefraConfig, error) {
+	c := &config.SelefraConfig{}
 	ctx := cmd.Context()
-
-	if err := setStorage(ctx, c); err != nil {
-		return c, err
-	}
 
 	relevance, _ := cmd.PersistentFlags().GetString("relevance")
 	if relevance != "" {
@@ -117,7 +115,11 @@ func setSelefraConfig(cmd *cobra.Command) (*config.Config, error) {
 		}
 	} else {
 		c.Name = getProjectName()
-		_ = login.ShouldLogin("")
+		_ = login.ShouldLogin()
+	}
+
+	if err := setStorage(ctx, c); err != nil {
+		return c, err
 	}
 
 	c.CliVersion = version.Version
@@ -128,14 +130,14 @@ func setSelefraConfig(cmd *cobra.Command) (*config.Config, error) {
 	}
 	c.Cloud = cloudConfig
 
-	if err := httpClient.SetUpStage(global.Token(), c.Name, httpClient.Creating); err != nil {
+	if err := httpClient.TrySetUpStage(c.Name, httpClient.Creating); err != nil {
 		return c, err
 	}
 
 	return c, nil
 }
 
-func setProviderConfig(cmd *cobra.Command, configYaml *config.SelefraConfig) error {
+func setProviderConfig(cmd *cobra.Command, configYaml *config.RootConfig) error {
 	ctx := cmd.Context()
 
 	prov, err := getProvidersList()
@@ -165,8 +167,8 @@ func setProviderConfig(cmd *cobra.Command, configYaml *config.SelefraConfig) err
 		if err != nil {
 			return fmt.Errorf("	Installed %s@%s failed：%s", p.Name, p.Version, err.Error())
 		}
-		ui.PrintSuccessF("	Installed %s@%s verified\n", p.Name, p.Version)
-		ui.PrintInfoF("	Synchronization %s@%s's config...\n", p.Name, p.Version)
+		ui.Successf("	Installed %s@%s verified\n", p.Name, p.Version)
+		ui.Infof("	Synchronization %s@%s's config...\n", p.Name, p.Version)
 
 		plug, err := plugin.NewManagedPlugin(p.Filepath, p.Name, p.Version, "", nil)
 		if err != nil {
@@ -200,7 +202,7 @@ func setProviderConfig(cmd *cobra.Command, configYaml *config.SelefraConfig) err
 		if err != nil {
 			return fmt.Errorf("	Synchronization %s@%s's config failed：%s\n", p.Name, p.Version, err.Error())
 		}
-		ui.PrintSuccessF("	Synchronization %s@%s's config successful\n", p.Name, p.Version)
+		ui.Successf("	Synchronization %s@%s's config successful\n", p.Name, p.Version)
 		err = tools.SetSelefraProvider(p, configYaml, "latest")
 		if err != nil {
 			return err
@@ -215,7 +217,7 @@ func setProviderConfig(cmd *cobra.Command, configYaml *config.SelefraConfig) err
 }
 
 func createYaml(cmd *cobra.Command) error {
-	configYaml := config.SelefraConfig{}
+	configYaml := config.RootConfig{}
 
 	selefraConfig, err := setSelefraConfig(cmd)
 	if err != nil {
@@ -230,7 +232,7 @@ func createYaml(cmd *cobra.Command) error {
 	return writeToFile(&configYaml)
 }
 
-func writeToFile(configYaml *config.SelefraConfig) error {
+func writeToFile(configYaml *config.RootConfig) error {
 	// process selefra config depend on whether user login
 	waitStr, err := yaml.Marshal(configYaml)
 	if err != nil {
@@ -238,7 +240,7 @@ func writeToFile(configYaml *config.SelefraConfig) error {
 	}
 	var selefraConfigStr []byte
 	if global.Token() != "" {
-		var initConfigYaml config.SelefraConfigInitWithLogin
+		var initConfigYaml config.RootConfigInitWithLogin
 		err = yaml.Unmarshal(waitStr, &initConfigYaml)
 		if err != nil {
 			return err
@@ -246,7 +248,7 @@ func writeToFile(configYaml *config.SelefraConfig) error {
 
 		selefraConfigStr, err = yaml.Marshal(initConfigYaml)
 	} else {
-		var initConfigYaml config.SelefraConfigInit
+		var initConfigYaml config.RootConfigInit
 		err = yaml.Unmarshal(waitStr, &initConfigYaml)
 		if err != nil {
 			return err
@@ -277,7 +279,7 @@ func writeToFile(configYaml *config.SelefraConfig) error {
 	}
 	err = os.WriteFile(filepath.Join(global.WorkSpace(), "selefra.yaml"), selefraConfigStr, 0644)
 
-	ui.PrintSuccessF(`
+	ui.Successf(`
 Selefra has been successfully initialized! 
 	
 Your new Selefra project "%s" was created!
@@ -290,11 +292,16 @@ To perform an initial analysis, run selefra apply
 
 // reInit check if current workspace is selefra workspace, then tell user to choose if rewrite selefra workspace
 func reInit() error {
-	if err := config.IsSelefra(); err != nil {
-		return nil
+	_, err := config.GetConfig()
+	if err != nil && errors.Is(err, config.ErrNotSelefra) {
+
 	}
+
+	//if err := config.IsSelefra(); err != nil {
+	//	return nil
+	//}
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("Error:%s is already init. Continue and overwrite it?[Y/N]\n", global.WorkSpace())
+	ui.Warningf("Warning: %s is already init. Continue and overwrite it?[Y/N]", global.WorkSpace())
 	text, err := reader.ReadString('\n')
 	text = strings.TrimSpace(strings.ToLower(text))
 	if err != nil {
@@ -317,24 +324,24 @@ func setInitGlobalVariable(args []string) error {
 	if len(args) > 0 {
 		dirname = args[0]
 	}
-	global.Init("init", filepath.Join(wd, dirname))
+	global.Init("init", global.WithWorkspace(filepath.Join(wd, dirname)))
 
 	return nil
 }
 
 func getProvidersList() ([]string, error) {
 	var prov []string
-	ui.PrintInfoLn("Getting provider list...")
+	ui.Infoln("Getting provider list...")
 	req, _ := http.NewRequest("GET", "https://github.com/selefra/registry/file-list/main/provider", nil)
 	client := http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		ui.PrintErrorF("Error: %s", err.Error())
+		ui.Errorf("Error: %s", err.Error())
 		return nil, err
 	}
 	d, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		ui.PrintErrorF("Error: %s", err.Error())
+		ui.Errorf("Error: %s", err.Error())
 		return nil, err
 	}
 	d.Find(".js-navigation-open.Link--primary").Each(func(i int, s *goquery.Selection) {
