@@ -17,9 +17,12 @@ type QueryClient struct {
 }
 
 func NewQueryClient(ctx context.Context) (*QueryClient, error) {
-	sto, _, err := pgstorage.Storage(ctx)
-	if err != nil {
-		return nil, err
+	sto, diag := pgstorage.Storage(ctx)
+	if diag != nil {
+		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tables := CreateTablesSuggest(ctx, sto)

@@ -239,6 +239,7 @@ func GetCacheKey() string {
 	return "update_time"
 }
 
+// GetSchemaKey return provider schema named <required.name>_<required_version>_<provider_name>
 func GetSchemaKey(required *ProviderRequired, cp ProviderConfig) string {
 	var pre string
 	if required == nil {
@@ -256,7 +257,7 @@ var ErrNotSelefra = errors.New("this workspace is not selefra workspace")
 
 // IsSelefra return an error when workspace is not a selefra workspace
 func IsSelefra() error {
-	configMap, err := readAllConfig(global.WorkSpace(), nil)
+	configMap, err := readAllConfig(global.WorkSpace())
 	if err != nil {
 		return err
 	}
@@ -266,32 +267,44 @@ func IsSelefra() error {
 	return nil
 }
 
-func readAllConfig(dirname string, configMap ConfigMap) (ConfigMap, error) {
-	if configMap == nil || len(configMap) == 0 {
-		configMap = make(ConfigMap)
-	}
-	files, err := os.ReadDir(dirname)
-	if err != nil {
-		return nil, err
-	}
-	for _, file := range files {
-		if !file.IsDir() {
-			if path.Ext(file.Name()) == ".yaml" {
-				f, _ := file.Info()
-				_, err = readConfigFile(dirname, configMap, f)
-				if err != nil {
-					return nil, err
+// realAllConfig read all yaml file and store it in a map
+func readAllConfig(dirname string) (ConfigMap, error) {
+	var err error
+
+	cm := make(ConfigMap)
+
+	var fn func(dirname string)
+	fn = func(dirname string) {
+		files, err := os.ReadDir(dirname)
+		if err != nil {
+			err = err
+			return
+		}
+		for _, file := range files {
+			if file.IsDir() {
+				fn(filepath.Join(dirname, file.Name()))
+			} else {
+				if path.Ext(file.Name()) == ".yaml" {
+					f, _ := file.Info()
+					_, err = readConfigFile(dirname, cm, f)
+					if err != nil {
+						err = err
+						continue
+					}
 				}
 			}
 		}
 	}
-	return configMap, nil
+
+	fn(dirname)
+
+	return cm, err
 }
 
 func readConfigFile(dirname string, configMap ConfigMap, file os.FileInfo) (ConfigMap, error) {
 	b, err := os.ReadFile(filepath.Join(dirname, file.Name()))
 	if err != nil {
-		fmt.Println(err)
+		ui.Errorln(err)
 		return nil, err
 	}
 	var node yaml.Node
@@ -313,7 +326,7 @@ func readConfigFile(dirname string, configMap ConfigMap, file os.FileInfo) (Conf
 
 				b, e := yaml.Marshal(strNode)
 				if e != nil {
-					fmt.Println(e)
+					ui.Errorln(e)
 					return nil, err
 				}
 				if configMap[node.Content[0].Content[i].Value] == nil {
@@ -377,7 +390,7 @@ func fmtNodePath(nodes []*yaml.Node, path string, key string) {
 var NoClient = errors.New("There is no selefra configuration！")
 
 func GetClientStr() ([]byte, error) {
-	configMap, err := readAllConfig(global.WorkSpace(), nil)
+	configMap, err := readAllConfig(global.WorkSpace())
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +435,7 @@ func GetClientStr() ([]byte, error) {
 }
 
 func GetModulesStr() ([]byte, error) {
-	configMap, err := readAllConfig(global.WorkSpace(), nil)
+	configMap, err := readAllConfig(global.WorkSpace())
 	if err != nil {
 		return nil, err
 	}
@@ -738,7 +751,7 @@ func checkCycle(cyclePathMap map[string][]string, path string, pathList []string
 
 func GetConfigPath() (string, error) {
 
-	configMap, err := readAllConfig(global.WorkSpace(), nil)
+	configMap, err := readAllConfig(global.WorkSpace())
 	if err != nil {
 		return "", err
 	}
@@ -755,30 +768,27 @@ func GetConfigPath() (string, error) {
 
 func GetRules() (RulesConfig, error) {
 	var rules RulesConfig
-	configMap, err := readAllConfig(global.WorkSpace(), nil)
+	configMap, err := readAllConfig(global.WorkSpace())
 	if err != nil {
 		return rules, err
 	}
 	for rulePath, rule := range configMap[RULES] {
 		var baseRule RulesConfig
-		ws := strings.ReplaceAll(rulePath, global.WorkSpace()+"/", "")
-		if strings.Index(ws, string(os.PathSeparator)) < 0 {
-			err := yaml.Unmarshal([]byte(rule), &baseRule)
-			if err != nil {
-				return RulesConfig{}, err
-			}
-			for i := range baseRule.Rules {
-				baseRule.Rules[i].Path = rulePath
-				ui.Successf("	%s - Rule %s: loading ... ", rulePath, baseRule.Rules[i].Name)
-			}
-			rules.Rules = append(rules.Rules, baseRule.Rules...)
+		err := yaml.Unmarshal([]byte(rule), &baseRule)
+		if err != nil {
+			return RulesConfig{}, err
 		}
+		for i := range baseRule.Rules {
+			baseRule.Rules[i].Path = rulePath
+			ui.Successf("	%s - Rule %s: loading ... \n", rulePath, baseRule.Rules[i].Name)
+		}
+		rules.Rules = append(rules.Rules, baseRule.Rules...)
 	}
 	return rules, err
 }
 
 func (c *RootConfig) TestConfigByNode() error {
-	configMap, err := readAllConfig(global.WorkSpace(), nil)
+	configMap, err := readAllConfig(global.WorkSpace())
 	if err != nil {
 		return err
 	}
@@ -947,12 +957,12 @@ func (c *RootConfig) GetConfigWithViper() (*viper.Viper, error) {
 	if err != nil {
 		return nil, err
 	}
-	global.ChangeLevel(c.Selefra.LogLevel)
+	global.SetLogLevel(c.Selefra.LogLevel)
 	global.SERVER = c.Selefra.GetHostName()
 	return config, nil
 }
 
-func GetModulesByPath() ([]Module, error) {
+func GetModules() ([]Module, error) {
 	var modules ModuleConfig
 	modulesStr, err := GetModulesStr()
 	if err != nil {

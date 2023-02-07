@@ -26,8 +26,9 @@ type lockStruct struct {
 	Storage   *postgresql_storage.PostgresqlStorage
 }
 
+// Sync
 func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
-	ui.Successln("Initializing provider plugins...")
+	ui.Infof("Initializing provider plugins...\n\n")
 	ctx := context.Background()
 	cof, err := config.GetConfig()
 	if err != nil {
@@ -38,7 +39,7 @@ func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
 		return nil, nil, err
 	}
 	provider := registry.NewProviderRegistry(namespace)
-	ui.Successf("Selefra has been successfully installed providers!\n")
+	ui.Successf("Selefra has been successfully installed providers!\n\n")
 	ui.Successf("Checking Selefra provider updates......\n")
 
 	var hasError bool
@@ -80,10 +81,13 @@ func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
 		return nil, nil, err
 	}
 
-	_, err = grpcClient.Client().UploadLogStatus()
-	if err != nil {
-		ui.Errorln(err.Error())
+	if global.Token() != "" && cof.Selefra.Cloud != nil {
+		_, err = grpcClient.Client().UploadLogStatus()
+		if err != nil {
+			ui.Errorln(err.Error())
+		}
 	}
+
 	global.SetStage("pull")
 	for _, p := range ProviderRequires {
 		confs, err := tools.GetProviders(cof, p.Name)

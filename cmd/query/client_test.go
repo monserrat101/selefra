@@ -47,7 +47,7 @@ func TestCreateColumnsSuggest(t *testing.T) {
 			//if err != nil {
 			//	t.Error(err)
 			//}
-			sto, _, _ := pgstorage.Storage(ctx)
+			sto, _ := pgstorage.Storage(ctx)
 			columns := CreateColumnsSuggest(ctx, sto)
 			if columns == nil {
 				t.Error("Columns is nil")
@@ -75,7 +75,7 @@ func TestCreateTablesSuggest(t *testing.T) {
 				ui.Errorln(err.Error())
 				continue
 			}
-			sto, _, _ := pgstorage.Storage(ctx)
+			sto, _ := pgstorage.Storage(ctx)
 			tables := CreateTablesSuggest(ctx, sto)
 			if tables == nil {
 				t.Error("Tables is nil")

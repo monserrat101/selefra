@@ -28,7 +28,7 @@ type RpcClient struct {
 
 var (
 	client     *RpcClient
-	clientOnce *sync.Once
+	clientOnce *sync.Once = &sync.Once{}
 )
 
 func ShouldClient(ctx context.Context, token, taskId string) (*RpcClient, error) {

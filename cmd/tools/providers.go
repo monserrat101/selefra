@@ -6,6 +6,7 @@ import (
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra/config"
+	"github.com/selefra/selefra/pkg/logger"
 	"github.com/selefra/selefra/pkg/pgstorage"
 	"github.com/selefra/selefra/pkg/registry"
 	"github.com/selefra/selefra/pkg/utils"
@@ -17,6 +18,7 @@ import (
 	"time"
 )
 
+// GetProviders find selefra provider and return it's name
 func GetProviders(config *config.RootConfig, key string) ([]string, error) {
 	var providerConfs []string
 	for _, group := range config.Providers.Content {
@@ -148,7 +150,7 @@ func GetStore(cof config.RootConfig, provider *config.ProviderRequired, conf str
 		return nil, err
 	}
 
-	store, diag, err := pgstorage.PgStorage(context.Background(), pgstorage.WithSearchPath(config.GetSchemaKey(provider, cp)))
+	store, diag := pgstorage.PgStorage(context.Background(), pgstorage.WithSearchPath(config.GetSchemaKey(provider, cp)))
 	if diag != nil {
 		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
 		if err != nil {
@@ -156,11 +158,7 @@ func GetStore(cof config.RootConfig, provider *config.ProviderRequired, conf str
 		}
 	}
 
-	stoLogger, err := ui.StoLogger()
-	if err != nil {
-		return nil, err
-	}
-	meta := &schema.ClientMeta{ClientLogger: stoLogger}
+	meta := &schema.ClientMeta{ClientLogger: logger.NewSchemaLoggeer()}
 	store.SetClientMeta(meta)
 	return store, nil
 }

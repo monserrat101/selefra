@@ -2,7 +2,6 @@ package pgstorage
 
 import (
 	"context"
-	"errors"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
@@ -30,41 +29,29 @@ func WithSearchPath(searchPath string) Option {
 	}
 }
 
-func PgStorage(ctx context.Context, opts ...Option) (*postgresql_storage.PostgresqlStorage, *schema.Diagnostics, error) {
+func PgStorage(ctx context.Context, opts ...Option) (*postgresql_storage.PostgresqlStorage, *schema.Diagnostics) {
 	pgopts := DefaultPgStorageOpts()
 
 	for _, opt := range opts {
 		opt(pgopts)
 	}
 
-	pgs, diag := postgresql_storage.NewPostgresqlStorage(ctx, pgopts)
-
-	if pgs == nil || diag == nil {
-		return nil, nil, errors.New("build storage failed")
-	}
-
-	return pgs, diag, nil
+	return postgresql_storage.NewPostgresqlStorage(ctx, pgopts)
 }
 
-func Storage(ctx context.Context, opts ...Option) (storage.Storage, *schema.Diagnostics, error) {
+func Storage(ctx context.Context, opts ...Option) (storage.Storage, *schema.Diagnostics) {
 	pgopts := DefaultPgStorageOpts()
 
 	for _, opt := range opts {
 		opt(pgopts)
 	}
 
-	sto, diag := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, pgopts)
-
-	if sto == nil || diag == nil {
-		return nil, nil, errors.New("build storage failed")
-	}
-
-	return sto, diag, nil
+	return storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, pgopts)
 }
 
 func getDsn() (dsn string) {
 	var err error
-	if global.Token() != "" {
+	if global.Token() != "" && global.RelvPrjName() != "" {
 		dsn, err = httpClient.GetDsn(global.Token())
 		if err != nil {
 			ui.Errorln(err.Error())

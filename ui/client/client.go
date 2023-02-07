@@ -11,7 +11,7 @@ import (
 	"github.com/selefra/selefra/ui"
 )
 
-// Deprecated
+// TODO: Deprecated
 type Client struct {
 	//downloadProgress ui.Progress
 	cfg           *config.SelefraConfig
@@ -22,6 +22,7 @@ type Client struct {
 	instanceId    uuid.UUID
 }
 
+// TODO: Deprecated
 func CreateClientFromConfig(ctx context.Context, cfg *config.SelefraConfig, instanceId uuid.UUID, provider *config.ProviderRequired, cp config.ProviderConfig) (*Client, error) {
 
 	hub := new(interface{})
@@ -36,7 +37,7 @@ func CreateClientFromConfig(ctx context.Context, cfg *config.SelefraConfig, inst
 	}
 
 	schema := config.GetSchemaKey(provider, cp)
-	sto, diag, _ := pgstorage.Storage(ctx, pgstorage.WithSearchPath(schema))
+	sto, diag := pgstorage.Storage(ctx, pgstorage.WithSearchPath(schema))
 	if diag != nil {
 		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
 		if err != nil {
