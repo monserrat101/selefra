@@ -12,6 +12,7 @@ import (
 	"github.com/selefra/selefra/cmd/test"
 	"github.com/selefra/selefra/cmd/version"
 	"github.com/selefra/selefra/global"
+	"github.com/selefra/selefra/pkg/utils"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
@@ -39,6 +40,10 @@ If you like selefra, give us a star https://github.com/selefra/selefra
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	defer func() {
+		utils.Close()
+	}()
+
 	if err := rootCmd.Execute(); err != nil {
 		log.Printf("Error occurred in Execute: %+v", err)
 		os.Exit(1)

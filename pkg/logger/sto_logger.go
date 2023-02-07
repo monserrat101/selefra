@@ -60,7 +60,7 @@ func (l *StoLogger) Name() string {
 }
 
 func NewStoLogger(c Config) (*StoLogger, error) {
-	logDir := filepath.Join(*global.WORKSPACE, c.Directory)
+	logDir := filepath.Join(global.WorkSpace(), c.Directory)
 	_, err := os.Stat(logDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(logDir, 0755)

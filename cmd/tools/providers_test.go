@@ -9,11 +9,10 @@ import (
 	"testing"
 )
 
-func getProviderAndConfig() (registry.ProviderBinary, *config.SelefraConfig, error) {
-	*global.WORKSPACE = "../../tests/workspace/offline"
+func getProviderAndConfig() (registry.ProviderBinary, *config.RootConfig, error) {
+	global.Init("", global.WithWorkspace("../../tests/workspace/offline"))
 	ctx := context.Background()
-	var cof = new(config.SelefraConfig)
-	err := cof.GetConfig()
+	cof, err := config.GetConfig()
 	if err != nil {
 		return registry.ProviderBinary{}, nil, err
 	}
@@ -32,9 +31,8 @@ func getProviderAndConfig() (registry.ProviderBinary, *config.SelefraConfig, err
 }
 
 func TestGetProviders(t *testing.T) {
-	*global.WORKSPACE = "../../tests/workspace/offline"
-	var s = new(config.SelefraConfig)
-	err := s.GetConfig()
+	global.Init("", global.WithWorkspace("../../tests/workspace/offline"))
+	s, err := config.GetConfig()
 	if err != nil {
 		t.Error(err)
 	}

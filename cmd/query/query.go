@@ -2,12 +2,9 @@ package query
 
 import (
 	"github.com/c-bata/go-prompt"
-	"github.com/google/uuid"
-	"github.com/selefra/selefra/config"
 	"github.com/selefra/selefra/global"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/selefra/selefra/ui"
-	"github.com/selefra/selefra/ui/client"
 	"github.com/selefra/selefra/ui/table"
 	"github.com/spf13/cobra"
 	"os"
@@ -16,35 +13,22 @@ import (
 
 func NewQueryCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "query",
-		Short: "Query infrastructure data from storage",
-		Long:  "Query infrastructure data from storage",
+		Use:              "query",
+		Short:            "Query infrastructure data from pgstorage",
+		Long:             "Query infrastructure data from pgstorage",
+		PersistentPreRun: global.DefaultWrappedInit(),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := cmd.Context()
-			ui.PrintWarningLn("Please select table.")
-			var cof = &config.SelefraConfig{}
-			wd, err := os.Getwd()
-			*global.WORKSPACE = wd
-			err = cof.GetConfig()
-			if err != nil {
-				ui.PrintErrorLn(err)
-				return
-			}
-			uid, _ := uuid.NewUUID()
-			c, e := client.CreateClientFromConfig(ctx, &cof.Selefra, uid, nil, config.CliProviders{})
-			if e != nil {
-				ui.PrintErrorLn(e)
-				return
-			}
+			ui.Warningln("Please select table.")
 
-			queryClient := NewQueryClient(ctx, c)
+			queryClient, _ := NewQueryClient(ctx)
 			p := prompt.New(func(in string) {
 				strArr := strings.Split(in, "/")
 				s := strArr[0]
 
-				res, err := c.Storage.Query(ctx, s)
+				res, err := queryClient.Storage.Query(ctx, s)
 				if err != nil {
-					ui.PrintErrorLn(err)
+					ui.Errorln(err)
 				} else {
 					tables, e := res.ReadRows(-1)
 					if e != nil && e.HasError() {

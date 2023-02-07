@@ -136,12 +136,13 @@ func Login(token string) (*Res[loginData], error) {
 	return res, nil
 }
 
-func CreateTask(token, project_name string) (*Res[TaskData], error) {
-	if token == "" {
+// TryCreateTask create a task in selefra cloud when use is login, else do nothing
+func TryCreateTask(project_name string) (*Res[TaskData], error) {
+	if global.Token() == "" || project_name == "" {
 		return nil, nil
 	}
 	var info = make(map[string]interface{})
-	info["token"] = token
+	info["token"] = global.Token()
 	info["project_name"] = project_name
 	info["task_id"] = os.Getenv("SELEFRA_TASK_ID")
 	info["task_source"] = os.Getenv("SELEFRA_TASK_SOURCE")
@@ -168,12 +169,13 @@ func Logout(token string) error {
 	return nil
 }
 
-func CreateProject(token, name string) (orgName string, err error) {
-	if token == "" {
+// TryCreateProject create a project in selefra cloud when use is login, else do nothing
+func TryCreateProject(name string) (orgName string, err error) {
+	if global.Token() == "" {
 		return "", nil
 	}
 	var info = make(map[string]string)
-	info["token"] = token
+	info["token"] = global.Token()
 	info["name"] = name
 	res, err := CliHttpClient[CreateProjectData]("POST", "/cli/create_project", info)
 	if err != nil {
@@ -214,14 +216,15 @@ func OutPut(token, project, taskUUID string, req []OutputReq) error {
 	return nil
 }
 
-func UploadWorkplace(token, project string, fileMap map[string]string) error {
-	if token == "" {
+// TryUploadWorkspace upload workspace to selefra cloud when use is login, else do nothing
+func TryUploadWorkspace(project string, fileMap map[string]string) error {
+	if global.Token() == "" || project == "" {
 		return nil
 	}
 
 	var workplace WorkPlaceReq
 
-	workplace.Token = token
+	workplace.Token = global.Token()
 	workplace.ProjectName = project
 	workplace.Data = make([]Data, 0)
 	for k, v := range fileMap {
@@ -248,14 +251,13 @@ const Failed = "failed"
 
 const Success = "success"
 
-// SetUpStage sync project stage to selefra cloud
-func SetUpStage(token, project, stage string) error {
-	if token == "" || project == "" {
+// TrySetUpStage sync project stage to selefra cloud when use is login, else do nothing
+func TrySetUpStage(project, stage string) error {
+	if global.Token() == "" || project == "" {
 		return nil
-		//return errors.New("token is empty")
 	}
 	var info = make(map[string]string)
-	info["token"] = token
+	info["token"] = global.Token()
 	info["project_name"] = project
 	info["stag"] = stage // stag is a typo to stage
 	res, err := CliHttpClient[SetupStagRes]("POST", "/cli/update_setup_stag", info)

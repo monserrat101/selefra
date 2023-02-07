@@ -27,10 +27,9 @@ type lockStruct struct {
 }
 
 func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
-	ui.PrintSuccessLn("Initializing provider plugins...\n")
+	ui.Successln("Initializing provider plugins...")
 	ctx := context.Background()
-	var cof = &config.SelefraConfig{}
-	err = cof.GetConfig()
+	cof, err := config.GetConfig()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -39,8 +38,8 @@ func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
 		return nil, nil, err
 	}
 	provider := registry.NewProviderRegistry(namespace)
-	ui.PrintSuccessF("Selefra has been successfully installed providers!\n")
-	ui.PrintSuccessF("Checking Selefra provider updates......\n")
+	ui.Successf("Selefra has been successfully installed providers!\n")
+	ui.Successf("Checking Selefra provider updates......\n")
 
 	var hasError bool
 	var ProviderRequires []*config.ProviderRequired
@@ -55,7 +54,7 @@ func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
 		pp, err := provider.Download(ctx, prov, true)
 		if err != nil {
 			hasError = true
-			ui.PrintErrorF("%s@%s failed updated：%s", p.Name, p.Version, err.Error())
+			ui.Errorf("%s@%s failed updated：%s", p.Name, p.Version, err.Error())
 			errLogs = append(errLogs, fmt.Sprintf("%s@%s failed updated：%s", p.Name, p.Version, err.Error()))
 			continue
 		} else {
@@ -64,50 +63,48 @@ func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
 			err = tools.SetSelefraProvider(pp, nil, configVersion)
 			if err != nil {
 				hasError = true
-				ui.PrintErrorF("%s@%s failed updated：%s", p.Name, p.Version, err.Error())
+				ui.Errorf("%s@%s failed updated：%s", p.Name, p.Version, err.Error())
 				errLogs = append(errLogs, fmt.Sprintf("%s@%s failed updated：%s", p.Name, p.Version, err.Error()))
 				continue
 			}
 			ProviderRequires = append(ProviderRequires, p)
-			ui.PrintSuccessF("	%s@%s all ready updated!\n", p.Name, p.Version)
+			ui.Successf("	%s@%s all ready updated!\n", p.Name, p.Version)
 		}
 	}
 
-	ui.PrintSuccessF("Selefra has been finished update providers!\n")
+	ui.Successf("Selefra has been finished update providers!\n")
 
 	err = test.CheckSelefraConfig(ctx, *cof)
 	if err != nil {
-		if global.LOGINTOKEN != "" && cof.Selefra.Cloud != nil && err == nil {
-			_ = httpClient.SetUpStage(global.LOGINTOKEN, cof.Selefra.Cloud.Project, httpClient.Failed)
-		}
+		_ = httpClient.TrySetUpStage(global.RelvPrjName(), httpClient.Failed)
 		return nil, nil, err
 	}
 
-	_, err = grpcClient.Cli.UploadLogStatus()
+	_, err = grpcClient.Client().UploadLogStatus()
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 	}
-	global.STAG = "pull"
+	global.SetStage("pull")
 	for _, p := range ProviderRequires {
 		confs, err := tools.GetProviders(cof, p.Name)
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 			continue
 		}
 		for _, conf := range confs {
 			store, err := tools.GetStore(*cof, p, conf)
 			if err != nil {
 				hasError = true
-				ui.PrintErrorF("%s@%s failed updated：%s", p.Name, p.Version, err.Error())
+				ui.Errorf("%s@%s failed updated：%s", p.Name, p.Version, err.Error())
 				errLogs = append(errLogs, fmt.Sprintf("%s@%s failed updated：%s", p.Name, p.Version, err.Error()))
 				continue
 			}
 			ctx := context.Background()
 			uuid := id_util.RandomId()
-			var cp config.CliProviders
+			var cp config.ProviderConfig
 			err = yaml.Unmarshal([]byte(conf), &cp)
 			if err != nil {
-				ui.PrintErrorLn(err.Error())
+				ui.Errorln(err.Error())
 				continue
 			}
 			schemaKey := config.GetSchemaKey(p, cp)
@@ -125,30 +122,30 @@ func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
 			})
 			need, _ := tools.NeedFetch(*p, *cof, conf)
 			if !need {
-				ui.PrintSuccessF("%s %s@%s pull infrastructure data:\n", cp.Name, p.Name, p.Version)
-				ui.PrintCustomizeLnNotShow(fmt.Sprintf("Pulling %s@%s Please wait for resource information ...", p.Name, p.Version))
-				ui.PrintSuccessF("	%s@%s all ready use cache!\n", p.Name, p.Version)
+				ui.Successf("%s %s@%s pull infrastructure data:\n", cp.Name, p.Name, p.Version)
+				ui.Print(fmt.Sprintf("Pulling %s@%s Please wait for resource information ...", p.Name, p.Version), false)
+				ui.Successf("	%s@%s all ready use cache!\n", p.Name, p.Version)
 				continue
 			}
 			err = fetch.Fetch(ctx, cof, p, conf)
 			if err != nil {
-				ui.PrintErrorF("%s %s Synchronization failed：%s", p.Name, p.Version, err.Error())
+				ui.Errorf("%s %s Synchronization failed：%s", p.Name, p.Version, err.Error())
 				hasError = true
 				continue
 			}
 			requireKey := config.GetCacheKey()
 			err = tools.SetStoreValue(*cof, p, conf, requireKey, time.Now().Format(time.RFC3339))
 			if err != nil {
-				ui.PrintWarningF("%s %s set cache time failed：%s", p.Name, p.Version, err.Error())
+				ui.Warningf("%s %s set cache time failed：%s", p.Name, p.Version, err.Error())
 				hasError = true
 				continue
 			}
 		}
 	}
 	if hasError {
-		ui.PrintErrorF(`
+		ui.Errorf(`
 This may be exception, view detailed exception in %s .
-`, filepath.Join(*global.WORKSPACE, "logs"))
+`, filepath.Join(global.WorkSpace(), "logs"))
 	}
 
 	return errLogs, lockSlice, nil

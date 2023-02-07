@@ -7,7 +7,7 @@ import (
 )
 
 func TestTestFunc(t *testing.T) {
-	*global.WORKSPACE = "../../tests/workspace/offline"
+	global.Init("TestTestFunc", global.WithWorkspace("../../tests/workspace/offline"))
 	ctx := context.Background()
 	err := TestFunc(ctx)
 	if err != nil {

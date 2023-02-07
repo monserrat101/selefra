@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 )
 
+// Home return selefra home, config in selefra home, an error
 func Home() (string, string, error) {
 	home, err := homedir.Dir()
 	if err != nil {
@@ -145,8 +146,8 @@ func GetCredentialsToken() (string, error) {
 		return "", err
 	}
 	token := jsonmap["token"]
-	if token == "" {
-		token = global.LOGINTOKEN
+	if global.Token() == "" {
+		global.SetToken(token)
 	}
 	return token, nil
 }
@@ -233,7 +234,7 @@ func ModulesUpdate(modulesName string, modulesPath string, org string) error {
 	}
 
 	if org != "" {
-		url := "https://" + global.SERVER + "/cli/download/" + org + "/" + global.LOGINTOKEN + "/" + modulesName + ".zip"
+		url := "https://" + global.SERVER + "/cli/download/" + org + "/" + global.Token() + "/" + modulesName + ".zip"
 		_, err := os.Stat(filepath.Join(modulesPath, modulesName))
 		if err == nil {
 			err = os.RemoveAll(filepath.Join(modulesPath, modulesName))

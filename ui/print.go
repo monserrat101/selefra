@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/selefra/selefra/pkg/grpcClient"
 	logPb "github.com/selefra/selefra/pkg/grpcClient/proto/log"
+	"github.com/selefra/selefra/pkg/utils"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"os"
 	"runtime"
@@ -25,7 +26,7 @@ type uiPrinter struct {
 	// log record logs
 	log *logger.Logger
 
-	// fw handle a file pointer to logs file
+	// fw is a file operator pointer for backend log file
 	fw *os.File
 
 	// rpcClient is a grpc client, it send logs to grpc server
@@ -64,6 +65,9 @@ func newUiPrinter() *uiPrinter {
 		if err != nil {
 			panic("ws log file open error," + err.Error())
 		}
+		utils.RegisterClose("ws.log", func() {
+			_ = ua.fw.Close()
+		})
 	}
 
 	ua.rpcClient = grpcClient.Client()
@@ -76,8 +80,8 @@ var (
 	printer     *uiPrinter
 )
 
-func (p *uiPrinter) write2fw(color *color.Color, msg string) {
-
+// fsync write msg to p.fw
+func (p *uiPrinter) fsync(color *color.Color, msg string) {
 	jsonLog := LogJSON{
 		Cmd:   global.Cmd(),
 		Stag:  global.Stage(),
@@ -95,11 +99,11 @@ func (p *uiPrinter) write2fw(color *color.Color, msg string) {
 	_, _ = p.fw.WriteString(strLog + "\n")
 }
 
-// print do 2 things: 1. store msg to log file; 2. send msg to rpc server if rpc client exist
-// print do not show anything
-func (p *uiPrinter) print(color *color.Color, msg string) {
+// sync do 2 things: 1. store msg to log file; 2. send msg to rpc server if rpc client exist
+// sync do not show anything
+func (p *uiPrinter) sync(color *color.Color, msg string) {
 	// write to file
-	p.write2fw(color, msg)
+	p.fsync(color, msg)
 
 	// send to rpc
 	if p.rpcClient != nil {
@@ -125,7 +129,7 @@ func (p *uiPrinter) print(color *color.Color, msg string) {
 				TaskId: p.rpcClient.GetTaskID(),
 			},
 		}); err != nil {
-			p.write2fw(ErrorColor, err.Error())
+			p.fsync(ErrorColor, err.Error())
 			return
 		}
 	}
@@ -134,8 +138,8 @@ func (p *uiPrinter) print(color *color.Color, msg string) {
 }
 
 // printf The behavior of printf is like fmt.Printf that it will format the info
-// when withLn is true, it will show format info with a "\n" and call print, else without a "\n"
-func (p *uiPrinter) printf(color *color.Color, withLn bool, format string, args ...any) {
+// when withLn is true, it will show format info with a "\n" and call sync, else without a "\n"
+func (p *uiPrinter) printf(color *color.Color, format string, args ...any) {
 	// logger to terminal
 	if p.log != nil {
 		if color == ErrorColor {
@@ -148,19 +152,14 @@ func (p *uiPrinter) printf(color *color.Color, withLn bool, format string, args 
 
 	msg := fmt.Sprintf(format, args...)
 
-	p.print(color, msg)
-
-	if withLn {
-		_, _ = color.Printf(format+"\n", args...)
-		return
-	}
+	p.sync(color, msg)
 
 	_, _ = color.Printf(format, args...)
 
 }
 
 // println The behavior of println is like fmt.Println
-// it will show the log info and then call print
+// it will show the log info and then call sync
 func (p *uiPrinter) println(color *color.Color, args ...any) {
 	// logger to terminal
 	if p.log != nil {
@@ -174,7 +173,7 @@ func (p *uiPrinter) println(color *color.Color, args ...any) {
 
 	msg := fmt.Sprint(args...)
 
-	p.print(color, msg)
+	p.sync(color, msg)
 
 	_, _ = color.Println(args...)
 
@@ -280,52 +279,53 @@ func getLevel(c *color.Color) string {
 	return level
 }
 
-func PrintErrorF(format string, a ...interface{}) {
-	printer.printf(ErrorColor, false, format, a...)
+func Errorf(format string, a ...interface{}) {
+	printer.printf(ErrorColor, format, a...)
 }
 
-func PrintWarningF(format string, a ...interface{}) {
-	printer.printf(WarningColor, false, format, a...)
+func Warningf(format string, a ...interface{}) {
+	printer.printf(WarningColor, format, a...)
 }
 
-func PrintSuccessF(format string, a ...interface{}) {
-	printer.printf(SuccessColor, false, format, a...)
+func Successf(format string, a ...interface{}) {
+	printer.printf(SuccessColor, format, a...)
 }
 
-func PrintInfoF(format string, a ...interface{}) {
-	printer.printf(InfoColor, false, format, a...)
+func Infof(format string, a ...interface{}) {
+	printer.printf(InfoColor, format, a...)
 }
 
-func PrintErrorLn(a ...interface{}) {
+func Errorln(a ...interface{}) {
 	printer.println(ErrorColor, a...)
 }
 
-func PrintWarningLn(a ...interface{}) {
+func Warningln(a ...interface{}) {
 	printer.println(WarningColor, a...)
 }
 
-func PrintSuccessLn(a ...interface{}) {
+func Successln(a ...interface{}) {
 	printer.println(SuccessColor, a...)
 }
 
-func PrintInfoLn(a ...interface{}) {
+func Infoln(a ...interface{}) {
 	printer.println(InfoColor, a...)
 }
 
-func PrintCustomizeFNotN(c *color.Color, format string, a ...interface{}) {
-	printer.print(c, fmt.Sprintf(format, a...))
-
-	_, _ = c.Printf(format, a...)
+func Printf(c *color.Color, format string, a ...any) {
+	printer.printf(c, format, a...)
 }
 
-func PrintCustomizeLn(c *color.Color, a ...interface{}) {
-	printer.print(c, fmt.Sprint(a...))
-
-	_, _ = c.Println(a...)
+func Println(c *color.Color, a ...any) {
+	printer.println(c, a...)
 }
 
-func PrintCustomizeLnNotShow(msg string) {
-	printer.print(InfoColor, msg)
+func Print(msg string, show bool) {
+	if show {
+		Infoln(msg)
+		return
+	}
+
+	printer.sync(InfoColor, msg)
 }
 
 func SaveLogToDiagnostic(diagnostics []*schema.Diagnostic) {
@@ -341,7 +341,7 @@ func PrintDiagnostic(diagnostics []*schema.Diagnostic) error {
 	for i := range diagnostics {
 		if int(diagnostics[i].Level()) >= levelMap[global.LOGLEVEL] {
 			defaultLogger.Log(hclog.Level(levelMap[global.LOGLEVEL]+1), diagnostics[i].Content())
-			PrintCustomizeLn(levelColor[int(diagnostics[i].Level())], diagnostics[i].Content())
+			Println(levelColor[int(diagnostics[i].Level())], diagnostics[i].Content())
 			if diagnostics[i].Level() == schema.DiagnosisLevelError {
 				err = errors.New(diagnostics[i].Content())
 			}

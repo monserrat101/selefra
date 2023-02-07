@@ -1,12 +1,11 @@
 package provider
 
 import (
-	"github.com/selefra/selefra/global"
 	"testing"
 )
 
 func TestSync(t *testing.T) {
-	*global.WORKSPACE = "../../tests/workspace/offline"
+	//global.WorkSpace() = "../../tests/workspace/offline"
 	errLogs, _, err := Sync()
 	if err != nil {
 		t.Error(err)

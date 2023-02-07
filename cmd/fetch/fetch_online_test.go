@@ -6,7 +6,7 @@ package fetch
 //		t.Skip("skipping test in short mode.")
 //		return
 //	}
-//	*global.WORKSPACE = "../../tests/workspace/online"
+//	global.WorkSpace() = "../../tests/workspace/online"
 //	global.SERVER = "dev-api.selefra.io"
 //	global.LOGINTOKEN = "4fe8ed36488c479d0ba7292fe09a4132"
 //	ctx := context.Background()

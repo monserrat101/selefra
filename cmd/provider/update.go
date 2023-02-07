@@ -10,24 +10,16 @@ import (
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/selefra/selefra/ui"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 func newCmdProviderUpdate() *cobra.Command {
-	global.CMD = "provider update"
 	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Update one or more plugins",
-		Long:  "Update one or more plugins",
+		Use:              "update",
+		Short:            "Update one or more plugins",
+		Long:             "Update one or more plugins",
+		PersistentPreRun: global.DefaultWrappedInit(),
 		RunE: func(cmd *cobra.Command, args []string) error {
-
-			wd, err := os.Getwd()
-			if err != nil {
-				return err
-			}
-			*global.WORKSPACE = wd
-			err = update(cmd.Context(), args)
-			return nil
+			return update(cmd.Context(), args)
 		},
 	}
 
@@ -38,15 +30,14 @@ func newCmdProviderUpdate() *cobra.Command {
 func update(ctx context.Context, args []string) error {
 	err := config.IsSelefra()
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 		return err
 	}
 	argsMap := make(map[string]bool)
 	for i := range args {
 		argsMap[args[i]] = true
 	}
-	var cof = &config.SelefraConfig{}
-	err = cof.GetConfig()
+	cof, err := config.GetConfig()
 	if err != nil {
 		return err
 	}

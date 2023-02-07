@@ -7,26 +7,26 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/selefra/selefra-provider-sdk/grpc/shard"
-	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra-utils/pkg/pointer"
 	"github.com/selefra/selefra/cmd/tools"
 	"github.com/selefra/selefra/config"
 	"github.com/selefra/selefra/global"
+	"github.com/selefra/selefra/pkg/pgstorage"
 	"github.com/selefra/selefra/pkg/plugin"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/selefra/selefra/ui"
 	"github.com/selefra/selefra/ui/client"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
-	"os"
 )
 
 func NewTestCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "test",
-		Short: "Check whether the configuration is valid",
-		Long:  "Check whether the configuration is valid",
-		RunE:  testFunc,
+		Use:              "test",
+		Short:            "Check whether the configuration is valid",
+		Long:             "Check whether the configuration is valid",
+		PersistentPreRun: global.DefaultWrappedInit(),
+		RunE:             testFunc,
 	}
 
 	cmd.SetHelpFunc(cmd.HelpFunc())
@@ -37,30 +37,23 @@ func NewTestCmd() *cobra.Command {
 func TestFunc(ctx context.Context) error {
 	err := config.IsSelefra()
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 		return err
 	}
 
 	if err != nil {
-		ui.PrintErrorLn("GetWDError:" + err.Error())
+		ui.Errorln("GetWDError:" + err.Error())
 	}
-	s := config.SelefraConfig{}
+	s := config.RootConfig{}
 	return CheckSelefraConfig(ctx, s)
 }
 
 func testFunc(cmd *cobra.Command, args []string) error {
-	global.CMD = "test"
 	ctx := cmd.Context()
-	wd, err := os.Getwd()
-	if err != nil {
-		ui.PrintErrorLn("Error:" + err.Error())
-		return nil
-	}
-	*global.WORKSPACE = wd
 	return TestFunc(ctx)
 }
 
-func checkConfig(ctx context.Context, c config.SelefraConfig) error {
+func checkConfig(ctx context.Context, c config.RootConfig) error {
 	var err error
 	if c.Selefra.CliVersion == "" {
 		err = errors.New("cliVersion is empty")
@@ -74,14 +67,14 @@ func checkConfig(ctx context.Context, c config.SelefraConfig) error {
 	for i := range c.Selefra.Providers {
 		confs, err := tools.GetProviders(&c, c.Selefra.Providers[i].Name)
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 			return nil
 		}
 		for _, conf := range confs {
-			var cp config.CliProviders
+			var cp config.ProviderConfig
 			err := yaml.Unmarshal([]byte(conf), &cp)
 			if err != nil {
-				ui.PrintErrorLn(err.Error())
+				ui.Errorln(err.Error())
 				continue
 			}
 			_, e := client.CreateClientFromConfig(ctx, &c.Selefra, uid, c.Selefra.Providers[i], cp)
@@ -94,20 +87,16 @@ func checkConfig(ctx context.Context, c config.SelefraConfig) error {
 	return nil
 }
 
-func CheckSelefraConfig(ctx context.Context, s config.SelefraConfig) error {
+func CheckSelefraConfig(ctx context.Context, s config.RootConfig) error {
 	err := s.TestConfigByNode()
 	if err != nil {
 		return err
-	}
-	err = s.GetConfig()
-	if err != nil {
-		return errors.New(fmt.Sprintf("Profile deserialization exception:%s", err.Error()))
 	}
 	err = checkConfig(ctx, s)
 	if err != nil {
 		return errors.New(fmt.Sprintf("selefra configuration exception:%s", err.Error()))
 	}
-	ui.PrintSuccessF("Client verification completed")
+	ui.Successf("Client verification completed")
 	hasError := false
 	for _, p := range s.Selefra.Providers {
 		if p.Path == "" {
@@ -117,29 +106,30 @@ func CheckSelefraConfig(ctx context.Context, s config.SelefraConfig) error {
 		plug, err := plugin.NewManagedPlugin(p.Path, providersName, p.Version, "", nil)
 		if err != nil {
 			hasError = true
-			ui.PrintErrorF("%s@%s verification failed ：%s", providersName, p.Version, err.Error())
+			ui.Errorf("%s@%s verification failed ：%s", providersName, p.Version, err.Error())
 			continue
 		}
 		confs, err := tools.GetProviders(&s, p.Name)
 		if err != nil {
 			hasError = true
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 			continue
 		}
 		for _, conf := range confs {
-			var cp config.CliProviders
+			var cp config.ProviderConfig
 			err := yaml.Unmarshal([]byte(conf), &cp)
 			if err != nil {
 				hasError = true
-				ui.PrintErrorLn(err.Error())
+				ui.Errorln(err.Error())
 				continue
 			}
-			storage := postgresql_storage.NewPostgresqlStorageOptions(s.Selefra.GetDSN())
-			opt, err := json.Marshal(storage)
+
+			storageOpt := pgstorage.DefaultPgStorageOpts()
+			opt, err := json.Marshal(storageOpt)
 
 			provider := plug.Provider()
 			initRes, err := provider.Init(ctx, &shard.ProviderInitRequest{
-				Workspace: global.WORKSPACE,
+				Workspace: utils.ToStringPointer(global.WorkSpace()),
 				Storage: &shard.Storage{
 					Type:           0,
 					StorageOptions: opt,
@@ -149,7 +139,7 @@ func CheckSelefraConfig(ctx context.Context, s config.SelefraConfig) error {
 			})
 			if err != nil {
 				hasError = true
-				ui.PrintErrorF("%s@%s verification failed ：%s", providersName, p.Version, err.Error())
+				ui.Errorf("%s@%s verification failed ：%s", providersName, p.Version, err.Error())
 				continue
 			} else {
 				if initRes.Diagnostics != nil {
@@ -169,7 +159,7 @@ func CheckSelefraConfig(ctx context.Context, s config.SelefraConfig) error {
 				ProviderConfig: pointer.ToStringPointer(conf),
 			})
 			if err != nil {
-				ui.PrintErrorLn(err.Error())
+				ui.Errorln(err.Error())
 				hasError = true
 				continue
 			} else {
@@ -181,12 +171,12 @@ func CheckSelefraConfig(ctx context.Context, s config.SelefraConfig) error {
 					continue
 				}
 			}
-			ui.PrintSuccessF("	%s %s@%s check successfully", cp.Name, providersName, p.Version)
+			ui.Successf("	%s %s@%s check successfully", cp.Name, providersName, p.Version)
 		}
 	}
 
-	ui.PrintSuccessF("\nProviders verification completed\n")
-	ui.PrintSuccessF("Profile verification completed\n")
+	ui.Successf("\nProviders verification completed\n")
+	ui.Successf("Profile verification completed\n")
 	if hasError {
 		return errors.New("Need help? Know on Slack or open a Github Issue: https://github.com/selefra/selefra#community")
 	}

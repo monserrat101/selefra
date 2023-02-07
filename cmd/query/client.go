@@ -3,24 +3,34 @@ package query
 import (
 	"context"
 	"github.com/c-bata/go-prompt"
+	"github.com/selefra/selefra-provider-sdk/storage"
+	"github.com/selefra/selefra/pkg/pgstorage"
 	"github.com/selefra/selefra/ui"
-	"github.com/selefra/selefra/ui/client"
 	"strings"
 )
 
 type QueryClient struct {
 	Ctx     context.Context
-	Client  *client.Client // TODO: replace by storage
+	Storage storage.Storage
 	Tables  []prompt.Suggest
 	Columns []prompt.Suggest
 }
 
-func NewQueryClient(ctx context.Context, c *client.Client) *QueryClient {
-	tables := CreateTablesSuggest(ctx, c)
-	columns := CreateColumnsSuggest(ctx, c)
-	return &QueryClient{
-		ctx, c, tables, columns,
+func NewQueryClient(ctx context.Context) (*QueryClient, error) {
+	sto, _, err := pgstorage.Storage(ctx)
+	if err != nil {
+		return nil, err
 	}
+
+	tables := CreateTablesSuggest(ctx, sto)
+	columns := CreateColumnsSuggest(ctx, sto)
+
+	return &QueryClient{
+		Ctx:     ctx,
+		Storage: sto,
+		Tables:  tables,
+		Columns: columns,
+	}, nil
 }
 
 // if there are no spaces this is the first word
@@ -58,8 +68,8 @@ func (q *QueryClient) completer(d prompt.Document) []prompt.Suggest {
 	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
 }
 
-func CreateTablesSuggest(ctx context.Context, c *client.Client) []prompt.Suggest {
-	res, diag := c.Storage.Query(ctx, TABLESQL)
+func CreateTablesSuggest(ctx context.Context, s storage.Storage) []prompt.Suggest {
+	res, diag := s.Query(ctx, TABLESQL)
 	tables := []prompt.Suggest{}
 	if diag != nil {
 		_ = ui.PrintDiagnostic(diag.GetDiagnosticSlice())
@@ -76,8 +86,8 @@ func CreateTablesSuggest(ctx context.Context, c *client.Client) []prompt.Suggest
 	return tables
 }
 
-func CreateColumnsSuggest(ctx context.Context, c *client.Client) []prompt.Suggest {
-	res, err := c.Storage.Query(ctx, COLUMNSQL)
+func CreateColumnsSuggest(ctx context.Context, s storage.Storage) []prompt.Suggest {
+	res, err := s.Query(ctx, COLUMNSQL)
 	columns := []prompt.Suggest{}
 	if err != nil {
 		_ = ui.PrintDiagnostic(err.GetDiagnosticSlice())

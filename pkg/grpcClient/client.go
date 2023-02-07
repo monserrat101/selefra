@@ -6,6 +6,7 @@ import (
 	"github.com/selefra/selefra/global"
 	"github.com/selefra/selefra/pkg/grpcClient/proto/issue"
 	logPb "github.com/selefra/selefra/pkg/grpcClient/proto/log"
+	"github.com/selefra/selefra/pkg/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -77,6 +78,18 @@ func newClient(ctx context.Context, token, taskId string) (*RpcClient, error) {
 
 		client = &innerClient
 
+		utils.MultiRegisterClose(map[string]func(){
+			"grpc conn": func() {
+				_ = conn.Close()
+			},
+			"log stream": func() {
+				_ = openedLogStreamClient.CloseSend()
+			},
+			"issue stream": func() {
+				_ = openedIssueStreamClient.CloseSend()
+			},
+		})
+
 		return
 	})
 
@@ -87,8 +100,6 @@ func newClient(ctx context.Context, token, taskId string) (*RpcClient, error) {
 
 	return client, nil
 }
-
-var Cli RpcClient
 
 func getDial() string {
 	var dialMap = make(map[string]string)
@@ -102,77 +113,44 @@ func getDial() string {
 	return arr[0] + ":1234"
 }
 
-func (g *RpcClient) getDial() string {
-	var dialMap = make(map[string]string)
-	dialMap["dev-api.selefra.io"] = "dev-tcp.selefra.io:1234"
-	dialMap["main-api.selefra.io"] = "main-tcp.selefra.io:1234"
-	dialMap["pre-api.selefra.io"] = "pre-tcp.selefra.io:1234"
-	if dialMap[global.SERVER] != "" {
-		return dialMap[global.SERVER]
-	}
-	arr := strings.Split(global.SERVER, ":")
-	return arr[0] + ":1234"
+func (client *RpcClient) GetIssueUploadIssueStreamClient() issue.Issue_UploadIssueStreamClient {
+	return client.issueStreamClient
 }
 
-func (g *RpcClient) NewConn(token, taskId string) error {
-	conn, err := grpc.Dial(g.getDial(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return fmt.Errorf("fail to dial: %v", err)
-	}
-	g.conn = conn
-	g.taskId = taskId
-	g.token = token
-	g.statusMap = make(map[string]string)
-	g.ctx = context.Background()
-	err = g.newLogClient()
-	if err != nil {
-		return fmt.Errorf("fail to create uploadLogStreamCli cli:%s", err.Error())
-	}
-	err = g.newIssueClient()
-	if err != nil {
-		return fmt.Errorf("fail to create uploadIssueCli cli:%s", err.Error())
-	}
-	return err
-}
-
-func (g *RpcClient) GetIssueUploadIssueStreamClient() issue.Issue_UploadIssueStreamClient {
-	return g.issueStreamClient
-}
-
-func (g *RpcClient) GetLogUploadLogStreamClient() logPb.Log_UploadLogStreamClient {
-	return g.logStreamClient
+func (client *RpcClient) GetLogUploadLogStreamClient() logPb.Log_UploadLogStreamClient {
+	return client.logStreamClient
 }
 
 func (client *RpcClient) SetStatus(status string) {
-	if client.statusMap[global.STAG] == "" {
-		client.statusMap[global.STAG] = status
+	if client.statusMap[global.Stage()] == "" {
+		client.statusMap[global.Stage()] = status
 	}
 }
 
 func (client *RpcClient) getStatus() string {
 	if client.statusMap[global.Stage()] != "" {
-		return client.statusMap[global.STAG]
+		return client.statusMap[global.Stage()]
 	}
 	return "success"
 }
 
-func (g *RpcClient) newLogClient() error {
-	logCli := logPb.NewLogClient(g.conn)
-	uploadStreamCli, err := logCli.UploadLogStream(g.ctx)
+func (client *RpcClient) newLogClient() error {
+	logCli := logPb.NewLogClient(client.conn)
+	uploadStreamCli, err := logCli.UploadLogStream(client.ctx)
 	if err != nil {
 		return err
 	}
-	g.logStreamClient = uploadStreamCli
+	client.logStreamClient = uploadStreamCli
 	return nil
 }
 
-func (g *RpcClient) newIssueClient() error {
-	issueCli := issue.NewIssueClient(g.conn)
-	uploadIssueCli, err := issueCli.UploadIssueStream(g.ctx)
+func (client *RpcClient) newIssueClient() error {
+	issueCli := issue.NewIssueClient(client.conn)
+	uploadIssueCli, err := issueCli.UploadIssueStream(client.ctx)
 	if err != nil {
 		return err
 	}
-	g.issueStreamClient = uploadIssueCli
+	client.issueStreamClient = uploadIssueCli
 	return nil
 }
 

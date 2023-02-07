@@ -26,7 +26,7 @@ func loadBar(doneFlag *bool) {
 			time.Sleep(1 * time.Second)
 			if *doneFlag {
 				dotLen++
-				ui.PrintCustomizeFNotN(ui.InfoColor, "\rWaiting for DB to download %s", strings.Repeat(".", dotLen%6)+strings.Repeat(" ", 6-dotLen%6))
+				ui.Infof("\rWaiting for DB to download %s", strings.Repeat(".", dotLen%6)+strings.Repeat(" ", 6-dotLen%6))
 			}
 		}
 	}()
@@ -70,7 +70,7 @@ func RunDB() error {
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
-		ui.PrintSuccessLn("Running DB Success")
+		ui.Successln("Running DB Success")
 	}
 	var out bytes.Buffer
 	var stderr bytes.Buffer

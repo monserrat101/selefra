@@ -13,17 +13,12 @@ import (
 )
 
 func newCmdProviderRemove() *cobra.Command {
-	global.CMD = "provider remove"
 	cmd := &cobra.Command{
-		Use:   "remove",
-		Short: "Remove one or more plugins from the download cache",
-		Long:  "Remove one or more plugins from the download cache",
+		Use:              "remove",
+		Short:            "Remove one or more plugins from the download cache",
+		Long:             "Remove one or more plugins from the download cache",
+		PersistentPreRun: global.DefaultWrappedInit(),
 		RunE: func(cmd *cobra.Command, names []string) error {
-			wd, err := os.Getwd()
-			if err != nil {
-				return err
-			}
-			*global.WORKSPACE = wd
 			return Remove(names)
 		},
 	}
@@ -38,22 +33,16 @@ func Remove(names []string) error {
 		argsMap[names[i]] = true
 	}
 	deletedMap := make(map[string]bool)
-	err := config.IsSelefra()
+	cof, err := config.GetConfig()
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
 		return err
 	}
-	var cof = &config.SelefraConfig{}
-
 	namespace, _, err := utils.Home()
 	if err != nil {
 		return err
 	}
 	provider := registry.NewProviderRegistry(namespace)
-	err = cof.GetConfig()
-	if err != nil {
-		return err
-	}
+
 	for _, p := range cof.Selefra.Providers {
 		name := *p.Source
 		path := utils.GetPathBySource(*p.Source, p.Version)
@@ -72,7 +61,7 @@ func Remove(names []string) error {
 		err := provider.DeleteProvider(prov)
 		if err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
-				ui.PrintWarningF("Failed to remove  %s: %s", p.Name, err.Error())
+				ui.Warningf("Failed to remove  %s: %s", p.Name, err.Error())
 			}
 		}
 		_, jsonPath, err := utils.Home()
@@ -101,7 +90,7 @@ func Remove(names []string) error {
 			}
 			deletedMap[path] = true
 		}
-		ui.PrintSuccessF("Removed %s success", *p.Source)
+		ui.Successf("Removed %s success", *p.Source)
 	}
 	return nil
 }

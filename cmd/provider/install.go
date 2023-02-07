@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/selefra/selefra-provider-sdk/grpc/shard"
-	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra-utils/pkg/pointer"
 	"github.com/selefra/selefra/cmd/tools"
 	"github.com/selefra/selefra/config"
 	"github.com/selefra/selefra/global"
+	"github.com/selefra/selefra/pkg/pgstorage"
 	"github.com/selefra/selefra/pkg/plugin"
 	"github.com/selefra/selefra/pkg/registry"
 	"github.com/selefra/selefra/pkg/utils"
@@ -22,19 +22,13 @@ import (
 
 func newCmdProviderInstall() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "install",
-		Short: "Install one or more plugins",
-		Long:  "Install one or more plugins",
+		Use:              "install",
+		Short:            "Install one or more plugins",
+		Long:             "Install one or more plugins",
+		PersistentPreRun: global.DefaultWrappedInit(),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			global.CMD = "provider install"
 			ctx := cmd.Context()
-			wd, err := os.Getwd()
-			if err != nil {
-				ui.PrintErrorLn("Error:" + err.Error())
-				return nil
-			}
-			*global.WORKSPACE = wd
-			err = install(ctx, args)
+			err := install(ctx, args)
 			return err
 		},
 	}
@@ -44,28 +38,18 @@ func newCmdProviderInstall() *cobra.Command {
 }
 
 func install(ctx context.Context, args []string) error {
-	err := config.IsSelefra()
+	configYaml, err := config.GetConfig()
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 		return err
 	}
+
 	namespace, _, err := utils.Home()
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 		return nil
 	}
 
-	var configYaml config.SelefraConfig
-	configStr, err := config.GetClientStr()
-	if err != nil {
-		ui.PrintErrorLn(err.Error())
-		return nil
-	}
-	err = yaml.Unmarshal(configStr, &configYaml)
-	if err != nil {
-		ui.PrintErrorLn(err.Error())
-		return nil
-	}
 	provider := registry.NewProviderRegistry(namespace)
 	for _, s := range args {
 		splitArr := strings.Split(s, "@")
@@ -93,27 +77,27 @@ func install(ctx context.Context, args []string) error {
 			}
 		}
 		if continueFlag {
-			ui.PrintWarningLn(fmt.Sprintf("Provider %s@%s already installed", p.Name, p.Version))
+			ui.Warningln(fmt.Sprintf("Provider %s@%s already installed", p.Name, p.Version))
 			continue
 		}
 		if err != nil {
-			ui.PrintErrorF("Installed %s@%s failed：%s", p.Name, p.Version, err.Error())
+			ui.Errorf("Installed %s@%s failed：%s", p.Name, p.Version, err.Error())
 			return nil
 		} else {
-			ui.PrintSuccessF("Installed %s@%s verified", p.Name, p.Version)
+			ui.Successf("Installed %s@%s verified", p.Name, p.Version)
 		}
-		ui.PrintInfoF("Synchronization %s@%s's config...", p.Name, p.Version)
+		ui.Infof("Synchronization %s@%s's config...", p.Name, p.Version)
 		plug, err := plugin.NewManagedPlugin(p.Filepath, p.Name, p.Version, "", nil)
 		if err != nil {
-			ui.PrintErrorF("Synchronization %s@%s's config failed：%s", p.Name, p.Version, err.Error())
+			ui.Errorf("Synchronization %s@%s's config failed：%s", p.Name, p.Version, err.Error())
 			return nil
 		}
 
 		plugProvider := plug.Provider()
-		storage := postgresql_storage.NewPostgresqlStorageOptions(configYaml.Selefra.GetDSN())
-		opt, err := json.Marshal(storage)
+		storageOpt := pgstorage.DefaultPgStorageOpts()
+		opt, err := json.Marshal(storageOpt)
 		initRes, err := plugProvider.Init(ctx, &shard.ProviderInitRequest{
-			Workspace: global.WORKSPACE,
+			Workspace: utils.ToStringPointer(global.WorkSpace()),
 			Storage: &shard.Storage{
 				Type:           0,
 				StorageOptions: opt,
@@ -123,7 +107,7 @@ func install(ctx context.Context, args []string) error {
 		})
 
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 			return nil
 		}
 
@@ -136,13 +120,13 @@ func install(ctx context.Context, args []string) error {
 
 		res, err := plugProvider.GetProviderInformation(ctx, &shard.GetProviderInformationRequest{})
 		if err != nil {
-			ui.PrintErrorF("Synchronization %s@%s's config failed：%s", p.Name, p.Version, err.Error())
+			ui.Errorf("Synchronization %s@%s's config failed：%s", p.Name, p.Version, err.Error())
 			return nil
 		}
-		ui.PrintSuccessF("Synchronization %s@%s's config successful", p.Name, p.Version)
-		err = tools.SetSelefraProvider(p, &configYaml, version)
+		ui.Successf("Synchronization %s@%s's config successful", p.Name, p.Version)
+		err = tools.SetSelefraProvider(p, configYaml, version)
 		if err != nil {
-			ui.PrintErrorLn(err.Error())
+			ui.Errorln(err.Error())
 			return nil
 		}
 		hasProvider := false
@@ -153,21 +137,22 @@ func install(ctx context.Context, args []string) error {
 			}
 		}
 		if !hasProvider {
-			err = tools.SetProviders(res.DefaultConfigTemplate, p, &configYaml)
+			err = tools.SetProviders(res.DefaultConfigTemplate, p, configYaml)
 		}
 		if err != nil {
-			ui.PrintErrorF("set %s@%s's config failed：%s", p.Name, p.Version, err.Error())
+			ui.Errorf("set %s@%s's config failed：%s", p.Name, p.Version, err.Error())
 			return nil
 		}
 	}
+
 	str, err := yaml.Marshal(configYaml)
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 		return nil
 	}
 	path, err := config.GetConfigPath()
 	if err != nil {
-		ui.PrintErrorLn(err.Error())
+		ui.Errorln(err.Error())
 		return nil
 	}
 	err = os.WriteFile(path, str, 0644)

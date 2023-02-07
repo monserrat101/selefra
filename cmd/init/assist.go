@@ -7,9 +7,9 @@ import (
 
 func initHeaderOutput(providers []string) {
 	for i := range providers {
-		ui.PrintSuccessLn(providers[i] + " [✔]\n")
+		ui.Successln(providers[i] + " [✔]\n")
 	}
-	ui.PrintSuccessF(`Running with selefra-cli %s
+	ui.Successf(`Running with selefra-cli %s
 
 	This command will walk you through creating a new Selefra project
 
