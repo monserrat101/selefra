@@ -163,11 +163,7 @@ func SetLogLevel(level string) {
 	g.mux.Lock()
 	defer g.mux.Unlock()
 
-	if _, ok := levelMap[level]; ok {
-		g.logLevel = level
-	} else {
-		g.logLevel = defaultLogLevel
-	}
+	g.logLevel = level
 }
 
 func WorkSpace() string {
@@ -204,32 +200,6 @@ func LogLevel() string {
 	defer g.mux.RUnlock()
 
 	return g.logLevel
-}
-
-var levelMap = map[string]bool{
-	"trace":   true,
-	"debug":   true,
-	"info":    true,
-	"warning": true,
-	"error":   true,
-	"fatal":   true,
-}
-
-var defaultLogLevel = "error"
-
-// TODO: will be deprecated
-var (
-	LOGLEVEL = "error"
-)
-
-var o sync.Once
-
-func ChangeLevel(level string) {
-	if levelMap[level] {
-		o.Do(func() {
-			LOGLEVEL = level
-		})
-	}
 }
 
 const PkgBasePath = "ghcr.io/selefra/postgre_"

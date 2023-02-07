@@ -87,10 +87,7 @@ func initFunc(cmd *cobra.Command, args []string) error {
 var storage *postgresql_storage.PostgresqlStorageOptions
 
 func setStorage(ctx context.Context, config *config.SelefraConfig) error {
-	_, diag, err := pgstorage.PgStorage(ctx)
-	if err != nil {
-		ui.Errorln(err.Error())
-	}
+	_, diag := pgstorage.PgStorage(ctx)
 	if diag != nil {
 		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
 		if err != nil {

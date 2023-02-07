@@ -96,7 +96,7 @@ func CheckSelefraConfig(ctx context.Context, s config.RootConfig) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("selefra configuration exception:%s", err.Error()))
 	}
-	ui.Successf("Client verification completed")
+	ui.Successf("Client verification completed\n\n")
 	hasError := false
 	for _, p := range s.Selefra.Providers {
 		if p.Path == "" {
@@ -175,8 +175,8 @@ func CheckSelefraConfig(ctx context.Context, s config.RootConfig) error {
 		}
 	}
 
-	ui.Successf("\nProviders verification completed\n")
-	ui.Successf("Profile verification completed\n")
+	ui.Successf("Providers verification completed\n\n")
+	ui.Successf("Profile verification completed\n\n")
 	if hasError {
 		return errors.New("Need help? Know on Slack or open a Github Issue: https://github.com/selefra/selefra#community")
 	}

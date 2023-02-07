@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"github.com/selefra/selefra/pkg/grpcClient"
 	logPb "github.com/selefra/selefra/pkg/grpcClient/proto/log"
 	"github.com/selefra/selefra/pkg/utils"
@@ -15,8 +16,6 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	hclog "github.com/hashicorp/go-hclog"
-
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/global"
 	"github.com/selefra/selefra/pkg/logger"
@@ -140,7 +139,7 @@ func (p *uiPrinter) sync(color *color.Color, msg string) {
 // printf The behavior of printf is like fmt.Printf that it will format the info
 // when withLn is true, it will show format info with a "\n" and call sync, else without a "\n"
 func (p *uiPrinter) printf(color *color.Color, format string, args ...any) {
-	// logger to terminal
+	// logger to file
 	if p.log != nil {
 		if color == ErrorColor {
 			if _, f, l, ok := runtime.Caller(2); ok {
@@ -161,7 +160,7 @@ func (p *uiPrinter) printf(color *color.Color, format string, args ...any) {
 // println The behavior of println is like fmt.Println
 // it will show the log info and then call sync
 func (p *uiPrinter) println(color *color.Color, args ...any) {
-	// logger to terminal
+	// logger to file
 	if p.log != nil {
 		if color == ErrorColor {
 			if _, f, l, ok := runtime.Caller(2); ok {
@@ -195,15 +194,6 @@ func color2level(color *color.Color) hclog.Level {
 	}
 }
 
-var levelMap = map[string]int{
-	"trace":   0,
-	"debug":   1,
-	"info":    2,
-	"warning": 3,
-	"error":   4,
-	"fatal":   5,
-}
-
 var levelColor = []*color.Color{
 	InfoColor,
 	InfoColor,
@@ -213,7 +203,6 @@ var levelColor = []*color.Color{
 	ErrorColor,
 }
 
-// var step int32 = 0
 var defaultLogger, _ = logger.NewLogger(logger.Config{
 	FileLogEnabled:    true,
 	ConsoleLogEnabled: false,
@@ -223,18 +212,6 @@ var defaultLogger, _ = logger.NewLogger(logger.Config{
 	Directory:         "logs",
 	Level:             "info",
 })
-
-func StoLogger() (*logger.StoLogger, error) {
-	return logger.NewStoLogger(logger.Config{
-		FileLogEnabled:    true,
-		ConsoleLogEnabled: false,
-		EncodeLogsAsJson:  true,
-		ConsoleNoColor:    true,
-		Source:            "client",
-		Directory:         "logs",
-		Level:             "info",
-	})
-}
 
 func init() {
 	printerOnce.Do(func() {
@@ -330,8 +307,8 @@ func Print(msg string, show bool) {
 
 func SaveLogToDiagnostic(diagnostics []*schema.Diagnostic) {
 	for i := range diagnostics {
-		if int(diagnostics[i].Level()) >= levelMap[global.LOGLEVEL] {
-			defaultLogger.Log(hclog.Level(levelMap[global.LOGLEVEL]+1), diagnostics[i].Content())
+		if int(diagnostics[i].Level()) >= int(hclog.LevelFromString(global.LogLevel())) {
+			defaultLogger.Log(hclog.LevelFromString(global.LogLevel())+1, diagnostics[i].Content())
 		}
 	}
 }
@@ -339,9 +316,9 @@ func SaveLogToDiagnostic(diagnostics []*schema.Diagnostic) {
 func PrintDiagnostic(diagnostics []*schema.Diagnostic) error {
 	var err error
 	for i := range diagnostics {
-		if int(diagnostics[i].Level()) >= levelMap[global.LOGLEVEL] {
-			defaultLogger.Log(hclog.Level(levelMap[global.LOGLEVEL]+1), diagnostics[i].Content())
-			Println(levelColor[int(diagnostics[i].Level())], diagnostics[i].Content())
+		if int(diagnostics[i].Level()) >= int(hclog.LevelFromString(global.LogLevel())) {
+			defaultLogger.Log(hclog.Level(int(hclog.LevelFromString(global.LogLevel()))+1), diagnostics[i].Content())
+			Println(levelColor[diagnostics[i].Level()], diagnostics[i].Content())
 			if diagnostics[i].Level() == schema.DiagnosisLevelError {
 				err = errors.New(diagnostics[i].Content())
 			}

@@ -5,20 +5,6 @@ import (
 	"testing"
 )
 
-//
-//func TestConfig_GetDSN(t *testing.T) {
-//	global.WorkSpace() = "../tests/workspace/offline"
-//	s := RootConfig{}
-//	err := s.GetConfig()
-//	if err != nil {
-//		t.Error(err)
-//	}
-//	dsn := s.Selefra.GetDSN()
-//	if len(dsn) == 0 {
-//		t.Error("dsn is empty")
-//	}
-//}
-
 func TestGetAllConfig(t *testing.T) {
 	global.Init("", global.WithWorkspace("../tests/workspace/offline"))
 
@@ -41,7 +27,7 @@ func TestIsSelefra(t *testing.T) {
 
 func TestGetModulesByPath(t *testing.T) {
 	global.Init("", global.WithWorkspace("../tests/workspace/offline"))
-	modules, err := GetModulesByPath()
+	modules, err := GetModules()
 	if err != nil {
 		t.Error(err)
 	}

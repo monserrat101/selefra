@@ -33,7 +33,7 @@ If you like selefra, give us a star https://github.com/selefra/selefra
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		level, _ := cmd.Flags().GetString("loglevel")
-		global.ChangeLevel(level)
+		global.SetLogLevel(level)
 	},
 }
 

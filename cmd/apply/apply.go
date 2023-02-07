@@ -66,9 +66,11 @@ func Apply(ctx context.Context) error {
 		ui.Errorln(err.Error())
 		return nil
 	}
-	_, err = grpcClient.ShouldClient(ctx, global.Token(), taskRes.Data.TaskUUID)
-	if err != nil {
-		ui.Errorln(err.Error())
+	if taskRes != nil {
+		_, err = grpcClient.ShouldClient(ctx, global.Token(), taskRes.Data.TaskUUID)
+		if err != nil {
+			ui.Errorln(err.Error())
+		}
 	}
 
 	uid, _ := uuid.NewUUID()
@@ -95,10 +97,14 @@ func Apply(ctx context.Context) error {
 	} else {
 		project = ""
 	}
-	_, err = grpcClient.Client().UploadLogStatus()
-	if err != nil {
-		ui.Errorln(err.Error())
+
+	if global.Token() != "" && relvPrjName != "" {
+		_, err = grpcClient.Client().UploadLogStatus()
+		if err != nil {
+			ui.Errorln(err.Error())
+		}
 	}
+
 	global.SetStage("infrastructure")
 	for i := range rootConfig.Selefra.Providers {
 		confs, err := tools.GetProviders(rootConfig, rootConfig.Selefra.Providers[i].Name)
@@ -119,20 +125,21 @@ func Apply(ctx context.Context) error {
 				ui.Errorln("Client creation error:" + e.Error())
 				return nil
 			}
-			modules, err := config.GetModulesByPath()
+			modules, err := config.GetModules()
 			if err != nil {
 				err = httpClient.TrySetUpStage(relvPrjName, httpClient.Failed)
 				ui.Errorln("Client creation error:" + err.Error())
 				return nil
 			}
-			var mRules []config.Rule
 			ui.Successln(`----------------------------------------------------------------------------------------------
 
 Loading Selefra analysis code ...`)
+
+			var mRules []config.Rule
 			if len(modules) == 0 {
-				mRules = *RunRulesWithoutModule()
+				mRules = GetAllRules()
 			} else {
-				mRules = CreateRulesByModule(modules)
+				mRules = GetRules(modules)
 			}
 
 			ui.Successf("\n---------------------------------- Result for rules  ----------------------------------------\n")
@@ -146,7 +153,7 @@ Loading Selefra analysis code ...`)
 		}
 	}
 
-	if relvPrjName != "" {
+	if global.Token() != "" && relvPrjName != "" {
 		_, err = grpcClient.Client().UploadLogStatus()
 		if err != nil {
 			ui.Errorln(err.Error())
@@ -246,20 +253,24 @@ func RunRules(ctx context.Context, s config.RootConfig, c *client.Client, projec
 	issueChan := make(chan *issue.Req, 100)
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	go func() {
-		select {
-		case <-ticker.C:
-			ui.Errorln("Report issue timeout")
-			_, _ = grpcClient.Client().UploadLogStatus()
-			issueCancel()
-			panic("Report issue timeout")
-			return
-		case <-issueCtx.Done():
-			return
-		}
-	}()
 
-	go UploadIssueFunc(issueCtx, issueChan, ticker)
+	if global.Token() != "" && global.RelvPrjName() != "" {
+		go func() {
+			select {
+			case <-ticker.C:
+				ui.Errorln("Report issue timeout")
+				_, _ = grpcClient.Client().UploadLogStatus()
+				issueCancel()
+				panic("Report issue timeout")
+				return
+			case <-issueCtx.Done():
+				return
+			}
+		}()
+
+		go UploadIssueFunc(issueCtx, issueChan, ticker)
+	}
+
 	for _, rule := range rules {
 		var variablesMap = make(map[string]interface{})
 		for i := range s.Variables {
@@ -377,7 +388,7 @@ func RunRules(ctx context.Context, s config.RootConfig, c *client.Client, projec
 				}
 			}
 
-			if global.Token() != "" {
+			if global.Token() != "" && global.RelvPrjName() != "" {
 				reqs := issue.Req{
 					Name:        rule.Name,
 					Query:       rule.Query,
@@ -400,17 +411,8 @@ func RunRules(ctx context.Context, s config.RootConfig, c *client.Client, projec
 	return nil
 }
 
-func CreateRulesByModule(modules []config.Module) []config.Rule {
-	var rules []config.Rule
-	for _, module := range modules {
-		if rule := RunPathModule(module); rule != nil {
-			rules = append(rules, *rule...)
-		}
-	}
-	return rules
-}
-
-func RunRulesWithoutModule() *[]config.Rule {
+// GetAllRules get all rules from workspace
+func GetAllRules() []config.Rule {
 	rules, _ := config.GetRules()
 	for i := range rules.Rules {
 		if strings.HasPrefix(rules.Rules[i].Query, ".") {
@@ -422,13 +424,26 @@ func RunRulesWithoutModule() *[]config.Rule {
 			rules.Rules[i].Query = string(sqlByte)
 		}
 	}
-	return &rules.Rules
+	return rules.Rules
 }
 
-func RunPathModule(module config.Module) *[]config.Rule {
+// GetRules find all rules in modules
+func GetRules(modules []config.Module) []config.Rule {
+	var rules []config.Rule
+	for _, module := range modules {
+		if rule := GetModuleRules(module); rule != nil {
+			rules = append(rules, rule...)
+		}
+	}
+	return rules
+}
+
+// GetModuleRules find all rules according to given module
+func GetModuleRules(module config.Module) []config.Rule {
 	var resRule config.RulesConfig
 	var b []byte
 	var err error
+
 	for _, use := range module.Uses {
 		var usePath string
 		if path.IsAbs(use) || strings.Index(use, "://") > -1 {
@@ -487,11 +502,11 @@ func RunPathModule(module config.Module) *[]config.Rule {
 				}
 				ruleConfig.Rules[i].Query = string(sqlByte)
 			}
-			ui.Successf("	%s - Rule %s: loading ... ", use, baseRule.Rules[i].Name)
+			ui.Successf("	%s - Rule %s: loading ... \n", use, baseRule.Rules[i].Name)
 		}
 		resRule.Rules = append(resRule.Rules, ruleConfig.Rules...)
 	}
-	return &resRule.Rules
+	return resRule.Rules
 }
 
 func fmtTemplate(temp string, params map[string]interface{}) (string, error) {
