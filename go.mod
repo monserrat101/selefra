@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.149
 	github.com/blastrain/vitess-sqlparser v0.0.0-20201030050434-a139afbb1aba
 	github.com/c-bata/go-prompt v0.2.6
-	github.com/containerd/containerd v1.6.10
+	github.com/containerd/containerd v1.6.12
 	github.com/fatih/color v1.13.0
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/google/uuid v1.3.0
@@ -22,6 +22,7 @@ require (
 	github.com/songzhibin97/gkit v1.2.7
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
+	github.com/stretchr/testify v1.8.1
 	github.com/vbauerster/mpb/v7 v7.5.3
 	go.uber.org/zap v1.23.0
 	google.golang.org/grpc v1.51.0
@@ -116,8 +117,6 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
-	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	go.opencensus.io v0.24.0 // indirect
