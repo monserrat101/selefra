@@ -8,7 +8,7 @@ import (
 func TestGetAllConfig(t *testing.T) {
 	global.Init("", global.WithWorkspace("../tests/workspace/offline"))
 
-	fileMap, err := GetAllConfig(global.WorkSpace(), nil)
+	fileMap, err := FileMap(global.WorkSpace())
 	if err != nil {
 		t.Error(err)
 	}

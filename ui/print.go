@@ -28,9 +28,6 @@ type uiPrinter struct {
 	// fw is a file operator pointer for backend log file
 	fw *os.File
 
-	// rpcClient is a grpc client, it send logs to grpc server
-	rpcClient *grpcClient.RpcClient
-
 	// step store the steps for uiPrinter
 	step int32
 }
@@ -69,8 +66,6 @@ func newUiPrinter() *uiPrinter {
 		})
 	}
 
-	ua.rpcClient = grpcClient.Client()
-
 	return ua
 }
 
@@ -105,32 +100,31 @@ func (p *uiPrinter) sync(color *color.Color, msg string) {
 	p.fsync(color, msg)
 
 	// send to rpc
-	if p.rpcClient != nil {
-		logStreamClient := p.rpcClient.LogStreamClient()
-		p.step++
-		if color == ErrorColor {
-			p.rpcClient.SetStatus("error")
-		}
+	//logStreamClient := p.rpcClient.LogStreamClient()
+	p.step++
+	if color == ErrorColor {
+		grpcClient.SetStatus("error")
+		//p.rpcClient.SetStatus("error")
+	}
 
-		if err := logStreamClient.Send(&logPb.ConnectMsg{
-			ActionName: "",
-			Data: &logPb.LogJOSN{
-				Cmd:   global.Cmd(),
-				Stag:  global.Stage(),
-				Msg:   msg,
-				Time:  timestamppb.Now(),
-				Level: getLevel(color),
-			},
-			Index: p.step,
-			Msg:   "",
-			BaseInfo: &logPb.BaseConnectionInfo{
-				Token:  p.rpcClient.GetToken(),
-				TaskId: p.rpcClient.GetTaskID(),
-			},
-		}); err != nil {
-			p.fsync(ErrorColor, err.Error())
-			return
-		}
+	if err := grpcClient.LogStreamSend(&logPb.ConnectMsg{
+		ActionName: "",
+		Data: &logPb.LogJOSN{
+			Cmd:   global.Cmd(),
+			Stag:  global.Stage(),
+			Msg:   msg,
+			Time:  timestamppb.Now(),
+			Level: getLevel(color),
+		},
+		Index: p.step,
+		Msg:   "",
+		BaseInfo: &logPb.BaseConnectionInfo{
+			Token:  grpcClient.Token(),
+			TaskId: grpcClient.TaskID(),
+		},
+	}); err != nil {
+		p.fsync(ErrorColor, err.Error())
+		return
 	}
 
 	return

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra-utils/pkg/id_util"
 	"github.com/selefra/selefra/cmd/fetch"
@@ -12,10 +13,11 @@ import (
 	"github.com/selefra/selefra/global"
 	"github.com/selefra/selefra/pkg/grpcClient"
 	"github.com/selefra/selefra/pkg/httpClient"
+	"github.com/selefra/selefra/pkg/logger"
+	"github.com/selefra/selefra/pkg/pgstorage"
 	"github.com/selefra/selefra/pkg/registry"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/selefra/selefra/ui"
-	"gopkg.in/yaml.v3"
 	"path/filepath"
 	"time"
 )
@@ -26,131 +28,133 @@ type lockStruct struct {
 	Storage   *postgresql_storage.PostgresqlStorage
 }
 
-// Sync
-func Sync() (errLogs []string, lockSlice []lockStruct, err error) {
-	ui.Infof("Initializing provider plugins...\n\n")
-	ctx := context.Background()
-	cof, err := config.GetConfig()
-	if err != nil {
-		return nil, nil, err
-	}
+// effectiveDecls check provider decls and download provider binary file, return the effective providers
+func effectiveDecls(ctx context.Context, decls []*config.ProviderDecl) (effects []*config.ProviderDecl, errlogs []string) {
 	namespace, _, err := utils.Home()
 	if err != nil {
-		return nil, nil, err
+		errlogs = append(errlogs, err.Error())
+		return
 	}
 	provider := registry.NewProviderRegistry(namespace)
 	ui.Successf("Selefra has been successfully installed providers!\n\n")
 	ui.Successf("Checking Selefra provider updates......\n")
 
-	var hasError bool
-	var ProviderRequires []*config.ProviderRequired
-	for _, p := range cof.Selefra.Providers {
-		configVersion := p.Version
+	for _, decl := range decls {
+		configVersion := decl.Version
 		prov := registry.Provider{
-			Name:    p.Name,
-			Version: p.Version,
+			Name:    decl.Name,
+			Version: decl.Version,
 			Source:  "",
-			Path:    p.Path,
+			Path:    decl.Path,
 		}
 		pp, err := provider.Download(ctx, prov, true)
 		if err != nil {
-			hasError = true
-			ui.Errorf("%s@%s failed updated：%s", p.Name, p.Version, err.Error())
-			errLogs = append(errLogs, fmt.Sprintf("%s@%s failed updated：%s", p.Name, p.Version, err.Error()))
+			ui.Errorf("%s@%s failed updated：%s", decl.Name, decl.Version, err.Error())
+			errlogs = append(errlogs, err.Error())
 			continue
 		} else {
-			p.Path = pp.Filepath
-			p.Version = pp.Version
-			err = tools.SetSelefraProvider(pp, nil, configVersion)
+			decl.Path = pp.Filepath
+			decl.Version = pp.Version
+			err = tools.AppendProviderDecl(pp, nil, configVersion)
 			if err != nil {
-				hasError = true
-				ui.Errorf("%s@%s failed updated：%s", p.Name, p.Version, err.Error())
-				errLogs = append(errLogs, fmt.Sprintf("%s@%s failed updated：%s", p.Name, p.Version, err.Error()))
+				ui.Errorf("%s@%s failed updated：%s", decl.Name, decl.Version, err.Error())
+				errlogs = append(errlogs, err.Error())
 				continue
 			}
-			ProviderRequires = append(ProviderRequires, p)
-			ui.Successf("	%s@%s all ready updated!\n", p.Name, p.Version)
+			effects = append(effects, decl)
+			ui.Successf("	%s@%s all ready updated!\n", decl.Name, decl.Version)
 		}
 	}
+
+	return effects, nil
+}
+
+func Sync(ctx context.Context) (lockSlice []lockStruct, err error) {
+	// load and check config
+	ui.Infof("Initializing provider plugins...\n\n")
+	rootConfig, err := config.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	if err = test.CheckSelefraConfig(ctx, rootConfig); err != nil {
+		_ = httpClient.TrySetUpStage(global.RelvPrjName(), httpClient.Failed)
+		return nil, err
+	}
+
+	if _, err := grpcClient.UploadLogStatus(); err != nil {
+		ui.Errorln(err.Error())
+	}
+
+	var errored bool
+
+	providerDecls, errLogs := effectiveDecls(ctx, rootConfig.Selefra.ProviderDecls)
 
 	ui.Successf("Selefra has been finished update providers!\n")
 
-	err = test.CheckSelefraConfig(ctx, *cof)
-	if err != nil {
-		_ = httpClient.TrySetUpStage(global.RelvPrjName(), httpClient.Failed)
-		return nil, nil, err
-	}
-
-	if global.Token() != "" && cof.Selefra.Cloud != nil {
-		_, err = grpcClient.Client().UploadLogStatus()
-		if err != nil {
-			ui.Errorln(err.Error())
-		}
-	}
-
 	global.SetStage("pull")
-	for _, p := range ProviderRequires {
-		confs, err := tools.GetProviders(cof, p.Name)
-		if err != nil {
-			ui.Errorln(err.Error())
-			continue
-		}
-		for _, conf := range confs {
-			store, err := tools.GetStore(*cof, p, conf)
+	for _, decl := range providerDecls {
+		prvds := tools.ProvidersByID(rootConfig, decl.Name)
+		for _, prvd := range prvds {
+
+			// build a postgresql storage
+			schemaKey := config.GetSchemaKey(decl, *prvd)
+			store, err := pgstorage.PgStorageWithMeta(ctx, &schema.ClientMeta{
+				ClientLogger: logger.NewSchemaLoggeer(),
+			}, pgstorage.WithSearchPath(config.GetSchemaKey(decl, *prvd)))
 			if err != nil {
-				hasError = true
-				ui.Errorf("%s@%s failed updated：%s", p.Name, p.Version, err.Error())
-				errLogs = append(errLogs, fmt.Sprintf("%s@%s failed updated：%s", p.Name, p.Version, err.Error()))
+				errored = true
+				ui.Errorf("%s@%s failed updated：%s", decl.Name, decl.Version, err.Error())
+				errLogs = append(errLogs, fmt.Sprintf("%s@%s failed updated：%s", decl.Name, decl.Version, err.Error()))
 				continue
 			}
-			ctx := context.Background()
+
+			// try lock
+			// TODO: check unlock
 			uuid := id_util.RandomId()
-			var cp config.ProviderConfig
-			err = yaml.Unmarshal([]byte(conf), &cp)
-			if err != nil {
-				ui.Errorln(err.Error())
-				continue
-			}
-			schemaKey := config.GetSchemaKey(p, cp)
 			for {
 				err = store.Lock(ctx, schemaKey, uuid)
 				if err == nil {
+					lockSlice = append(lockSlice, lockStruct{
+						SchemaKey: schemaKey,
+						Uuid:      uuid,
+						Storage:   store,
+					})
 					break
 				}
 				time.Sleep(5 * time.Second)
 			}
-			lockSlice = append(lockSlice, lockStruct{
-				SchemaKey: schemaKey,
-				Uuid:      uuid,
-				Storage:   store,
-			})
-			need, _ := tools.NeedFetch(*p, *cof, conf)
-			if !need {
-				ui.Successf("%s %s@%s pull infrastructure data:\n", cp.Name, p.Name, p.Version)
-				ui.Print(fmt.Sprintf("Pulling %s@%s Please wait for resource information ...", p.Name, p.Version), false)
-				ui.Successf("	%s@%s all ready use cache!\n", p.Name, p.Version)
+
+			// check if cache expired
+			expired, _ := tools.CacheExpired(ctx, store, prvd.Cache)
+			if !expired {
+				ui.Successf("%s %s@%s pull infrastructure data:\n", prvd.Name, decl.Name, decl.Version)
+				ui.Print(fmt.Sprintf("Pulling %s@%s Please wait for resource information ...", decl.Name, decl.Version), false)
+				ui.Successf("	%s@%s all ready use cache!\n", decl.Name, decl.Version)
 				continue
 			}
-			err = fetch.Fetch(ctx, cof, p, conf)
+
+			// if expired, fetch new data
+			err = fetch.Fetch(ctx, decl, prvd)
 			if err != nil {
-				ui.Errorf("%s %s Synchronization failed：%s", p.Name, p.Version, err.Error())
-				hasError = true
+				ui.Errorf("%s %s Synchronization failed：%s", decl.Name, decl.Version, err.Error())
+				errored = true
 				continue
 			}
-			requireKey := config.GetCacheKey()
-			err = tools.SetStoreValue(*cof, p, conf, requireKey, time.Now().Format(time.RFC3339))
-			if err != nil {
-				ui.Warningf("%s %s set cache time failed：%s", p.Name, p.Version, err.Error())
-				hasError = true
+
+			// set fetch time
+			if err := pgstorage.SetStorageValue(ctx, store, config.GetCacheKey(), time.Now().Format(time.RFC3339)); err != nil {
+				ui.Warningf("%s %s set cache time failed：%s", decl.Name, decl.Version, err.Error())
+				errored = true
 				continue
 			}
 		}
 	}
-	if hasError {
+	if errored {
 		ui.Errorf(`
 This may be exception, view detailed exception in %s .
 `, filepath.Join(global.WorkSpace(), "logs"))
 	}
 
-	return errLogs, lockSlice, nil
+	return lockSlice, nil
 }

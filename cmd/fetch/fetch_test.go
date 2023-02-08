@@ -16,13 +16,13 @@ func TestFetch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, p := range bootstrap.Selefra.Providers {
-		confs, err := tools.GetProviders(bootstrap, p.Name)
+	for _, p := range bootstrap.Selefra.ProviderDecls {
+		confs, err := tools.ProviderConfigStrs(bootstrap, p.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, conf := range confs {
-			err = Fetch(ctx, bootstrap, p, conf)
+			err = Fetch(ctx, p, conf)
 			if err != nil {
 				t.Error(err)
 			}

@@ -17,17 +17,17 @@ import (
 	"github.com/selefra/selefra/global"
 )
 
-const SELEFRA = "selefra"
+type sectionName string
 
-const MODULES = "modules"
+const (
+	SELEFRA   sectionName = "selefra"
+	MODULES   sectionName = "modules"
+	PROVIDERS sectionName = "providers"
+	VARIABLES sectionName = "variables"
+	RULES     sectionName = "rules"
+)
 
-const PROVIDERS = "providers"
-
-const VARIABLES = "variables"
-
-const RULES = "rules"
-
-var typeMap = map[string]bool{
+var typeMap = map[sectionName]bool{
 	SELEFRA:   true,
 	MODULES:   true,
 	PROVIDERS: true,
@@ -35,7 +35,8 @@ var typeMap = map[string]bool{
 	VARIABLES: true,
 }
 
-type ProviderConfig struct {
+// Provider is provider config
+type Provider struct {
 	Name          string   `yaml:"name" json:"name"`
 	Cache         string   `yaml:"cache" json:"cache"`
 	Provider      string   `yaml:"provider" json:"provider"`
@@ -68,7 +69,7 @@ type RootConfigInitWithLogin struct {
 	Providers yaml.Node                  `yaml:"providers"`
 }
 
-type RulesConfig struct {
+type RuleSet struct {
 	Rules []Rule `yaml:"rules"`
 }
 
@@ -110,37 +111,39 @@ type Cloud struct {
 
 // SelefraConfig is the project config
 type SelefraConfig struct {
-	Cloud      *Cloud              `yaml:"cloud" mapstructure:"cloud"`
-	Name       string              `yaml:"name" mapstructure:"name"`
-	CliVersion string              `yaml:"cli_version" mapstructure:"cli_version"`
-	LogLevel   string              `yaml:"log_level" mapstructure:"log_level"`
-	Providers  []*ProviderRequired `yaml:"providers" mapstructure:"providers"`
+	Cloud         *Cloud          `yaml:"cloud" mapstructure:"cloud"`
+	Name          string          `yaml:"name" mapstructure:"name"`
+	CliVersion    string          `yaml:"cli_version" mapstructure:"cli_version"`
+	LogLevel      string          `yaml:"log_level" mapstructure:"log_level"`
+	ProviderDecls []*ProviderDecl `yaml:"providers" mapstructure:"providers"`
 	//Connection *DB                 `yaml:"connection" mapstructure:"connection"`
 }
 
 // SelefraConfigInit is a subset for SelefraConfig without cloud config
 type SelefraConfigInit struct {
-	Name       string                  `yaml:"name" mapstructure:"name"`
-	CliVersion string                  `yaml:"cli_version" mapstructure:"cli_version"`
-	Providers  []*ProviderRequiredInit `yaml:"providers" mapstructure:"providers"`
+	Name       string              `yaml:"name" mapstructure:"name"`
+	CliVersion string              `yaml:"cli_version" mapstructure:"cli_version"`
+	Providers  []*ProviderDeclInit `yaml:"providers" mapstructure:"providers"`
 }
 
 // SelefraConfigInitWithLogin is a subset for SelefraConfig with a cloud config
 type SelefraConfigInitWithLogin struct {
-	Cloud      *Cloud                  `yaml:"cloud" mapstructure:"cloud"`
-	Name       string                  `yaml:"name" mapstructure:"name"`
-	CliVersion string                  `yaml:"cli_version" mapstructure:"cli_version"`
-	Providers  []*ProviderRequiredInit `yaml:"providers" mapstructure:"providers"`
+	Cloud      *Cloud              `yaml:"cloud" mapstructure:"cloud"`
+	Name       string              `yaml:"name" mapstructure:"name"`
+	CliVersion string              `yaml:"cli_version" mapstructure:"cli_version"`
+	Providers  []*ProviderDeclInit `yaml:"providers" mapstructure:"providers"`
 }
 
-type ProviderRequired struct {
+// ProviderDecl is a provider declaration
+type ProviderDecl struct {
 	Name    string  `yaml:"name,omitempty" json:"name,omitempty"`
 	Source  *string `yaml:"source,omitempty" json:"source,omitempty"`
 	Version string  `yaml:"version,omitempty" json:"version,omitempty"`
 	Path    string  `yaml:"path" json:"path"`
 }
 
-type ProviderRequiredInit struct {
+// ProviderDeclInit is a ProviderDecl without Path field
+type ProviderDeclInit struct {
 	Name    string  `yaml:"name,omitempty" json:"name,omitempty"`
 	Source  *string `yaml:"source,omitempty" json:"source,omitempty"`
 	Version string  `yaml:"version,omitempty" json:"version,omitempty"`
@@ -161,8 +164,7 @@ type DB struct {
 
 type YamlKey int
 
-type ConfigMap map[string]map[string]string
-type FileMap map[string]string
+type section2File2Content map[sectionName]map[string]string
 
 func (c *SelefraConfig) GetHostName() string {
 	if c.Cloud != nil && c.Cloud.HostName != "" {
@@ -206,33 +208,35 @@ func getConfig() (c *RootConfig, err error) {
 	return c, nil
 }
 
-// GetAllConfig load all yaml config file in [dirname] and return a map filename => file_content
-func GetAllConfig(dirname string, fileMap FileMap) (FileMap, error) {
-	if fileMap == nil || len(fileMap) == 0 {
-		fileMap = make(FileMap)
-	}
-	files, err := os.ReadDir(dirname)
-	if err != nil {
-		return nil, err
-	}
-	for _, file := range files {
-		if file.IsDir() {
-			_, err := GetAllConfig(filepath.Join(dirname, file.Name()), fileMap)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			if path.Ext(file.Name()) == ".yaml" {
-				b, err := os.ReadFile(filepath.Join(dirname, file.Name()))
-				if err != nil {
-					fmt.Println(err)
-					return nil, err
+// FileMap load all yaml config file in [dirname] and return a map filename => file_content
+func FileMap(dirname string) (fm map[string]string, err error) {
+
+	var fn func(dirname string)
+	fn = func(dirname string) {
+		files, e := os.ReadDir(dirname)
+		if e != nil {
+			err = e
+			return
+		}
+		for _, file := range files {
+			if file.IsDir() {
+				fn(filepath.Join(dirname, file.Name()))
+			} else {
+				if path.Ext(file.Name()) == ".yaml" {
+					b, e := os.ReadFile(filepath.Join(dirname, file.Name()))
+					if e != nil {
+						err = e
+						return
+					}
+					fm[filepath.Join(dirname, file.Name())] = string(b)
 				}
-				fileMap[filepath.Join(dirname, file.Name())] = string(b)
 			}
 		}
 	}
-	return fileMap, nil
+
+	fn(dirname)
+
+	return fm, err
 }
 
 func GetCacheKey() string {
@@ -240,7 +244,7 @@ func GetCacheKey() string {
 }
 
 // GetSchemaKey return provider schema named <required.name>_<required_version>_<provider_name>
-func GetSchemaKey(required *ProviderRequired, cp ProviderConfig) string {
+func GetSchemaKey(required *ProviderDecl, cp Provider) string {
 	var pre string
 	if required == nil {
 		return pre + "public"
@@ -268,10 +272,10 @@ func IsSelefra() error {
 }
 
 // realAllConfig read all yaml file and store it in a map
-func readAllConfig(dirname string) (ConfigMap, error) {
+func readAllConfig(dirname string) (section2File2Content, error) {
 	var err error
 
-	cm := make(ConfigMap)
+	cm := make(section2File2Content)
 
 	var fn func(dirname string)
 	fn = func(dirname string) {
@@ -301,7 +305,7 @@ func readAllConfig(dirname string) (ConfigMap, error) {
 	return cm, err
 }
 
-func readConfigFile(dirname string, configMap ConfigMap, file os.FileInfo) (ConfigMap, error) {
+func readConfigFile(dirname string, configMap section2File2Content, file os.FileInfo) (section2File2Content, error) {
 	b, err := os.ReadFile(filepath.Join(dirname, file.Name()))
 	if err != nil {
 		ui.Errorln(err)
@@ -315,12 +319,13 @@ func readConfigFile(dirname string, configMap ConfigMap, file os.FileInfo) (Conf
 				continue
 			}
 
-			if typeMap[node.Content[0].Content[i].Value] {
+			sn := sectionName(node.Content[0].Content[i].Value)
+			if typeMap[sn] {
 				var strNode = yaml.Node{
 					Kind: yaml.MappingNode,
 					Content: []*yaml.Node{
-						node.Content[0].Content[i],
-						node.Content[0].Content[i+1],
+						node.Content[0].Content[i],   // k
+						node.Content[0].Content[i+1], // v
 					},
 				}
 
@@ -329,10 +334,10 @@ func readConfigFile(dirname string, configMap ConfigMap, file os.FileInfo) (Conf
 					ui.Errorln(e)
 					return nil, err
 				}
-				if configMap[node.Content[0].Content[i].Value] == nil {
-					configMap[node.Content[0].Content[i].Value] = make(map[string]string)
+				if configMap[sn] == nil {
+					configMap[sn] = make(map[string]string)
 				}
-				configMap[node.Content[0].Content[i].Value][filepath.Join(dirname, file.Name())] = string(b)
+				configMap[sn][filepath.Join(dirname, file.Name())] = string(b)
 			}
 		}
 	}
@@ -766,17 +771,17 @@ func GetConfigPath() (string, error) {
 	return "", errors.New("No config file found")
 }
 
-func GetRules() (RulesConfig, error) {
-	var rules RulesConfig
+func GetRules() (RuleSet, error) {
+	var rules RuleSet
 	configMap, err := readAllConfig(global.WorkSpace())
 	if err != nil {
 		return rules, err
 	}
 	for rulePath, rule := range configMap[RULES] {
-		var baseRule RulesConfig
+		var baseRule RuleSet
 		err := yaml.Unmarshal([]byte(rule), &baseRule)
 		if err != nil {
-			return RulesConfig{}, err
+			return RuleSet{}, err
 		}
 		for i := range baseRule.Rules {
 			baseRule.Rules[i].Path = rulePath

@@ -43,7 +43,7 @@ func Remove(names []string) error {
 	}
 	provider := registry.NewProviderRegistry(namespace)
 
-	for _, p := range cof.Selefra.Providers {
+	for _, p := range cof.Selefra.ProviderDecls {
 		name := *p.Source
 		path := utils.GetPathBySource(*p.Source, p.Version)
 		prov := registry.ProviderBinary{

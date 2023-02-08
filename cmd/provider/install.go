@@ -69,7 +69,7 @@ func install(ctx context.Context, args []string) error {
 		}
 		p, err := provider.Download(ctx, pr, true)
 		continueFlag := false
-		for _, provider := range configYaml.Selefra.Providers {
+		for _, provider := range configYaml.Selefra.ProviderDecls {
 			providerName := *provider.Source
 			if strings.ToLower(providerName) == strings.ToLower(p.Name) && strings.ToLower(provider.Version) == strings.ToLower(p.Version) {
 				continueFlag = true
@@ -97,7 +97,7 @@ func install(ctx context.Context, args []string) error {
 		storageOpt := pgstorage.DefaultPgStorageOpts()
 		opt, err := json.Marshal(storageOpt)
 		initRes, err := plugProvider.Init(ctx, &shard.ProviderInitRequest{
-			Workspace: utils.ToStringPointer(global.WorkSpace()),
+			Workspace: pointer.ToStringPointer(global.WorkSpace()),
 			Storage: &shard.Storage{
 				Type:           0,
 				StorageOptions: opt,
@@ -124,7 +124,7 @@ func install(ctx context.Context, args []string) error {
 			return nil
 		}
 		ui.Successf("Synchronization %s@%s's config successful", p.Name, p.Version)
-		err = tools.SetSelefraProvider(p, configYaml, version)
+		err = tools.AppendProviderDecl(p, configYaml, version)
 		if err != nil {
 			ui.Errorln(err.Error())
 			return nil
@@ -137,7 +137,7 @@ func install(ctx context.Context, args []string) error {
 			}
 		}
 		if !hasProvider {
-			err = tools.SetProviders(res.DefaultConfigTemplate, p, configYaml)
+			err = tools.SetProviderTmpl(res.DefaultConfigTemplate, p, configYaml)
 		}
 		if err != nil {
 			ui.Errorf("set %s@%s's config failed：%s", p.Name, p.Version, err.Error())
