@@ -3,10 +3,8 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra/config"
-	"github.com/selefra/selefra/pkg/logger"
 	"github.com/selefra/selefra/pkg/pgstorage"
 	"github.com/selefra/selefra/pkg/registry"
 	"github.com/selefra/selefra/pkg/utils"
@@ -18,12 +16,13 @@ import (
 	"time"
 )
 
-// GetProviders find selefra provider and return it's name
-func GetProviders(config *config.RootConfig, key string) ([]string, error) {
+// ProviderConfigStrs find all selefra provider config by id from selefra config and return provider config in string format
+// TODO: deprecated
+func ProviderConfigStrs(config *config.RootConfig, id string) ([]string, error) {
 	var providerConfs []string
 	for _, group := range config.Providers.Content {
 		for i, node := range group.Content {
-			if node.Kind == yaml.ScalarNode && node.Value == "provider" && group.Content[i+1].Value == key {
+			if node.Kind == yaml.ScalarNode && node.Value == "provider" && group.Content[i+1].Value == id {
 				b, err := yaml.Marshal(group)
 				if err != nil {
 					return nil, err
@@ -36,7 +35,32 @@ func GetProviders(config *config.RootConfig, key string) ([]string, error) {
 	return providerConfs, nil
 }
 
-func SetProviders(DefaultConfigTemplate string, provider registry.ProviderBinary, config *config.RootConfig) error {
+// ProvidersByID find all provider in rootConfig by id
+func ProvidersByID(rootConfig *config.RootConfig, id string) []*config.Provider {
+	var prvds = make([]*config.Provider, 0)
+	for _, group := range rootConfig.Providers.Content {
+		for i, node := range group.Content {
+			if node.Kind == yaml.ScalarNode && node.Value == "provider" && group.Content[i+1].Value == id {
+				b, err := yaml.Marshal(group)
+				if err != nil {
+					continue
+				}
+
+				var prvd config.Provider
+				if err := yaml.Unmarshal(b, &prvd); err != nil {
+					continue
+				}
+
+				prvds = append(prvds, &prvd)
+			}
+		}
+	}
+
+	return prvds
+}
+
+// SetProviderTmpl set the provider yaml template
+func SetProviderTmpl(template string, provider registry.ProviderBinary, config *config.RootConfig) error {
 	if config.Providers.Kind != yaml.SequenceNode {
 		config.Providers.Kind = yaml.SequenceNode
 		config.Providers.Tag = "!!seq"
@@ -46,7 +70,10 @@ func SetProviders(DefaultConfigTemplate string, provider registry.ProviderBinary
 
 	var node yaml.Node
 
-	yaml.Unmarshal([]byte(DefaultConfigTemplate), &node)
+	err := yaml.Unmarshal([]byte(template), &node)
+	if err != nil {
+		return err
+	}
 	var provNode yaml.Node
 	if node.Content == nil {
 		provNode.Content = []*yaml.Node{
@@ -65,7 +92,7 @@ func SetProviders(DefaultConfigTemplate string, provider registry.ProviderBinary
 					{
 						Kind:        yaml.ScalarNode,
 						Value:       "provider",
-						FootComment: DefaultConfigTemplate,
+						FootComment: template,
 					},
 					{
 						Kind:  yaml.ScalarNode,
@@ -91,7 +118,7 @@ func SetProviders(DefaultConfigTemplate string, provider registry.ProviderBinary
 					{
 						Kind:        yaml.ScalarNode,
 						Value:       "provider",
-						FootComment: DefaultConfigTemplate,
+						FootComment: template,
 					},
 					{
 						Kind:  yaml.ScalarNode,
@@ -107,13 +134,15 @@ func SetProviders(DefaultConfigTemplate string, provider registry.ProviderBinary
 	return nil
 }
 
-func SetSelefraProvider(provider registry.ProviderBinary, selefraConfig *config.RootConfig, configVersion string) error {
+// AppendProviderDecl append a provider declare for rootConfig.Selefra.ProviderDecls
+func AppendProviderDecl(provider registry.ProviderBinary, rootConfig *config.RootConfig, configVersion string) error {
 	source, latestSource := utils.CreateSource(provider.Name, provider.Version, configVersion)
 	_, configPath, err := utils.Home()
 	if err != nil {
 		ui.Errorln("SetSelefraProviderError: " + err.Error())
 		return err
 	}
+
 	var pathMap = make(map[string]string)
 	file, err := os.ReadFile(configPath)
 	if err != nil {
@@ -124,6 +153,7 @@ func SetSelefraProvider(provider registry.ProviderBinary, selefraConfig *config.
 	if latestSource != "" {
 		pathMap[latestSource] = provider.Filepath
 	}
+
 	pathMap[source] = provider.Filepath
 
 	pathMapJson, err := json.Marshal(pathMap)
@@ -133,8 +163,8 @@ func SetSelefraProvider(provider registry.ProviderBinary, selefraConfig *config.
 	}
 
 	err = os.WriteFile(configPath, pathMapJson, 0644)
-	if selefraConfig != nil {
-		selefraConfig.Selefra.Providers = append(selefraConfig.Selefra.Providers, &config.ProviderRequired{
+	if rootConfig != nil {
+		rootConfig.Selefra.ProviderDecls = append(rootConfig.Selefra.ProviderDecls, &config.ProviderDecl{
 			Name:    provider.Name,
 			Source:  &strings.Split(source, "@")[0],
 			Version: provider.Version,
@@ -143,78 +173,26 @@ func SetSelefraProvider(provider registry.ProviderBinary, selefraConfig *config.
 	return nil
 }
 
-func GetStore(cof config.RootConfig, provider *config.ProviderRequired, conf string) (*postgresql_storage.PostgresqlStorage, error) {
-	var cp config.ProviderConfig
-	err := yaml.Unmarshal([]byte(conf), &cp)
-	if err != nil {
-		return nil, err
-	}
-
-	store, diag := pgstorage.PgStorage(context.Background(), pgstorage.WithSearchPath(config.GetSchemaKey(provider, cp)))
-	if diag != nil {
-		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	meta := &schema.ClientMeta{ClientLogger: logger.NewSchemaLoggeer()}
-	store.SetClientMeta(meta)
-	return store, nil
-}
-
-func GetStoreValue(cof config.RootConfig, provider *config.ProviderRequired, conf, key string) (string, error) {
-	store, err := GetStore(cof, provider, conf)
-	if err != nil {
-		return "", err
-	}
-	t, diag := store.GetValue(context.Background(), key)
-	if diag != nil {
-		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
-		if err != nil {
-			return "", err
-		}
-	}
-	return t, nil
-}
-
-func SetStoreValue(cof config.RootConfig, provider *config.ProviderRequired, conf string, key, value string) error {
-	store, err := GetStore(cof, provider, conf)
-	if err != nil {
-		return err
-	}
-	diag := store.SetKey(context.Background(), key, value)
-	if diag != nil {
-		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func NeedFetch(required config.ProviderRequired, cof config.RootConfig, conf string) (bool, error) {
+// CacheExpired check whether the cache time expires
+func CacheExpired(ctx context.Context, storage *postgresql_storage.PostgresqlStorage, cacheTime string) (bool, error) {
 	requireKey := config.GetCacheKey()
-	t, err := GetStoreValue(cof, &required, conf, requireKey)
+	fetchTime, err := pgstorage.GetStorageValue(ctx, storage, requireKey)
 	if err != nil {
 		return true, err
 	}
-	fetchTime, err := time.ParseInLocation(time.RFC3339, t, time.Local)
+	fetchTimeLocal, err := time.ParseInLocation(time.RFC3339, fetchTime, time.Local)
 	if err != nil {
 		return true, err
 	}
-	var cp config.ProviderConfig
-	err = yaml.Unmarshal([]byte(conf), &cp)
-	if err != nil {
-		return true, err
-	}
-	duration, err := parseDuration(cp.Cache)
+
+	duration, err := parseDuration(cacheTime)
 	if err != nil || duration == 0 {
 		return true, err
 	}
-	if time.Now().Sub(fetchTime) > duration {
+	if time.Now().Sub(fetchTimeLocal) > duration {
 		return true, nil
 	}
+
 	return false, nil
 }
 

@@ -40,7 +40,7 @@ func TestGetProvidersOnline(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	provider, err := GetProviders(s, "aws")
+	provider, err := ProviderConfigStrs(s, "aws")
 	t.Log(provider)
 	if err != nil {
 		t.Error(err)
@@ -86,7 +86,7 @@ func TestSetProvidersOnline(t *testing.T) {
       ##    The maximum back off delay between attempts. The backoff delays exponentially with a jitter based on the number of attempts. Defaults to 30 seconds.
       #max_backoff: 30
 `
-	err = SetProviders(s, p, cof)
+	err = SetProviderTmpl(s, p, cof)
 	if err != nil {
 		t.Error(err)
 	}
@@ -101,7 +101,7 @@ func TestSetSelefraProviderOnLine(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = SetSelefraProvider(p, cof, "latest")
+	err = AppendProviderDecl(p, cof, "latest")
 	if err != nil {
 		t.Error(err)
 	}

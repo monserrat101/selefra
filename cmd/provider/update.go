@@ -37,7 +37,7 @@ func update(ctx context.Context, args []string) error {
 	for i := range args {
 		argsMap[args[i]] = true
 	}
-	cof, err := config.GetConfig()
+	rootConfig, err := config.GetConfig()
 	if err != nil {
 		return err
 	}
@@ -46,16 +46,16 @@ func update(ctx context.Context, args []string) error {
 		return err
 	}
 	provider := registry.NewProviderRegistry(namespace)
-	for _, p := range cof.Selefra.Providers {
+	for _, decl := range rootConfig.Selefra.ProviderDecls {
 		prov := registry.ProviderBinary{
 			Provider: registry.Provider{
-				Name:    p.Name,
-				Version: p.Version,
+				Name:    decl.Name,
+				Version: decl.Version,
 				Source:  "",
 			},
-			Filepath: p.Path,
+			Filepath: decl.Path,
 		}
-		if len(args) != 0 && !argsMap[p.Name] {
+		if len(args) != 0 && !argsMap[decl.Name] {
 			break
 		}
 
@@ -63,14 +63,11 @@ func update(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		p.Path = pp.Filepath
-		p.Version = pp.Version
-		confs, err := tools.GetProviders(cof, p.Name)
-		if err != nil {
-			return err
-		}
-		for _, c := range confs {
-			err = fetch.Fetch(ctx, cof, p, c)
+		decl.Path = pp.Filepath
+		decl.Version = pp.Version
+
+		for _, prvd := range tools.ProvidersByID(rootConfig, decl.Name) {
+			err = fetch.Fetch(ctx, decl, prvd)
 			if err != nil {
 				return err
 			}

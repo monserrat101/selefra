@@ -14,59 +14,58 @@ import (
 	"sync"
 )
 
-type RpcClient struct {
+type client struct {
 	ctx context.Context
 
-	conn              *grpc.ClientConn
-	issueStreamClient issue.Issue_UploadIssueStreamClient
-	logStreamClient   logPb.Log_UploadLogStreamClient
+	// conn is a grpc connection
+	conn *grpc.ClientConn
 
-	taskId    string
+	// openedIssueStreamClient is an opened issue upload stream client
+	openedIssueStreamClient issue.Issue_UploadIssueStreamClient
+
+	// openedLogStreamClient is an opened log upload stream client
+	openedLogStreamClient logPb.Log_UploadLogStreamClient
+
+	// logClient is a client for upload Log
+	logClient logPb.LogClient
+
+	taskID    string
 	token     string
 	statusMap map[string]string
 }
 
-var (
-	client     *RpcClient
-	clientOnce *sync.Once = &sync.Once{}
-)
+var o = sync.Once{}
+var c *client
 
-func ShouldClient(ctx context.Context, token, taskId string) (*RpcClient, error) {
-	if client != nil {
-		return client, nil
-	}
-
-	return newClient(ctx, token, taskId)
-}
-
-func Client() *RpcClient {
-	return client
-}
-
-func newClient(ctx context.Context, token, taskId string) (*RpcClient, error) {
-	var err error
-	clientOnce.Do(func() {
-		var conn *grpc.ClientConn
-		conn, err = grpc.Dial(getDial(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
+func shouldClient() {
+	o.Do(func() {
+		// when user not login, do nothing
+		if global.Token() == "" {
 			return
 		}
 
-		innerClient := RpcClient{
+		ctx := context.Background()
+		var conn *grpc.ClientConn
+		var err error
+		conn, err = grpc.Dial(getDial(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+		}
+
+		innerClient := client{
 			ctx:       ctx,
 			conn:      conn,
-			taskId:    taskId,
-			token:     token,
 			statusMap: make(map[string]string),
 		}
 
 		var openedLogStreamClient logPb.Log_UploadLogStreamClient
-		logStreamClient := logPb.NewLogClient(conn)
-		openedLogStreamClient, err = logStreamClient.UploadLogStream(ctx)
+		logClient := logPb.NewLogClient(conn)
+		innerClient.logClient = logClient
+
+		openedLogStreamClient, err = logClient.UploadLogStream(ctx)
 		if err != nil {
 			return
 		}
-		innerClient.logStreamClient = openedLogStreamClient
+		innerClient.openedLogStreamClient = openedLogStreamClient
 
 		var openedIssueStreamClient issue.Issue_UploadIssueStreamClient
 		issueStreamClient := issue.NewIssueClient(conn)
@@ -74,9 +73,7 @@ func newClient(ctx context.Context, token, taskId string) (*RpcClient, error) {
 		if err != nil {
 			return
 		}
-		innerClient.issueStreamClient = openedIssueStreamClient
-
-		client = &innerClient
+		innerClient.openedIssueStreamClient = openedIssueStreamClient
 
 		utils.MultiRegisterClose(map[string]func(){
 			"grpc conn": func() {
@@ -90,15 +87,132 @@ func newClient(ctx context.Context, token, taskId string) (*RpcClient, error) {
 			},
 		})
 
-		return
+		c = &innerClient
 	})
+}
 
-	if err != nil {
-		client = &RpcClient{}
-		return nil, err
+func IssueStreamSend(req *issue.Req) error {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return nil
+		}
 	}
 
-	return client, nil
+	return c.openedIssueStreamClient.Send(req)
+}
+
+func IssueStreamClose() error {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return nil
+		}
+	}
+
+	return c.openedIssueStreamClient.CloseSend()
+}
+
+func LogStreamSend(req *logPb.ConnectMsg) error {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return nil
+		}
+	}
+
+	return c.openedLogStreamClient.Send(req)
+}
+
+func LogStreamClose() error {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return nil
+		}
+	}
+
+	return c.openedLogStreamClient.CloseSend()
+}
+
+func SetStatus(status string) {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return
+		}
+	}
+
+	c.statusMap[global.Stage()] = status
+}
+
+func GetStatus() string {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return "success"
+		}
+	}
+
+	return c.statusMap[global.Stage()]
+}
+
+func SetTaskID(taskId string) {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return
+		}
+	}
+
+	c.taskID = taskId
+}
+
+func TaskID() string {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return ""
+		}
+	}
+
+	return c.taskID
+}
+
+func Token() string {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return ""
+		}
+	}
+
+	return c.token
+}
+
+func UploadLogStatus() (*logPb.Res, error) {
+	if c == nil {
+		shouldClient()
+		if c == nil {
+			return nil, nil
+		}
+	}
+
+	statusInfo := &logPb.StatusInfo{
+		BaseInfo: &logPb.BaseConnectionInfo{
+			Token:  c.token,
+			TaskId: c.taskID,
+		},
+		Stag:   global.Stage(),
+		Status: c.statusMap[global.Stage()],
+		Time:   timestamppb.Now(),
+	}
+	res, err := c.logClient.UploadLogStatus(c.ctx, statusInfo)
+	if err != nil {
+		return nil, fmt.Errorf("Fail to upload log status:%s", err.Error())
+	}
+
+	return res, nil
 }
 
 func getDial() string {
@@ -111,86 +225,4 @@ func getDial() string {
 	}
 	arr := strings.Split(global.SERVER, ":")
 	return arr[0] + ":1234"
-}
-
-func (client *RpcClient) GetIssueUploadIssueStreamClient() issue.Issue_UploadIssueStreamClient {
-	return client.issueStreamClient
-}
-
-func (client *RpcClient) GetLogUploadLogStreamClient() logPb.Log_UploadLogStreamClient {
-	return client.logStreamClient
-}
-
-func (client *RpcClient) SetStatus(status string) {
-	if client.statusMap[global.Stage()] == "" {
-		client.statusMap[global.Stage()] = status
-	}
-}
-
-func (client *RpcClient) getStatus() string {
-	if client.statusMap[global.Stage()] != "" {
-		return client.statusMap[global.Stage()]
-	}
-	return "success"
-}
-
-func (client *RpcClient) newLogClient() error {
-	logCli := logPb.NewLogClient(client.conn)
-	uploadStreamCli, err := logCli.UploadLogStream(client.ctx)
-	if err != nil {
-		return err
-	}
-	client.logStreamClient = uploadStreamCli
-	return nil
-}
-
-func (client *RpcClient) newIssueClient() error {
-	issueCli := issue.NewIssueClient(client.conn)
-	uploadIssueCli, err := issueCli.UploadIssueStream(client.ctx)
-	if err != nil {
-		return err
-	}
-	client.issueStreamClient = uploadIssueCli
-	return nil
-}
-
-func (client *RpcClient) IssueStreamClient() issue.Issue_UploadIssueStreamClient {
-	return client.issueStreamClient
-}
-
-func (client *RpcClient) LogStreamClient() logPb.Log_UploadLogStreamClient {
-	return client.logStreamClient
-}
-
-func (client *RpcClient) GetTaskID() string {
-	return client.taskId
-}
-
-func (client *RpcClient) GetToken() string {
-	return client.token
-}
-
-func (client *RpcClient) GetConn() *grpc.ClientConn {
-	return client.conn
-}
-
-func (client *RpcClient) UploadLogStatus() (*logPb.Res, error) {
-	if client.conn == nil {
-		return nil, nil
-	}
-	logClient := logPb.NewLogClient(client.conn)
-	statusInfo := &logPb.StatusInfo{
-		BaseInfo: &logPb.BaseConnectionInfo{
-			Token:  client.GetToken(),
-			TaskId: client.GetTaskID(),
-		},
-		Stag:   global.Stage(),
-		Status: client.getStatus(),
-		Time:   timestamppb.Now(),
-	}
-	res, err := logClient.UploadLogStatus(client.ctx, statusInfo)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to upload log status:%s", err.Error())
-	}
-	return res, nil
 }

@@ -12,7 +12,7 @@ package fetch
 //	ctx := context.Background()
 //	var cof = &config.SelefraConfig{}
 //	err := cof.GetConfig()
-//	for _, p := range cof.Selefra.Providers {
+//	for _, p := range cof.Selefra.ProviderDecls {
 //		err = Fetch(ctx, cof, p)
 //		if err != nil {
 //			t.Error(err)

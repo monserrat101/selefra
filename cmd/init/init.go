@@ -84,7 +84,7 @@ func initFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-var storage *postgresql_storage.PostgresqlStorageOptions
+var storageOptions *postgresql_storage.PostgresqlStorageOptions
 
 func setStorage(ctx context.Context, config *config.SelefraConfig) error {
 	_, diag := pgstorage.PgStorage(ctx)
@@ -173,7 +173,7 @@ func setProviderConfig(cmd *cobra.Command, configYaml *config.RootConfig) error 
 		}
 
 		plugProvider := plug.Provider()
-		opt, err := json.Marshal(storage)
+		opt, err := json.Marshal(storageOptions)
 		workspace := global.WorkSpace()
 		initRes, err := plugProvider.Init(ctx, &shard.ProviderInitRequest{
 			Workspace: &workspace,
@@ -200,11 +200,11 @@ func setProviderConfig(cmd *cobra.Command, configYaml *config.RootConfig) error 
 			return fmt.Errorf("	Synchronization %s@%s's config failed：%s\n", p.Name, p.Version, err.Error())
 		}
 		ui.Successf("	Synchronization %s@%s's config successful\n", p.Name, p.Version)
-		err = tools.SetSelefraProvider(p, configYaml, "latest")
+		err = tools.AppendProviderDecl(p, configYaml, "latest")
 		if err != nil {
 			return err
 		}
-		err = tools.SetProviders(res.DefaultConfigTemplate, p, configYaml)
+		err = tools.SetProviderTmpl(res.DefaultConfigTemplate, p, configYaml)
 		if err != nil {
 			return fmt.Errorf("set %s@%s's config failed：%s", p.Name, p.Version, err.Error())
 		}

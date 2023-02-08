@@ -30,20 +30,15 @@ func NewFetchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			errFlag := false
 			ctx := cmd.Context()
-			cof, err := config.GetConfig()
+			rootConfig, err := config.GetConfig()
 			if err != nil {
 				return err
 			}
 			ui.Successf("Selefra start fetch")
-			for _, p := range cof.Selefra.Providers {
-				confs, err := tools.GetProviders(cof, p.Name)
-				if err != nil {
-					ui.Errorln(err.Error())
-					errFlag = true
-					return err
-				}
-				for i := range confs {
-					err = Fetch(ctx, cof, p, confs[i])
+			for _, p := range rootConfig.Selefra.ProviderDecls {
+				prvds := tools.ProvidersByID(rootConfig, p.Name)
+				for _, prvd := range prvds {
+					err = Fetch(ctx, p, prvd)
 					if err != nil {
 						ui.Errorln(err.Error())
 						errFlag = true
@@ -65,41 +60,40 @@ This may be exception, view detailed exception in %s.`,
 	return cmd
 }
 
-func Fetch(ctx context.Context, cof *config.RootConfig, p *config.ProviderRequired, conf string) error {
-	var cp config.ProviderConfig
-	err := yaml.Unmarshal([]byte(conf), &cp)
-	if err != nil {
-		return err
+func Fetch(ctx context.Context, decl *config.ProviderDecl, prvd *config.Provider) error {
+	if decl.Path == "" {
+		decl.Path = utils.GetPathBySource(*decl.Source, decl.Version)
 	}
-
-	if p.Path == "" {
-		p.Path = utils.GetPathBySource(*p.Source, p.Version)
-	}
-	var providersName = *p.Source
-	ui.Successf("%s %s@%s pull infrastructure data:\n", cp.Name, providersName, p.Version)
-	ui.Print(fmt.Sprintf("Pulling %s@%s Please wait for resource information ...", providersName, p.Version), false)
-	plug, err := plugin.NewManagedPlugin(p.Path, providersName, p.Version, "", nil)
+	var providersName = *decl.Source
+	ui.Successf("%s %s@%s pull infrastructure data:\n", prvd.Name, providersName, decl.Version)
+	ui.Print(fmt.Sprintf("Pulling %s@%s Please wait for resource information ...", providersName, decl.Version), false)
+	plug, err := plugin.NewManagedPlugin(decl.Path, providersName, decl.Version, "", nil)
 	if err != nil {
 		return err
 	}
 
 	storageOpt := pgstorage.DefaultPgStorageOpts()
-	pgstorage.WithSearchPath(config.GetSchemaKey(p, cp))(storageOpt)
+	pgstorage.WithSearchPath(config.GetSchemaKey(decl, *prvd))(storageOpt)
 
 	opt, err := json.Marshal(storageOpt)
 	if err != nil {
 		return err
 	}
 
-	provider := plug.Provider()
-	initRes, err := provider.Init(ctx, &shard.ProviderInitRequest{
-		Workspace: utils.ToStringPointer(global.WorkSpace()),
+	prvdByte, err := yaml.Marshal(prvd)
+	if err != nil {
+		return err
+	}
+
+	plugProvider := plug.Provider()
+	initRes, err := plugProvider.Init(ctx, &shard.ProviderInitRequest{
+		Workspace: pointer.ToStringPointer(global.WorkSpace()),
 		Storage: &shard.Storage{
 			Type:           0,
 			StorageOptions: opt,
 		},
 		IsInstallInit:  pointer.FalsePointer(),
-		ProviderConfig: pointer.ToStringPointer(string(conf)),
+		ProviderConfig: pointer.ToStringPointer(string(prvdByte)),
 	})
 	if err != nil {
 		return err
@@ -107,13 +101,13 @@ func Fetch(ctx context.Context, cof *config.RootConfig, p *config.ProviderRequir
 		if initRes.Diagnostics != nil {
 			err := ui.PrintDiagnostic(initRes.Diagnostics.GetDiagnosticSlice())
 			if err != nil {
-				return errors.New("fetch provider init error")
+				return errors.New("fetch plugProvider init error")
 			}
 		}
 	}
 
 	defer plug.Close()
-	dropRes, err := provider.DropTableAll(ctx, &shard.ProviderDropTableAllRequest{})
+	dropRes, err := plugProvider.DropTableAll(ctx, &shard.ProviderDropTableAllRequest{})
 	if err != nil {
 		ui.Errorln(err.Error())
 		return err
@@ -121,11 +115,11 @@ func Fetch(ctx context.Context, cof *config.RootConfig, p *config.ProviderRequir
 	if dropRes.Diagnostics != nil {
 		err := ui.PrintDiagnostic(dropRes.Diagnostics.GetDiagnosticSlice())
 		if err != nil {
-			return errors.New("fetch provider drop table error")
+			return errors.New("fetch plugProvider drop table error")
 		}
 	}
 
-	createRes, err := provider.CreateAllTables(ctx, &shard.ProviderCreateAllTablesRequest{})
+	createRes, err := plugProvider.CreateAllTables(ctx, &shard.ProviderCreateAllTablesRequest{})
 	if err != nil {
 		ui.Errorln(err.Error())
 		return err
@@ -133,11 +127,11 @@ func Fetch(ctx context.Context, cof *config.RootConfig, p *config.ProviderRequir
 	if createRes.Diagnostics != nil {
 		err := ui.PrintDiagnostic(createRes.Diagnostics.GetDiagnosticSlice())
 		if err != nil {
-			return errors.New("fetch provider create table error")
+			return errors.New("fetch plugProvider create table error")
 		}
 	}
 	var tables []string
-	resources := cp.Resources
+	resources := prvd.Resources
 	if len(resources) == 0 {
 		tables = append(tables, "*")
 	} else {
@@ -146,10 +140,10 @@ func Fetch(ctx context.Context, cof *config.RootConfig, p *config.ProviderRequir
 		}
 	}
 	var maxGoroutines uint64 = 100
-	if cp.MaxGoroutines > 0 {
-		maxGoroutines = cp.MaxGoroutines
+	if prvd.MaxGoroutines > 0 {
+		maxGoroutines = prvd.MaxGoroutines
 	}
-	recv, err := provider.PullTables(ctx, &shard.PullTablesRequest{
+	recv, err := plugProvider.PullTables(ctx, &shard.PullTablesRequest{
 		Tables:        tables,
 		MaxGoroutines: maxGoroutines,
 		Timeout:       0,
@@ -159,7 +153,7 @@ func Fetch(ctx context.Context, cof *config.RootConfig, p *config.ProviderRequir
 		return err
 	}
 	progbar := progress.CreateProgress()
-	progbar.Add(p.Name+"@"+p.Version, -1)
+	progbar.Add(decl.Name+"@"+decl.Version, -1)
 	success := 0
 	errorsN := 0
 	var total int64
@@ -167,14 +161,14 @@ func Fetch(ctx context.Context, cof *config.RootConfig, p *config.ProviderRequir
 		res, err := recv.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				progbar.Current(p.Name+"@"+p.Version, total, "Done")
-				progbar.Done(p.Name + "@" + p.Version)
+				progbar.Current(decl.Name+"@"+decl.Version, total, "Done")
+				progbar.Done(decl.Name + "@" + decl.Version)
 				break
 			}
 			return err
 		}
-		progbar.SetTotal(p.Name+"@"+p.Version, int64(res.TableCount))
-		progbar.Current(p.Name+"@"+p.Version, int64(len(res.FinishedTables)), res.Table)
+		progbar.SetTotal(decl.Name+"@"+decl.Version, int64(res.TableCount))
+		progbar.Current(decl.Name+"@"+decl.Version, int64(len(res.FinishedTables)), res.Table)
 		total = int64(res.TableCount)
 		if res.Diagnostics != nil {
 			if res.Diagnostics.HasError() {
@@ -184,7 +178,7 @@ func Fetch(ctx context.Context, cof *config.RootConfig, p *config.ProviderRequir
 		success = len(res.FinishedTables)
 		errorsN = 0
 	}
-	progbar.Wait(p.Name + "@" + p.Version)
+	progbar.Wait(decl.Name + "@" + decl.Version)
 	if errorsN > 0 {
 		ui.Errorf("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
 		return nil

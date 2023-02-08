@@ -10,10 +10,13 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Home return selefra home, config in selefra home, an error
-func Home() (string, string, error) {
+// selefra is in ~/.selefra, it store tokens, downloaded binary files, database files, and other configuration files, etc.
+// configPath is ~/.selefra/.path/config.json, in config.json, the absolute path of the provider binary is declared
+func Home() (homeDir string, configPath string, err error) {
 	home, err := homedir.Dir()
 	if err != nil {
 		return "", "", err
@@ -27,6 +30,7 @@ func Home() (string, string, error) {
 		}
 	}
 
+	// provider binary file store in providerPath
 	providerPath := filepath.Join(home, ".selefra", ".path")
 
 	_, err = os.Stat(providerPath)
@@ -173,7 +177,10 @@ func GetPathBySource(source, version string) string {
 	if err != nil {
 		return ""
 	}
-	return configMap[source+"@"+version]
+
+	ss := strings.SplitN(source, "@", 2)
+
+	return configMap[ss[0]+"@"+version]
 }
 
 const ROW = "https://raw.githubusercontent.com/selefra/registry"

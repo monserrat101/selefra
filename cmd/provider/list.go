@@ -31,7 +31,7 @@ func list() error {
 		return nil
 	}
 	fmt.Printf("  %-13s %-26s %s\n", "Name", "Source", "Version")
-	for _, provider := range configYaml.Selefra.Providers {
+	for _, provider := range configYaml.Selefra.ProviderDecls {
 		fmt.Printf("  %-13s %-26s %s\n", provider.Name, *provider.Source, provider.Version)
 	}
 	return nil

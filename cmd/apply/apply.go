@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/google/uuid"
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
+	"github.com/selefra/selefra-provider-sdk/storage"
 	"github.com/selefra/selefra/cmd/login"
 	"github.com/selefra/selefra/cmd/provider"
 	"github.com/selefra/selefra/cmd/tools"
@@ -14,8 +15,8 @@ import (
 	"github.com/selefra/selefra/pkg/grpcClient"
 	"github.com/selefra/selefra/pkg/grpcClient/proto/issue"
 	"github.com/selefra/selefra/pkg/httpClient"
+	"github.com/selefra/selefra/pkg/pgstorage"
 	"github.com/selefra/selefra/ui"
-	"github.com/selefra/selefra/ui/client"
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v3"
 	"io"
@@ -33,18 +34,15 @@ func NewApplyCmd() *cobra.Command {
 		Short:            "Create or update infrastructure",
 		Long:             "Create or update infrastructure",
 		PersistentPreRun: global.DefaultWrappedInit(),
-		RunE:             applyFunc,
+		RunE:             apply,
 	}
 
 	cmd.SetHelpFunc(cmd.HelpFunc())
 	return cmd
 }
 
-func applyFunc(cmd *cobra.Command, args []string) error {
-	return Apply(cmd.Context())
-}
-
-func Apply(ctx context.Context) error {
+func apply(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
 	_ = login.ShouldLogin()
 
 	rootConfig, err := config.GetConfig()
@@ -67,16 +65,12 @@ func Apply(ctx context.Context) error {
 		return nil
 	}
 	if taskRes != nil {
-		_, err = grpcClient.ShouldClient(ctx, global.Token(), taskRes.Data.TaskUUID)
-		if err != nil {
-			ui.Errorln(err.Error())
-		}
+		grpcClient.SetTaskID(taskRes.Data.TaskUUID)
 	}
 
-	uid, _ := uuid.NewUUID()
 	global.SetStage("initializing")
 
-	_, lockArr, err := provider.Sync()
+	lockArr, err := provider.Sync(ctx)
 	defer func() {
 		for _, item := range lockArr {
 			err := item.Storage.UnLock(context.Background(), item.SchemaKey, item.Uuid)
@@ -98,33 +92,24 @@ func Apply(ctx context.Context) error {
 		project = ""
 	}
 
-	if global.Token() != "" && relvPrjName != "" {
-		_, err = grpcClient.Client().UploadLogStatus()
-		if err != nil {
-			ui.Errorln(err.Error())
-		}
+	if _, err := grpcClient.UploadLogStatus(); err != nil {
+		ui.Errorln(err)
 	}
 
 	global.SetStage("infrastructure")
-	for i := range rootConfig.Selefra.Providers {
-		confs, err := tools.GetProviders(rootConfig, rootConfig.Selefra.Providers[i].Name)
-		if err != nil {
-			ui.Errorln(err.Error())
-			return nil
-		}
-		for _, conf := range confs {
-			var cp config.ProviderConfig
-			err := yaml.Unmarshal([]byte(conf), &cp)
-			if err != nil {
-				ui.Errorln(err.Error())
-				continue
+
+	for _, decl := range rootConfig.Selefra.ProviderDecls {
+		prvds := tools.ProvidersByID(rootConfig, decl.Name)
+		for _, prvd := range prvds {
+			schemaKey := config.GetSchemaKey(decl, *prvd)
+			storage, diag := pgstorage.Storage(ctx, pgstorage.WithSearchPath(schemaKey))
+			if diag != nil {
+				err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
+				if err != nil {
+					return fmt.Errorf("failed to create pgstorage")
+				}
 			}
-			c, e := client.CreateClientFromConfig(ctx, &rootConfig.Selefra, uid, rootConfig.Selefra.Providers[i], cp)
-			if e != nil {
-				_ = httpClient.TrySetUpStage(relvPrjName, httpClient.Failed)
-				ui.Errorln("Client creation error:" + e.Error())
-				return nil
-			}
+
 			modules, err := config.GetModules()
 			if err != nil {
 				err = httpClient.TrySetUpStage(relvPrjName, httpClient.Failed)
@@ -144,35 +129,33 @@ Loading Selefra analysis code ...`)
 
 			ui.Successf("\n---------------------------------- Result for rules  ----------------------------------------\n")
 
-			schema := config.GetSchemaKey(rootConfig.Selefra.Providers[i], cp)
-			err = RunRules(ctx, *rootConfig, c, project, mRules, schema)
+			err = RunRules(ctx, rootConfig, storage, project, mRules, schemaKey)
 			if err != nil {
 				ui.Errorln(err.Error())
 				return nil
 			}
+
 		}
 	}
 
-	if global.Token() != "" && relvPrjName != "" {
-		_, err = grpcClient.Client().UploadLogStatus()
-		if err != nil {
-			ui.Errorln(err.Error())
+	if _, err := grpcClient.UploadLogStatus(); err != nil {
+		ui.Errorln(err)
+	}
+
+	err = UploadWorkspace(relvPrjName)
+	if err != nil {
+		ui.Errorln(err.Error())
+		sErr := httpClient.TrySetUpStage(relvPrjName, httpClient.Failed)
+		if sErr != nil {
+			ui.Errorln(sErr.Error())
 		}
-		err = UploadWorkspace(relvPrjName)
-		if err != nil {
-			ui.Errorln(err.Error())
-			sErr := httpClient.TrySetUpStage(relvPrjName, httpClient.Failed)
-			if sErr != nil {
-				ui.Errorln(sErr.Error())
-			}
-			return nil
-		}
+		return nil
 	}
 	return nil
 }
 
 func UploadWorkspace(project string) error {
-	fileMap, err := config.GetAllConfig(global.WorkSpace(), nil)
+	fileMap, err := config.FileMap(global.WorkSpace())
 	if err != nil {
 		return err
 	}
@@ -222,62 +205,52 @@ func getSqlTables(sql string, tableMap map[string]bool) (tables []string) {
 }
 
 func UploadIssueFunc(ctx context.Context, IssueReq <-chan *issue.Req, ticker *time.Ticker) {
-	inClient := grpcClient.Client().GetIssueUploadIssueStreamClient()
 	for {
 		if ticker != nil {
 			ticker.Reset(30 * time.Second)
 		}
 		select {
 		case req := <-IssueReq:
-			if inClient == nil {
-				continue
-			}
-			err := inClient.Send(req)
-			if err != nil {
+			if err := grpcClient.IssueStreamSend(req); err != nil {
 				ui.Errorf("send issue to server error: %s", err.Error())
 				return
 			}
 		case <-ctx.Done():
-			if inClient != nil {
-				inClient.CloseSend()
-				ui.Infoln("End of reporting issue")
-				return
-			}
+			_ = grpcClient.IssueStreamClose()
+			ui.Infoln("End of reporting issue")
+			return
 		}
 	}
 }
 
-func RunRules(ctx context.Context, s config.RootConfig, c *client.Client, project string, rules []config.Rule, schema string) error {
+func RunRules(ctx context.Context, rootConfig *config.RootConfig, storage storage.Storage, project string, rules []config.Rule, schema string) error {
 	issueCtx, issueCancel := context.WithCancel(context.Background())
 	defer issueCancel()
 	issueChan := make(chan *issue.Req, 100)
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	if global.Token() != "" && global.RelvPrjName() != "" {
-		go func() {
-			select {
-			case <-ticker.C:
-				ui.Errorln("Report issue timeout")
-				_, _ = grpcClient.Client().UploadLogStatus()
-				issueCancel()
-				panic("Report issue timeout")
-				return
-			case <-issueCtx.Done():
-				return
-			}
-		}()
+	go func() {
+		select {
+		case <-ticker.C:
+			ui.Errorln("Report issue timeout")
+			_, _ = grpcClient.UploadLogStatus()
+			issueCancel()
+			return
+		case <-issueCtx.Done():
+			return
+		}
+	}()
 
-		go UploadIssueFunc(issueCtx, issueChan, ticker)
-	}
+	go UploadIssueFunc(issueCtx, issueChan, ticker)
 
 	for _, rule := range rules {
 		var variablesMap = make(map[string]interface{})
-		for i := range s.Variables {
-			variablesMap[s.Variables[i].Key] = s.Variables[i].Default
+		for i := range rootConfig.Variables {
+			variablesMap[rootConfig.Variables[i].Key] = rootConfig.Variables[i].Default
 		}
 		queryStr, err := fmtTemplate(rule.Query, variablesMap)
-		res, diag := c.Storage.Query(ctx, queryStr)
+		res, diag := storage.Query(ctx, queryStr)
 		if diag != nil {
 			ui.PrintDiagnostic(diag.GetDiagnosticSlice())
 			continue
@@ -292,7 +265,7 @@ func RunRules(ctx context.Context, s config.RootConfig, c *client.Client, projec
 		if len(rows) == 0 {
 			continue
 		}
-		ui.Successf("%s - Rule \"%s\"\n", rule.Path, rule.Name)
+		ui.Successf("%rootConfig - Rule \"%rootConfig\"\n", rule.Path, rule.Name)
 		ui.Successln("Schema:")
 		ui.Successln(schema + "\n")
 		ui.Successln("Description:")
@@ -305,7 +278,7 @@ func RunRules(ctx context.Context, s config.RootConfig, c *client.Client, projec
 		ui.Successln("	" + desc)
 
 		ui.Successln("Policy:")
-		schemaTables, schemaDiag := c.Storage.TableList(ctx, schema)
+		schemaTables, schemaDiag := storage.TableList(ctx, schema)
 		if schemaDiag != nil {
 			err := ui.PrintDiagnostic(schemaDiag.GetDiagnosticSlice())
 			if err != nil {
@@ -388,23 +361,21 @@ func RunRules(ctx context.Context, s config.RootConfig, c *client.Client, projec
 				}
 			}
 
-			if global.Token() != "" && global.RelvPrjName() != "" {
-				reqs := issue.Req{
-					Name:        rule.Name,
-					Query:       rule.Query,
-					Metadata:    &outMetaData,
-					Labels:      outLabel,
-					ProjectName: project,
-					TaskUUID:    grpcClient.Client().GetTaskID(),
-					Token:       grpcClient.Client().GetToken(),
-					Schema:      schema,
-				}
-				select {
-				case <-issueCtx.Done():
-					return nil
-				default:
-					issueChan <- &reqs
-				}
+			reqs := issue.Req{
+				Name:        rule.Name,
+				Query:       rule.Query,
+				Metadata:    &outMetaData,
+				Labels:      outLabel,
+				ProjectName: project,
+				TaskUUID:    grpcClient.TaskID(),
+				Token:       grpcClient.Token(),
+				Schema:      schema,
+			}
+			select {
+			case <-issueCtx.Done():
+				return nil
+			default:
+				issueChan <- &reqs
 			}
 		}
 	}
@@ -440,7 +411,7 @@ func GetRules(modules []config.Module) []config.Rule {
 
 // GetModuleRules find all rules according to given module
 func GetModuleRules(module config.Module) []config.Rule {
-	var resRule config.RulesConfig
+	var resRule config.RuleSet
 	var b []byte
 	var err error
 
@@ -466,7 +437,7 @@ func GetModuleRules(module config.Module) []config.Rule {
 			}
 		}
 
-		var baseRule config.RulesConfig
+		var baseRule config.RuleSet
 		err = yaml.Unmarshal(b, &baseRule)
 		if err != nil {
 			ui.Errorln(err.Error())
@@ -477,7 +448,7 @@ func GetModuleRules(module config.Module) []config.Rule {
 			ui.Errorln(err.Error())
 			return nil
 		}
-		var ruleConfig config.RulesConfig
+		var ruleConfig config.RuleSet
 		err = yaml.Unmarshal([]byte(string(b)), &ruleConfig)
 		if err != nil {
 			ui.Errorln(err.Error())
