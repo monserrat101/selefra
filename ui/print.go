@@ -37,15 +37,7 @@ func newUiPrinter() *uiPrinter {
 		step: 0,
 	}
 
-	ua.log, _ = logger.NewLogger(logger.Config{
-		FileLogEnabled:    true,
-		ConsoleLogEnabled: false,
-		EncodeLogsAsJson:  true,
-		ConsoleNoColor:    true,
-		Source:            "client",
-		Directory:         "logs",
-		Level:             "info",
-	})
+	ua.log = logger.Default()
 
 	flag := strings.ToLower(os.Getenv("SELEFRA_CLOUD_FLAG"))
 	if flag == "true" || flag == "enable" {
@@ -197,15 +189,7 @@ var levelColor = []*color.Color{
 	ErrorColor,
 }
 
-var defaultLogger, _ = logger.NewLogger(logger.Config{
-	FileLogEnabled:    true,
-	ConsoleLogEnabled: false,
-	EncodeLogsAsJson:  true,
-	ConsoleNoColor:    true,
-	Source:            "client",
-	Directory:         "logs",
-	Level:             "info",
-})
+var defaultLogger = logger.Default()
 
 func init() {
 	printerOnce.Do(func() {
