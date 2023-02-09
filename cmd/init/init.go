@@ -291,12 +291,9 @@ To perform an initial analysis, run selefra apply
 func reInit() error {
 	_, err := config.GetConfig()
 	if err != nil && errors.Is(err, config.ErrNotSelefra) {
-
+		return nil
 	}
 
-	//if err := config.IsSelefra(); err != nil {
-	//	return nil
-	//}
 	reader := bufio.NewReader(os.Stdin)
 	ui.Warningf("Warning: %s is already init. Continue and overwrite it?[Y/N]", global.WorkSpace())
 	text, err := reader.ReadString('\n')
