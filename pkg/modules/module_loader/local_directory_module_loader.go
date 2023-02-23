@@ -132,7 +132,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 	for _, moduleBlock := range modulesBlock {
 		for index, useModuleSource := range moduleBlock.Uses {
 
-			useLocation := moduleBlock.GetNodeLocation(fmt.Sprintf("uses[%d].value", index))
+			useLocation := moduleBlock.GetNodeLocation(fmt.Sprintf("uses[%d]._value", index))
 			moduleDirectoryPath := filepath.Dir(useLocation.Path)
 
 			switch NewModuleLoaderBySource(useModuleSource) {

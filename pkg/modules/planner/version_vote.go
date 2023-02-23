@@ -82,7 +82,7 @@ func (x *ProviderVote) Vote(voteModule *module.Module, requiredProviderBlock *mo
 	}
 	constraint, err := version.NewConstraint(versionString)
 	if err != nil {
-		location := requiredProviderBlock.GetNodeLocation("version.value")
+		location := requiredProviderBlock.GetNodeLocation("version._value")
 		report := module.RenderErrorTemplate(fmt.Sprintf("provider version constraint parse failed: %s", versionString), location)
 		return schema.NewDiagnostics().AddErrorMsg(report)
 	}
@@ -106,7 +106,7 @@ func (x *ProviderVote) InitProviderVersionVoteCountMap(ctx context.Context, bloc
 	}
 	metadata, err := provider.GetMetadata(ctx, registry.NewProvider(x.ProviderName, selefraVersion.VersionLatest))
 	if err != nil {
-		location := block.GetNodeLocation("source.value")
+		location := block.GetNodeLocation("source._value")
 		report := module.RenderErrorTemplate(fmt.Sprintf("get provider %s version from registry error: %s", x.ProviderName, err.Error()), location)
 		return diagnostics.AddErrorMsg(report)
 	}

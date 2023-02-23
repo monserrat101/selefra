@@ -14,7 +14,7 @@ func TestYamlFileToModuleParser_Parse(t *testing.T) {
 	}
 	assert.False(t, utils.HasError(diagnostics))
 
-	location := module.RulesBlock[0].MetadataBlock.GetNodeLocation("tags[0].value")
+	location := module.RulesBlock[0].MetadataBlock.GetNodeLocation("tags[0]._value")
 	s := location.ReadSourceString()
 	fmt.Println(s)
 }

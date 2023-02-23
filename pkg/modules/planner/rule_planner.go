@@ -75,7 +75,7 @@ func (x *RulePlanner) MakePlan(ctx context.Context) (*RulePlan, *schema.Diagnost
 	ruleScope := ExtendScope(x.moduleScope)
 	query, err := ruleScope.RenderingTemplate(x.ruleBlock.Query, x.ruleBlock.Query)
 	if err != nil {
-		location := x.ruleBlock.GetNodeLocation("query.value")
+		location := x.ruleBlock.GetNodeLocation("query._value")
 		report := module.RenderErrorTemplate(fmt.Sprintf("rendering template error: %s", err.Error()), location)
 		return nil, diagnostics.AddErrorMsg(report)
 	}
