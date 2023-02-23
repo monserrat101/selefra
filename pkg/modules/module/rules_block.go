@@ -219,13 +219,13 @@ func (x *RuleMetadataBlock) Check(module *Module, validatorContext *ValidatorCon
 
 	if x.Remediation != "" {
 		if strings.Contains(x.Remediation, "..") {
-			errorTips := fmt.Sprintf("Rule %s metadata remediation can not contains ..", x.runtime.rule.Name)
+			errorTips := fmt.Sprintf("Rule %s metadata remediation file path can not contains ..", x.runtime.rule.Name)
 			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("remediation"))
 			diagnostics.AddErrorMsg(report)
 		} else {
 			remediationFileExists := filepath.Join(utils.AbsPath(module.Workspace), x.Remediation)
 			if !utils.Exists(remediationFileExists) {
-				errorTips := fmt.Sprintf("Rule %s metadata file do not exists or it is is not file", x.runtime.rule.Name)
+				errorTips := fmt.Sprintf("Rule %s metadata remediation file do not exists or it is is not file", x.runtime.rule.Name)
 				report := RenderErrorTemplate(errorTips, x.GetNodeLocation("remediation"))
 				diagnostics.AddErrorMsg(report)
 			}

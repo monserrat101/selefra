@@ -137,7 +137,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 
 			switch NewModuleLoaderBySource(useModuleSource) {
 			case ModuleLoaderTypeInvalid:
-				errorReport := module.RenderErrorTemplate(fmt.Sprintf("invalid module uses source %s", useModuleSource), useLocation)
+				errorReport := module.RenderErrorTemplate(fmt.Sprintf("invalid module uses source %s, unsupported module loader", useModuleSource), useLocation)
 				x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
 				return nil, false
 			case ModuleLoaderTypeS3Bucket:

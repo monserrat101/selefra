@@ -152,7 +152,7 @@ func MergeKeyValueLocation(keyLocation, valueLocation *NodeLocation) *NodeLocati
 	}
 
 	return &NodeLocation{
-		YamlSelector: baseYamlSelector(keyLocation.YamlSelector),
+		YamlSelector: keyLocation.YamlSelector,
 		Path:         keyLocation.Path,
 		Begin:        keyLocation.Begin,
 		End:          valueLocation.End,
