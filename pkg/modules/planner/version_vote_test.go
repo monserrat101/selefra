@@ -11,7 +11,7 @@ import (
 
 func TestNewProviderVersionVoteService(t *testing.T) {
 
-	// case 1: 能够选出一个明确的版本
+	// case 1: To be able to pick a definitive version
 	rootModule := randomModule("v0.0.1, v0.0.2")
 	rootModule.SubModules = append(rootModule.SubModules, randomModule("v0.0.2, v0.0.3"))
 	service := NewProviderVersionVoteService()
@@ -23,7 +23,7 @@ func TestNewProviderVersionVoteService(t *testing.T) {
 	slice := service.providerVersionVoteMap["aws"].GetWinnersVersionSlice()
 	assert.Equal(t, []string{"v0.0.2"}, slice)
 
-	// case 2: 能够选出多个明确的版本
+	// case 2: The ability to select multiple explicit versions
 	rootModule = randomModule("v0.0.1, v0.0.2, v0.0.3")
 	rootModule.SubModules = append(rootModule.SubModules, randomModule("v0.0.2, v0.0.3, v0.0.4"))
 	service = NewProviderVersionVoteService()
@@ -36,7 +36,7 @@ func TestNewProviderVersionVoteService(t *testing.T) {
 	sort.Strings(slice)
 	assert.Equal(t, []string{"v0.0.2", "v0.0.3"}, slice)
 
-	// case 3: 无法选出明确的版本
+	// case 3: No definitive version could be selected
 	rootModule = randomModule("v0.0.1, v0.0.2")
 	rootModule.SubModules = append(rootModule.SubModules, randomModule("v0.0.4"))
 	service = NewProviderVersionVoteService()

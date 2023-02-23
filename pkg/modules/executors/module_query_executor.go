@@ -18,31 +18,31 @@ import (
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-// RuleQueryResult 表示一条规则的查询结果
+// RuleQueryResult Indicates the query result of a rule
 type RuleQueryResult struct {
 
-	// 当前任务的索引编号
+	// The index number of the current task
 	Index int
 
-	// 这个规则是属于哪个模块的
+	// Which module does this rule belong to
 	Module *module.Module
 
-	// 查询出来之后渲染的值是啥
+	// What is the render value after query
 	RuleBlock *module.RuleBlock
 
-	// 查询规则时使用的查询计划是啥，上面会有一些上下文信息之类的
+	// What is the query plan used to query the rules, with some context information and so on
 	RulePlan *planner.RulePlan
 
-	// 使用的是哪个provider的哪个版本
+	// Which version of which provider is used
 	Provider *registry.Provider
 
-	// 使用的配置是哪个
+	// Which configuration is used
 	ProviderConfiguration *module.ProviderBlock
 
-	// 查询的数据库是哪个
+	// Which database is being queried
 	Schema string
 
-	// 查出issue的那一行数据
+	// Find the row of data in issue
 	Row *schema.Row
 }
 
@@ -60,7 +60,7 @@ type ModuleQueryExecutorOptions struct {
 	// Receive real-time message feedback
 	MessageChannel *message.Channel[*schema.Diagnostics]
 
-	// 执行查询时检测到的rule都往这个channel中放
+	// The rules detected during query execution are put into this channel
 	RuleQueryResultChannel *message.Channel[*RuleQueryResult]
 
 	// Tracking installation progress
@@ -69,10 +69,10 @@ type ModuleQueryExecutorOptions struct {
 	// Used to communicate with the provider
 	ProviderInformationMap map[string]*shard.GetProviderInformationResponse
 
-	// 每个Provider可能会有多个Fetch任务，只要策略绑定到了这个Provider上，那么Provider所有的Storage都要执行一遍策略
+	// Each Provider may have multiple Fetch tasks. As long as the policy is bound to the Provider, the policy must be executed for all Storage of the Provider
 	ProviderExpandMap map[string][]*planner.ProviderContext
 
-	// 查询时使用的并发数
+	// The number of concurrent queries used
 	WorkerNum int
 }
 
@@ -151,15 +151,15 @@ func (x *ModuleQueryExecutor) toRulePlanChannel(rulePlanSlice []*planner.RulePla
 	return rulePlanChannel
 }
 
-// 把模块及子模块所有的rule执行计划打平，等下要放到一个任务队列中
+// All the rule execution plans of the module and submodules are levelled and then placed in a task queue
 func (x *ModuleQueryExecutor) makeRulePlanSlice(ctx context.Context, modulePlan *planner.ModulePlan) []*planner.RulePlan {
 
 	rulePlanSlice := make([]*planner.RulePlan, 0)
 
-	// 当前模块的rule执行计划
+	// The rule execution plan for the current module
 	rulePlanSlice = append(rulePlanSlice, modulePlan.RulesPlan...)
 
-	// 子模块的执行计划
+	// The execution plan of the submodule
 	for _, subModule := range modulePlan.SubModulesPlan {
 		rulePlanSlice = append(rulePlanSlice, x.makeRulePlanSlice(ctx, subModule)...)
 	}
@@ -209,15 +209,15 @@ func (x *ModuleQueryExecutorWorker) execRulePlan(ctx context.Context, rulePlan *
 
 	storages := x.moduleQueryExecutor.options.ProviderExpandMap[rulePlan.BindingProviderName]
 	if len(storages) == 0 {
-		// TODO 错误报告
+		// TODO Error report
 		return
 	}
 	for _, storage := range storages {
 
 		x.execStorageQuery(ctx, rulePlan, storage)
-		// TODO 阶段日志
+		// TODO Stage log
 	}
-	// TODO 日志
+	// TODO log
 
 	x.sendMessage(schema.NewDiagnostics().AddInfo("rule %s begin exec done", rulePlan.String()))
 }
@@ -230,7 +230,7 @@ func (x *ModuleQueryExecutorWorker) execStorageQuery(ctx context.Context, rulePl
 		return
 	}
 
-	// TODO 打印日志提示
+	// TODO Print log prompt
 	//x.moduleQueryExecutor.options.MessageChannel <- schema.NewDiagnostics().AddInfo("")
 	//cli_ui.Successf("%rootConfig - Rule \"%rootConfig\"\n", rule.Path, rule.Name)
 	//cli_ui.Successln("Schema:")
@@ -250,17 +250,17 @@ func (x *ModuleQueryExecutorWorker) execStorageQuery(ctx context.Context, rulePl
 	}
 }
 
-// 处理rule查询出来的一行
+// Process the row queried by the rule
 func (x *ModuleQueryExecutorWorker) processRuleRow(ctx context.Context, rulePlan *planner.RulePlan, storage *planner.ProviderContext, row *schema.Row) {
 	rowScope := planner.ExtendScope(rulePlan.RuleScope)
 
-	// 把查询出来的行注入到作用域中
+	// Inject the queried rows into the scope
 	values := row.GetValues()
 	for index, columnName := range row.GetColumnNames() {
 		rowScope.DeclareVariable(columnName, values[index])
 	}
 
-	// 为规则的查询结果渲染出实际的值
+	// Render the actual values for the query results of the rule
 	ruleBlockResult, diagnostics := x.renderRule(ctx, rulePlan, rowScope)
 	if utils.HasError(diagnostics) {
 		x.moduleQueryExecutor.options.MessageChannel.Send(diagnostics)
@@ -288,12 +288,12 @@ func (x *ModuleQueryExecutorWorker) renderRule(ctx context.Context, rulePlan *pl
 
 	ruleBlock := rulePlan.RuleBlock.Copy()
 
-	// 开始渲染相关变量
+	// Start rendering the dependent variables
 	// name
 	if ruleBlock.Name != "" {
 		ruleName, err := rowScope.RenderingTemplate(rulePlan.Name, rulePlan.Name)
 		if err != nil {
-			// TODO 构造错误上下文
+			// TODO Construct error context
 			return nil, diagnostics.AddErrorMsg("render rule name error: %s", err.Error())
 		}
 		ruleBlock.Name = ruleName
@@ -305,7 +305,7 @@ func (x *ModuleQueryExecutorWorker) renderRule(ctx context.Context, rulePlan *pl
 		for key, value := range rulePlan.Labels {
 			newValue, err := rowScope.RenderingTemplate(value, value)
 			if err != nil {
-				// TODO 构造错误上下文
+				// TODO Construct error context
 				return nil, diagnostics.AddErrorMsg("render rule labels error: %s", err.Error())
 			}
 			labels[key] = newValue
@@ -317,13 +317,13 @@ func (x *ModuleQueryExecutorWorker) renderRule(ctx context.Context, rulePlan *pl
 	if ruleBlock.Output != "" {
 		output, err := rowScope.RenderingTemplate(rulePlan.Output, rulePlan.Output)
 		if err != nil {
-			// TODO 构造错误上下文
+			// TODO Construct error context
 			return nil, diagnostics.AddErrorMsg("render output labels error: %s", err.Error())
 		}
 		ruleBlock.Output = output
 	}
 
-	// 元数据块的渲染
+	// Rendering of metadata blocks
 	d := x.renderRuleMetadata(ctx, rulePlan, ruleBlock, rowScope)
 	if diagnostics.AddDiagnostics(d).HasError() {
 		return nil, diagnostics
@@ -332,7 +332,7 @@ func (x *ModuleQueryExecutorWorker) renderRule(ctx context.Context, rulePlan *pl
 	return ruleBlock, diagnostics
 }
 
-// 渲染策略的元数据的块
+// A block of render policy metadata
 func (x *ModuleQueryExecutorWorker) renderRuleMetadata(ctx context.Context, rulePlan *planner.RulePlan, ruleBlock *module.RuleBlock, rowScope *planner.Scope) *schema.Diagnostics {
 
 	diagnostics := schema.NewDiagnostics()
@@ -361,7 +361,7 @@ func (x *ModuleQueryExecutorWorker) renderRuleMetadata(ctx context.Context, rule
 		}
 	}
 
-	// 读取修复方案的文本方放上来，如果有必要的话
+	// Read the text of the fix, if necessary
 	if metadata.Remediation != "" {
 		markdownFileFullPath := filepath.Join(rulePlan.Module.Workspace, metadata.Remediation)
 		file, err := os.ReadFile(markdownFileFullPath)
@@ -477,7 +477,7 @@ func (x *ModuleQueryExecutorWorker) renderRuleMetadata(ctx context.Context, rule
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-//// 构造表名称到provider名称的映射
+//// create table name to provider name mapping
 //func (x *ModuleQueryExecutor) buildTableToProviderMap() (map[string]string, *schema.Diagnostics) {
 //	diagnostics := schema.NewDiagnostics()
 //	tableToProviderMap := make(map[string]string, 0)

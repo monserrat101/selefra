@@ -13,7 +13,7 @@ import (
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-// ProviderVersionVoteService 当module有同一个provider的多个版本可以用时，应该用哪个版本呢？那来投个票吧！
+// ProviderVersionVoteService When multiple versions of the same provider are available for a module, which version should be used? So take a vote!
 type ProviderVersionVoteService struct {
 	providerVersionVoteMap map[string]*ProviderVote
 }
@@ -24,7 +24,7 @@ func NewProviderVersionVoteService() *ProviderVersionVoteService {
 	}
 }
 
-// Vote 对模块进行投票，看看应该使用哪个版本
+// Vote Vote on the module to see which version should be used
 func (x *ProviderVersionVoteService) Vote(ctx context.Context, module *module.Module) *schema.Diagnostics {
 	diagnostics := schema.NewDiagnostics()
 	for _, requiredProviderBlock := range module.SelefraBlock.RequireProvidersBlock {

@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO 2023-2-20 15:32:56 测试不通过时返回非零值
+// TODO 2023-2-20 15:32:56 Returns a non-zero value if the test fails
 func NewTestCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:              "test",

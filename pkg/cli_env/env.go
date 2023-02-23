@@ -21,7 +21,7 @@ func IsCloudEnv() bool {
 
 const SelefraServerHost = "SELEFRA_SERVER_URL"
 
-// GetServerHost 获取服务器的地址
+// GetServerHost Gets the address of the server
 func GetServerHost() string {
 	return os.Getenv(SelefraServerHost)
 }

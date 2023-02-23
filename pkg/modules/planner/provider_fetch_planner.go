@@ -43,22 +43,22 @@ func (x ProvidersFetchPlan) BuildProviderContextMap(ctx context.Context, DSN str
 	return m, diagnostics
 }
 
-// ProviderContext 准备执行策略
+// ProviderContext Ready execution strategy
 type ProviderContext struct {
 
-	// 是哪个provider
+	// Which provider is it?
 	ProviderName string
 
-	// 哪个版本
+	// Which version
 	ProviderVersion string
 
-	// 存储到的数据库
+	// The database stored to
 	Schema string
 
-	// 数据库实例的连接
+	// A connection to a database instance
 	Storage storage.Storage
 
-	// provider的配置块
+	// The provider configuration block
 	ProviderConfiguration *module.ProviderBlock
 }
 
@@ -85,7 +85,7 @@ func NewProviderFetchPlan(providerName, providerVersion string, providerBlock *m
 	}
 }
 
-// GetProvidersConfigYamlString 获取运行Provider时的配置文件
+// GetProvidersConfigYamlString Obtain the configuration file for running the Provider
 func (x *ProviderFetchPlan) GetProvidersConfigYamlString() string {
 	if x.ProviderConfigurationBlock != nil {
 		return x.ProviderConfigurationBlock.ProvidersConfigYamlString
@@ -93,7 +93,7 @@ func (x *ProviderFetchPlan) GetProvidersConfigYamlString() string {
 	return ""
 }
 
-// GetNeedPullTablesName 获取拉取时要拉哪些表
+// GetNeedPullTablesName Gets which tables to pull when pulling
 func (x *ProviderFetchPlan) GetNeedPullTablesName() []string {
 	tables := make([]string, 0)
 	if x.ProviderConfigurationBlock != nil {
@@ -105,7 +105,7 @@ func (x *ProviderFetchPlan) GetNeedPullTablesName() []string {
 	return tables
 }
 
-// GetMaxGoroutines 使用多少个并发来拉取表的数据
+// GetMaxGoroutines How many concurrency is used to pull the table data
 func (x *ProviderFetchPlan) GetMaxGoroutines() uint64 {
 	if x.ProviderConfigurationBlock != nil && x.ProviderConfigurationBlock.MaxGoroutines != nil {
 		return *x.ProviderConfigurationBlock.MaxGoroutines

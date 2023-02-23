@@ -37,7 +37,7 @@ func RunMessageChannelConsumer(messageChannel chan *schema.Diagnostics, consumer
 	return x
 }
 
-// HasError 阻塞式方法
+// HasError Blocking method
 func (x *MessageChannelConsumer) HasError() bool {
 	x.wg.Wait()
 	return x.hasError.Load()

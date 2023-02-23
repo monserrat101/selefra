@@ -9,13 +9,13 @@ import (
 // IsProviderInstalled Used to query whether the provider is installed locally
 func (x *LocalProvidersManager) IsProviderInstalled(ctx context.Context, provider *LocalProvider) (bool, *schema.Diagnostics) {
 
-	// 如果不是最新版，则直接根据路径判断即可
+	// If it is not the latest version, you can directly determine the path
 	if !provider.IsLatestVersion() {
 		path := x.buildLocalProviderVersionPath(provider.Name, provider.Version)
 		return utils.Exists(path), nil
 	}
 
-	// 如果是最新版，则先获取一下最新版的版本号
+	// If it is the latest version, obtain the version number of the latest version
 	metadata, err := x.providerRegistry.GetMetadata(ctx, provider.Provider)
 	if err != nil {
 		return false, schema.NewDiagnostics().AddErrorMsg("provider %s get metadata error: %s", provider.Name, err.Error())

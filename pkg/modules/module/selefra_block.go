@@ -459,7 +459,7 @@ func (x *RequireProviderBlock) IsEmpty() bool {
 //		return false, d
 //	}
 //
-//	// 任意一个版本符合约束条件即可
+//	// Any version can meet the constraints
 //	for _, c := range x.Constraints {
 //		if c.Check(version) {
 //			return true, nil

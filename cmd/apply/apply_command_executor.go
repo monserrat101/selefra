@@ -167,13 +167,13 @@ func (x *ApplyCommandExecutor) install(ctx context.Context) (planner.ProvidersIn
 // Start pulling data
 func (x *ApplyCommandExecutor) fetch(ctx context.Context, providersInstallPlan planner.ProvidersInstallPlan) (*executors.ProviderFetchExecutor, planner.ProvidersFetchPlan, bool) {
 
-	// 制定数据拉取计划
+	// Develop a data pull plan
 	providerFetchPlans, d := planner.NewProviderFetchPlanner(x.rootModule, providersInstallPlan.ToMap()).MakePlan(ctx)
 	if err := x.cloudApplyCommandExecutor.UploadLog(ctx, d); err != nil {
 		return nil, nil, false
 	}
 
-	// 准备开始拉取
+	// Ready to start pulling
 	localProviderManager, err := local_providers_manager.NewLocalProvidersManager(x.options.DownloadWorkspace)
 	if err != nil {
 		_ = x.cloudApplyCommandExecutor.UploadLog(ctx, schema.NewDiagnostics().AddErrorMsg("create local providers manager failed: %s", err.Error()))

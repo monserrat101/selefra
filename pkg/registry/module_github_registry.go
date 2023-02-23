@@ -216,7 +216,7 @@ func downloadModule(ctx context.Context, registryUrl string, module *Module, opt
 
 	// search download file
 	if utils.Exists(options.ModuleDownloadDirectoryPath) {
-		// TODO 临时解决方案，后续要把路径修复掉
+		// TODO Temporary solution, the path will be repaired later
 		return filepath.Join(options.ModuleDownloadDirectoryPath, supplement.PackageName), nil
 	}
 

@@ -13,7 +13,7 @@ import (
 
 // ------------------------------------------------ ---------------------------------------------------------------------
 
-// MakeProviderInstallPlan 为模块制定provider安装的计划
+// MakeProviderInstallPlan Plan the provider installation for the module
 func MakeProviderInstallPlan(ctx context.Context, module *module.Module) (ProvidersInstallPlan, *schema.Diagnostics) {
 	return NewProviderInstallPlanner(module).MakePlan(ctx)
 }
@@ -32,13 +32,13 @@ func (x ProvidersInstallPlan) ToMap() map[string]string {
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-// ProviderInstallPlan 表示一个provider的安装计划
+// ProviderInstallPlan Indicates the installation plan of a provider
 type ProviderInstallPlan struct {
 	// Which version of which provider is to be used to pull data
 	*registry.Provider
 }
 
-// NewProviderInstallPlan 根据provider的名称和版本号创建一个安装计划
+// NewProviderInstallPlan Create an installation plan based on the provider name and version number
 func NewProviderInstallPlan(providerName, providerVersion string) *ProviderInstallPlan {
 	return &ProviderInstallPlan{
 		Provider: registry.NewProvider(providerName, providerVersion),
@@ -47,7 +47,7 @@ func NewProviderInstallPlan(providerName, providerVersion string) *ProviderInsta
 
 // ------------------------------------------------ ---------------------------------------------------------------------
 
-// ProviderInstallPlanner 用于为Module制定provider的安装计划
+// ProviderInstallPlanner This command is used to plan the provider installation for Module
 type ProviderInstallPlanner struct {
 	module *module.Module
 }

@@ -34,11 +34,11 @@ func (x *URLModuleLoaderOptions) CopyForURL(moduleURL string) *URLModuleLoaderOp
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-// URLModuleLoader 从一个URL加载模块，这个模块应该是个压缩包，解压之后正好是模块的目录
+// URLModuleLoader Load the module from a URL, which should be a zipped package that happens to be the module's directory
 type URLModuleLoader struct {
 	options *URLModuleLoaderOptions
 
-	// 要下载到哪个路径
+	// Which path to download to
 	moduleDownloadDirectoryPath string
 }
 

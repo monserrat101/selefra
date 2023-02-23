@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// 在Windows平台测试，无法通过测试
+// Failed to pass the test on Windows. Procedure
 func TestPostgreSQLInstaller_Run1(t *testing.T) {
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {

@@ -12,10 +12,10 @@ import (
 
 type RulePlan struct {
 
-	// 所关联到的模块的执行计划
+	// The execution plan of the module to which it is associated
 	ModulePlan *ModulePlan
 
-	// 所关联到的模块
+	// The module to which it is associated
 	Module *module.Module
 
 	// Is the execution plan for which block

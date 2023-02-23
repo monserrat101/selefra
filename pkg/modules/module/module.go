@@ -32,7 +32,7 @@ type Module struct {
 	// Local path of the module
 	Workspace string
 
-	// 是如何从顶级模块依赖到当前模块的，其实就是一路use的拼接起来
+	// How is the dependency from the top-level module to the current module, in fact, all the way to use the concatenation
 	DependenciesPath []string
 }
 
@@ -44,7 +44,7 @@ func NewModule() *Module {
 
 // BuildFullName The full path name of the module, which can be understood at a glance
 func (x *Module) BuildFullName() string {
-	// TODO 生成一个能够唯一定位到module的名字
+	// TODO Generate a name that uniquely locates to the module
 	return "TODO"
 }
 

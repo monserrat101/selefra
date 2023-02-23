@@ -5,20 +5,20 @@ import (
 	"sync"
 )
 
-// Channel 用于链接多个Channel，协调树形调用关系时的消息传递
+// Channel Used to link multiple channels and coordinate messaging in tree invocation relationships
 type Channel[Message any] struct {
 
-	// 当前的channel
+	// Current channel
 	channel chan Message
 
-	// 子channel的控制
+	// Control of subchannels
 	subChannelWg *sync.WaitGroup
 	selfWg       *sync.WaitGroup
 
-	// 关闭时的回调
+	// The callback on shutdown
 	closeCallbackFunc func()
 
-	// 当前信道处理消息
+	// The current channel processes the message
 	consumerFunc func(index int, message Message)
 }
 
@@ -42,7 +42,7 @@ func NewChannel[Message any](consumerFunc func(index int, message Message), buff
 	x.selfWg.Add(1)
 	go func() {
 
-		// channel消费者退出时说明被关闭了，则触发关闭时的回调事件
+		// The exit of the channel consumer indicates that the channel is closed, and a callback event is triggered when the channel is closed
 		defer func() {
 			x.selfWg.Done()
 			if x.closeCallbackFunc != nil {
@@ -69,15 +69,15 @@ func (x *Channel[Message]) Send(message Message) {
 
 func (x *Channel[Message]) MakeChildChannel() *Channel[Message] {
 
-	// 为父channel增加一个信号量
+	// Adds a semaphore to the parent channel
 	x.subChannelWg.Add(1)
 
-	// 创建一个子channel，并将其桥接到父channel上
+	// Create a child channel and bridge it to the parent channel
 	subChannel := NewChannel[Message](func(index int, message Message) {
 		x.channel <- message
 	})
 
-	// 孩子channel被关闭的时候减少父channel的信号量
+	// Reduces the semaphore of the parent channel when the child channel is turned off
 	subChannel.closeCallbackFunc = func() {
 		x.subChannelWg.Done()
 	}

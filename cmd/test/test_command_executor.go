@@ -180,7 +180,7 @@ func (x *TestCommandExecutor) processProviderInstallPlan(ctx context.Context, lo
 		return
 	}
 
-	// 先获取到锁
+	// Get the lock first
 	storage, d := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, storageOpt)
 	x.options.MessageChannel.Send(d)
 	if utils.HasError(d) {
@@ -215,7 +215,7 @@ func (x *TestCommandExecutor) processProviderInstallPlan(ctx context.Context, lo
 		}
 	}()
 
-	// 初始化provider
+	// Initialize the provider
 	pluginProvider := plug.Provider()
 	var providerYamlConfiguration string
 	if plan.ProviderConfigurationBlock == nil {
@@ -245,7 +245,7 @@ func (x *TestCommandExecutor) processProviderInstallPlan(ctx context.Context, lo
 	}
 	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s init success", plan.String()))
 
-	//// 获取启动的这个provider的相关信息
+	//// Get information about the started provider
 	//information, err := pluginProvider.GetProviderInformation(ctx, &shard.GetProviderInformationRequest{})
 	//if err != nil {
 	//	x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, get provider information failed: %s", plan.String(), dbSchema, err.Error()))
@@ -254,7 +254,7 @@ func (x *TestCommandExecutor) processProviderInstallPlan(ctx context.Context, lo
 	//x.providerInformation <- information
 	//x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("get provider %s information success", plan.String()))
 
-	//// 删除provider之前的表
+	//// Delete the table before provider
 	//dropRes, err := pluginProvider.DropTableAll(ctx, &shard.ProviderDropTableAllRequest{})
 	//if err != nil {
 	//	x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, drop all table failed: %s", plan.String(), dbSchema, err.Error()))
@@ -266,7 +266,7 @@ func (x *TestCommandExecutor) processProviderInstallPlan(ctx context.Context, lo
 	//}
 	//x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s drop database schema clean success", plan.String()))
 	//
-	//// 创建所有的表
+	//// Create all the tables
 	//createRes, err := pluginProvider.CreateAllTables(ctx, &shard.ProviderCreateAllTablesRequest{})
 	//if err != nil {
 	//	cli_ui.Errorln(err.Error())

@@ -158,7 +158,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 				}
 				subModuleSlice = append(subModuleSlice, subModule)
 
-			// TODO 2023-2-20 15:31:17 先暂时注释掉，调这个流程太费时间可能来不及
+			// TODO 2023-2-20 15:31:17 Comment this out for now. Tuning this process takes too long and may not be possible
 			//case ModuleLoaderTypeGitHubRegistry:
 			//	gitHubRegistryModuleLoaderOptions := &GitHubRegistryModuleLoaderOptions{
 			//		ModuleLoaderOptions:  x.options.ModuleLoaderOptions.Copy(),
@@ -178,7 +178,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 			//	subModuleSlice = append(subModuleSlice, subModule)
 
 			case ModuleLoaderTypeLocalDirectory:
-				// 子模块的路径应该是从当前路径出发
+				// The path of the submodule should be from the current path
 				submoduleDirectoryPath := filepath.Join(moduleDirectoryPath, useModuleSource)
 				localDirectoryModuleLoaderOptions := x.options.CopyForModuleDirectory(submoduleDirectoryPath)
 				loader, err := NewLocalDirectoryModuleLoader(localDirectoryModuleLoaderOptions)

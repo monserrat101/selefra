@@ -20,7 +20,7 @@ func TestModuleQueryExecutor_Execute(t *testing.T) {
 	projectWorkspace := "./test_data/test_fetch_module"
 	downloadWorkspace := "./test_download"
 
-	// 加载测试使用的模块
+	// Load the module used for the test
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
 			t.Log(message.ToString())
@@ -38,7 +38,7 @@ func TestModuleQueryExecutor_Execute(t *testing.T) {
 	assert.NotNil(t, rootModule)
 	assert.True(t, b)
 
-	// 制定安装计划
+	// Make an installation plan
 	providersInstallPlan, diagnostics := planner.MakeProviderInstallPlan(context.Background(), rootModule)
 	if utils.IsNotEmpty(diagnostics) {
 		t.Log(diagnostics.ToString())
@@ -46,7 +46,7 @@ func TestModuleQueryExecutor_Execute(t *testing.T) {
 	assert.False(t, utils.HasError(diagnostics))
 	assert.NotNil(t, providersInstallPlan)
 
-	// 安装相关依赖
+	// Installation-dependent dependency
 	messageChannel = message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
 			t.Log(message.ToString())
@@ -68,7 +68,7 @@ func TestModuleQueryExecutor_Execute(t *testing.T) {
 		t.Log(d.ToString())
 	}
 
-	// 制定数据拉取计划
+	// Develop a data pull plan
 	providerFetchPlans, d := planner.NewProviderFetchPlanner(rootModule, providersInstallPlan.ToMap()).MakePlan(context.Background())
 	if utils.IsNotEmpty(d) {
 		t.Log(d.ToString())
@@ -76,7 +76,7 @@ func TestModuleQueryExecutor_Execute(t *testing.T) {
 	assert.False(t, utils.HasError(d))
 	assert.NotNil(t, providerFetchPlans)
 
-	// 准备开始拉取
+	// Ready to start pulling
 	localProviderManager, err := local_providers_manager.NewLocalProvidersManager("./test_download")
 	assert.Nil(t, err)
 	assert.NotNil(t, localProviderManager)

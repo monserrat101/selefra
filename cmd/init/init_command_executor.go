@@ -472,7 +472,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 	// start & get information
 	cli_ui.Infof("begin init provider %s", plan.String())
 
-	// 寻找provider在本地的路径
+	// Find the local path of the provider
 	localProvider := &local_providers_manager.LocalProvider{
 		Provider: plan.Provider,
 	}
@@ -485,24 +485,24 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 		return "", false
 	}
 
-	// 查找provider在本地安装的位置
+	// Find the local installation location of the provider
 	localProviderMeta, d := localProviderManager.Get(ctx, localProvider)
 	if err := cli_ui.PrintDiagnostics(d); err != nil {
 		return "", false
 	}
 
-	// 启动provider
+	// Start provider
 	plug, err := plugin.NewManagedPlugin(localProviderMeta.ExecutableFilePath, plan.Name, plan.Version, "", nil)
 	if err != nil {
 		cli_ui.Errorf("start provider %s at %s failed: %s", plan.String(), localProvider.ExecutableFilePath, err.Error())
 		return "", false
 	}
-	// 方法执行结束的时候关闭provider退出
+	// Close the provider at the end of the method execution
 	defer plug.Close()
 
 	cli_ui.Errorf("start provider %s success", plan.String())
 
-	// 数据库连接选项
+	// Database connection option
 	storageOpt := postgresql_storage.NewPostgresqlStorageOptions(x.options.DSN)
 	providerBlock := module.NewProviderBlock()
 	providerBlock.Name = plan.Name
@@ -514,7 +514,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 		return "", false
 	}
 
-	// 先获取到锁
+	// Get the lock first
 	storage, d := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, storageOpt)
 	if err := cli_ui.PrintDiagnostics(d); err != nil {
 		return "", false
@@ -548,7 +548,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 		}
 	}()
 
-	// 初始化provider
+	// Initialize the provider
 	pluginProvider := plug.Provider()
 	var providerYamlConfiguration string = module.GetDefaultProviderConfigYamlConfiguration(plan.Name, plan.Version)
 
@@ -571,7 +571,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 
 	cli_ui.Infof("provider %s init success", plan.String())
 
-	// 获取启动的这个provider的相关信息
+	// Get information about the started provider
 	information, err := pluginProvider.GetProviderInformation(ctx, &shard.GetProviderInformationRequest{})
 	if err != nil {
 		cli_ui.Errorf("provider %s, schema %s, get provider information failed: %s", plan.String(), dbSchema, err.Error())

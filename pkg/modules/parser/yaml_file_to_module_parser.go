@@ -364,13 +364,13 @@ func RenderErrorTemplate(errorType string, location *module.NodeLocation) string
 		return err.Error()
 	}
 	split := strings.Split(string(file), "\n")
-	// 根据文件中实际的行数决定行使用的的字符个数
+	// The number of characters used for lines depends on the actual number of lines in the file
 	lineWidth := strconv.Itoa(len(strconv.Itoa(len(split))))
 	for lineIndex, lineString := range split {
-		// Windows平台上可能会有换行符问题
+		// There can be a newline problem on Windows platforms
 		lineString = strings.TrimRight(lineString, "\r")
 		realLineIndex := lineIndex + 1
-		// 往前后多看几行
+		// Go ahead and back a few more lines
 		cutoff := 5
 		if realLineIndex >= location.Begin.Line && realLineIndex <= location.End.Line {
 			begin := 0
@@ -384,7 +384,7 @@ func RenderErrorTemplate(errorType string, location *module.NodeLocation) string
 			s.WriteString(fmt.Sprintf("| %-"+lineWidth+"d ", realLineIndex))
 			s.WriteString(lineString)
 			s.WriteString("\n")
-			// 错误下划线
+			// Error underlining
 			underline := withUnderline(lineString, begin, end)
 			if underline != "" {
 				s.WriteString(fmt.Sprintf("|    "))
@@ -400,7 +400,7 @@ func RenderErrorTemplate(errorType string, location *module.NodeLocation) string
 	return s.String()
 }
 
-// 为行内容添加红色下划线
+// Underline the lines in red
 func withUnderline(line string, begin, end int) string {
 	underline := make([]string, 0)
 	for index, _ := range line {

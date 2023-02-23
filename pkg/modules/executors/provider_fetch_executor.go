@@ -28,22 +28,22 @@ import (
 
 type ProviderFetchExecutorOptions struct {
 
-	// 用来寻找Provider，启动实例
+	// Used to find the Provider and start the instance
 	LocalProviderManager *local_providers_manager.LocalProvidersManager
 
-	// 要执行的拉取计划
+	// The pull plan to execute
 	Plans []*planner.ProviderFetchPlan
 
-	// 用于实时接收消息反馈
+	// Receive message feedback in real time
 	MessageChannel *message.Channel[*schema.Diagnostics]
 
-	// 同时拉取的Provider并发数
+	// Number of providers that are concurrently pulled
 	WorkerNum int
 
-	// 工作目录
+	// Working directory
 	Workspace string
 
-	// 连接数据库
+	// Connect to database
 	DSN string
 }
 
@@ -106,7 +106,7 @@ func (x *ProviderFetchExecutor) Execute(ctx context.Context) *schema.Diagnostics
 
 	providerInformationChannel := make(chan *shard.GetProviderInformationResponse, len(x.options.Plans))
 
-	// 开始并发拉取
+	// The concurrent pull starts
 	wg := sync.WaitGroup{}
 	for i := 0; i < x.options.WorkerNum; i++ {
 		wg.Add(1)
@@ -114,7 +114,7 @@ func (x *ProviderFetchExecutor) Execute(ctx context.Context) *schema.Diagnostics
 	}
 	wg.Wait()
 
-	// 整理provider的信息
+	// Sort the provider information
 	close(providerInformationChannel)
 	providerInformationMap := make(map[string]*shard.GetProviderInformationResponse)
 	for response := range providerInformationChannel {
@@ -127,19 +127,19 @@ func (x *ProviderFetchExecutor) Execute(ctx context.Context) *schema.Diagnostics
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-// ProviderFetchExecutorWorker 用来执行拉取任务的工作协程
+// ProviderFetchExecutorWorker A working coroutine used to perform a pull task
 type ProviderFetchExecutorWorker struct {
 
-	// 是执行的哪个执行器中的任务
+	// Is the task in which actuator is executed
 	executor *ProviderFetchExecutor
 
-	// 任务队列
+	// Task queue
 	planChannel chan *planner.ProviderFetchPlan
 
-	// 退出信号
+	// Exit signal
 	wg *sync.WaitGroup
 
-	// 收集启动过的这些Provider的信息
+	// Collect information about the started providers
 	providerInformation chan *shard.GetProviderInformationResponse
 }
 
@@ -158,7 +158,7 @@ func (x *ProviderFetchExecutorWorker) Run() {
 			x.wg.Done()
 		}()
 		for plan := range x.planChannel {
-			// 单个Provider的拉取时间限制为24个小时，如果不够的话再调整
+			// The drop-down time limit for a single Provider is 24 hours. If it is insufficient, adjust it again
 			ctx, cancelFunc := context.WithTimeout(context.Background(), time.Hour*24)
 			x.executePlan(ctx, plan)
 			cancelFunc()
@@ -166,14 +166,14 @@ func (x *ProviderFetchExecutorWorker) Run() {
 	}()
 }
 
-// 执行一个provider fetch任务计划
+// Execute a provider fetch task plan
 func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *planner.ProviderFetchPlan) {
 
 	diagnostics := schema.NewDiagnostics()
 
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("begin fetch provider %s", plan.String())))
 
-	// 寻找provider在本地的路径
+	// Find the local path of the provider
 	localProvider := &local_providers_manager.LocalProvider{
 		Provider: plan.Provider,
 	}
@@ -187,25 +187,25 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		return
 	}
 
-	// 查找provider在本地安装的位置
+	// Find the local installation location of the provider
 	localProviderMeta, d := x.executor.options.LocalProviderManager.Get(ctx, localProvider)
 	if diagnostics.AddDiagnostics(d).HasError() {
 		x.sendMessage(x.addProviderNameForMessage(plan, diagnostics))
 		return
 	}
 
-	// 启动provider
+	// Start provider
 	plug, err := plugin.NewManagedPlugin(localProviderMeta.ExecutableFilePath, plan.Name, plan.Version, "", nil)
 	if err != nil {
 		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("start provider %s at %s failed: %s", plan.String(), localProvider.ExecutableFilePath, err.Error())))
 		return
 	}
-	// 方法执行结束的时候关闭provider退出
+	// Close the provider at the end of the method execution
 	defer plug.Close()
 
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("start provider %s success", plan.String())))
 
-	// 数据库连接选项
+	// Database connection option
 	storageOpt := postgresql_storage.NewPostgresqlStorageOptions(x.executor.options.DSN)
 	dbSchema := pgstorage.GetSchemaKey(plan.Name, plan.Version, plan.ProviderConfigurationBlock)
 	pgstorage.WithSearchPath(dbSchema)(storageOpt)
@@ -215,7 +215,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		return
 	}
 
-	// 先获取到锁
+	// Get the lock first
 	storage, d := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, storageOpt)
 	x.sendMessage(x.addProviderNameForMessage(plan, d))
 	if utils.HasError(d) {
@@ -250,7 +250,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		}
 	}()
 
-	// 初始化provider
+	// Initialize the provider
 	pluginProvider := plug.Provider()
 	var providerYamlConfiguration string
 	if plan.ProviderConfigurationBlock == nil {
@@ -281,7 +281,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	}
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s init success", plan.String())))
 
-	// 获取启动的这个provider的相关信息
+	// Get information about the started provider
 	information, err := pluginProvider.GetProviderInformation(ctx, &shard.GetProviderInformationRequest{})
 	if err != nil {
 		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, get provider information failed: %s", plan.String(), dbSchema, err.Error())))
@@ -291,7 +291,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("get provider %s information success", plan.String())))
 
-	// 删除provider之前的表
+	// Delete the table before provider
 	dropRes, err := pluginProvider.DropTableAll(ctx, &shard.ProviderDropTableAllRequest{})
 	if err != nil {
 		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, drop all table failed: %s", plan.String(), dbSchema, err.Error())))
@@ -303,7 +303,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	}
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s drop database schema clean success", plan.String())))
 
-	// 创建所有的表
+	// create all tables
 	createRes, err := pluginProvider.CreateAllTables(ctx, &shard.ProviderCreateAllTablesRequest{})
 	if err != nil {
 		cli_ui.Errorln(err.Error())
@@ -320,7 +320,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s create tables success", plan.String())))
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s begin fetch...", plan.String())))
 
-	// 开始拉取数据
+	// being pull data
 	recv, err := pluginProvider.PullTables(ctx, &shard.PullTablesRequest{
 		Tables:        plan.GetNeedPullTablesName(),
 		MaxGoroutines: plan.GetMaxGoroutines(),

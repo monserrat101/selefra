@@ -21,13 +21,13 @@ type ModulePlan struct {
 	// Which module is this execution plan generated for
 	*module.Module
 
-	// 模块级别的作用域
+	// Scope at the module level
 	ModuleScope *Scope
 
-	// 子模块的执行计划
+	// The execution plan of the submodule
 	SubModulesPlan []*ModulePlan
 
-	// 这个模块下的rule的执行规划
+	// The execution plan of the rule under this module
 	RulesPlan []*RulePlan
 }
 
@@ -86,14 +86,14 @@ func (x *ModulePlanner) buildModulePlanner(ctx context.Context, module *module.M
 		modulePlan.RulesPlan = append(modulePlan.RulesPlan, rulePlan)
 	}
 
-	// 为子模块生成执行计划
+	// Generate an execution plan for the submodules
 	for _, subModule := range module.SubModules {
 
-		// 子模块的作用域
+		// The scope of a submodule
 		subModuleScope := NewScope()
-		// 子模块的作用域继承当前模块
+		// The scope of a submodule inherits from the current module
 		subModuleScope.Extend(scope)
-		// 同时子模块可能有一些初始化的变量
+		// Also, the submodule may have some initialized variables
 		// TODO
 
 		subModulePlan, d := x.buildModulePlanner(ctx, subModule, subModuleScope, tableToProviderMap)

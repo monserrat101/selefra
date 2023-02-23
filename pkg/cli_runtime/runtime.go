@@ -13,21 +13,21 @@ import (
 	"github.com/selefra/selefra/pkg/utils"
 )
 
-// Runtime 命令行的运行时
+// Runtime Command line runtime
 var Runtime *CLIRuntime
 
 type CLIRuntime struct {
 
-	// 工作目录是哪个
+	// Which is the working directory
 	Workspace string
 
-	// 下载到哪个目录中
+	// Which directory to download it to
 	DownloadWorkspace string
 
-	// 操作时可能会出现的错误
+	// Errors that may occur during operation
 	Diagnostics *schema.Diagnostics
 
-	// 工作目录下的根模块
+	// The root module in the working directory
 	RootModule *module.Module
 
 	CloudClient *cloud_sdk.CloudClient
@@ -58,7 +58,7 @@ func (x *CLIRuntime) InitCloudClient() {
 	}
 	x.CloudClient = client
 
-	// 如果本地有凭证的话则自动登录
+	// Log in automatically if you have local credentials
 	credentials, _ := client.GetCredentials()
 	if credentials != nil {
 		login, d := client.Login(credentials.Token)
@@ -106,7 +106,7 @@ const DefaultServerURL = "app.selefra.io"
 
 func FindServerHost() (string, *schema.Diagnostics) {
 
-	// 尝试从配置文件中获取
+	// Try to get it from the configuration file
 	if Runtime.RootModule != nil &&
 		Runtime.RootModule.SelefraBlock != nil &&
 		Runtime.RootModule.SelefraBlock.CloudBlock != nil &&
@@ -114,12 +114,12 @@ func FindServerHost() (string, *schema.Diagnostics) {
 		return Runtime.RootModule.SelefraBlock.CloudBlock.HostName, nil
 	}
 
-	// 尝试从环境变量中获取
+	// Try to get it from an environment variable
 	if cli_env.GetServerHost() != "" {
 		return cli_env.GetServerHost(), nil
 	}
 
-	// 都获取不到，使用默认的
+	// You can't get either, so use the default
 	return DefaultServerURL, nil
 }
 
@@ -127,22 +127,22 @@ func FindServerHost() (string, *schema.Diagnostics) {
 
 func GetDSN() (string, *schema.Diagnostics) {
 
-	// 如果有在当前模块中配置的话优先使用当前模块的配置
+	// Use the configuration of the current module first if it is configured in the current module
 	if Runtime != nil && Runtime.RootModule != nil && Runtime.RootModule.SelefraBlock != nil && Runtime.RootModule.SelefraBlock.ConnectionBlock != nil {
 		return Runtime.RootModule.SelefraBlock.ConnectionBlock.BuildDSN(), nil
 	}
 
-	// 否则看是否登录
+	// Otherwise, check whether to log in
 	if Runtime.CloudClient != nil && Runtime.CloudClient.IsLoggedIn() {
 		return Runtime.CloudClient.FetchOrgDSN()
 	}
 
-	// 环境变量
+	// Environment variable
 	if env.GetDatabaseDsn() != "" {
 		return env.GetDatabaseDsn(), nil
 	}
 
-	// TODO 内置的PG数据库
+	// TODO Built-in PG database
 	return "", nil
 }
 

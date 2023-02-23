@@ -52,7 +52,7 @@ func NewFetchCmd() *cobra.Command {
 			//}
 			//return nil
 			//
-			//// TODO 与apply的前半段基本差不多
+			//// TODO It's pretty much the same as the first half of apply
 			//
 			//return nil
 
@@ -76,7 +76,7 @@ func NewFetchCmd() *cobra.Command {
 
 func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 
-	// 加载测试使用的模块
+	// Load the module used for the test
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
 			_ = cli_ui.PrintDiagnostics(message)
@@ -106,7 +106,7 @@ func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 		return nil
 	}
 
-	// 制定安装计划
+	// Make an installation plan
 	providersInstallPlan, diagnostics := planner.MakeProviderInstallPlan(context.Background(), rootModule)
 	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
 		return nil
@@ -116,7 +116,7 @@ func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 		return nil
 	}
 
-	// 安装相关依赖
+	// Installation-dependent dependency
 	messageChannel = message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
 			_ = cli_ui.PrintDiagnostics(message)
@@ -138,14 +138,14 @@ func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 		return nil
 	}
 
-	// 制定数据拉取计划
+	// Develop a data pull plan
 	providerFetchPlans, d := planner.NewProviderFetchPlanner(rootModule, providersInstallPlan.ToMap()).MakePlan(context.Background())
 	_ = cli_ui.PrintDiagnostics(d)
 	if utils.HasError(d) {
 		return nil
 	}
 
-	// 准备开始拉取
+	// Ready to start pulling
 	localProviderManager, err := local_providers_manager.NewLocalProvidersManager(downloadWorkspace)
 	if err != nil {
 		cli_ui.Errorln("")

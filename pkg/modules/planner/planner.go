@@ -5,12 +5,12 @@ import (
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 )
 
-// Planner 表示一个可以生成计划的规划器
+// Planner Represents a planner that can generate a plan
 type Planner[T any] interface {
 
-	// Name 规划器的名字
+	// Name The name of the planner
 	Name() string
 
-	// MakePlan 制定一个计划
+	// MakePlan Make a plan
 	MakePlan(ctx context.Context) (T, *schema.Diagnostics)
 }
