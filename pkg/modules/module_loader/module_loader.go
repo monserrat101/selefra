@@ -28,18 +28,25 @@ type ModuleLoaderOptions struct {
 	// What is the download path configured in the current system
 	DownloadDirectory string
 
+	// TODO Can be used to track download progress
 	ProgressTracker getter.ProgressTracker
 
 	// It's used to send information back in real time
 	MessageChannel *message.Channel[*schema.Diagnostics] `json:"message-channel"`
+
+	// How do I go from the root module to the current module
+	DependenciesTree []string
 }
 
 func (x *ModuleLoaderOptions) Copy() *ModuleLoaderOptions {
 	return &ModuleLoaderOptions{
-		Source:            x.Source,
-		Version:           x.Version,
+		Source:  x.Source,
+		Version: x.Version,
+		// TODO
+		//ProgressTracker:   x.ProgressTracker,
 		DownloadDirectory: x.DownloadDirectory,
 		MessageChannel:    x.MessageChannel.MakeChildChannel(),
+		DependenciesTree:  append([]string{}, x.DependenciesTree...),
 	}
 }
 
