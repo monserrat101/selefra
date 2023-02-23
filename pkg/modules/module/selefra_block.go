@@ -8,7 +8,7 @@ import (
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-// One of the root-level blocks
+// SelefraBlock One of the root-level blocks
 type SelefraBlock struct {
 
 	// Name of project
@@ -48,8 +48,9 @@ func (x *SelefraBlock) Merge(other *SelefraBlock) (*SelefraBlock, *schema.Diagno
 
 	// CloudBlock
 	if x.CloudBlock != nil && other.CloudBlock != nil {
-		// TODO block location
-		diagnostics.AddErrorMsg("selefra.cloud block duplicated")
+		errorTips := fmt.Sprintf("selefra cloud block can not duplicated")
+		report := RenderErrorTemplate(errorTips, x.CloudBlock.GetNodeLocation(""))
+		diagnostics.AddErrorMsg(report)
 	} else if x.CloudBlock != nil {
 		mergedSelefraBlock.CloudBlock = x.CloudBlock
 	} else {
@@ -58,8 +59,9 @@ func (x *SelefraBlock) Merge(other *SelefraBlock) (*SelefraBlock, *schema.Diagno
 
 	// Name
 	if x.Name != "" && other.Name != "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("selefra.name duplicated")
+		errorTips := fmt.Sprintf("selefra name block can not duplicated")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
+		diagnostics.AddErrorMsg(report)
 	} else if x.Name != "" {
 		mergedSelefraBlock.Name = x.Name
 	} else {
@@ -68,8 +70,9 @@ func (x *SelefraBlock) Merge(other *SelefraBlock) (*SelefraBlock, *schema.Diagno
 
 	// CliVersion
 	if x.CliVersion != "" && other.CliVersion != "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("selefra.cli_version duplicated")
+		errorTips := fmt.Sprintf("selefra cli_version block can not duplicated")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("cli_version"))
+		diagnostics.AddErrorMsg(report)
 	} else if x.CliVersion != "" {
 		mergedSelefraBlock.CliVersion = x.CliVersion
 	} else {
@@ -78,8 +81,9 @@ func (x *SelefraBlock) Merge(other *SelefraBlock) (*SelefraBlock, *schema.Diagno
 
 	// LogLevel
 	if x.LogLevel != "" && other.LogLevel != "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("selefra.log_level duplicated")
+		errorTips := fmt.Sprintf("selefra log_level block can not duplicated")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("log_level"))
+		diagnostics.AddErrorMsg(report)
 	} else if x.LogLevel != "" {
 		mergedSelefraBlock.LogLevel = x.LogLevel
 	} else {
@@ -90,7 +94,7 @@ func (x *SelefraBlock) Merge(other *SelefraBlock) (*SelefraBlock, *schema.Diagno
 	if x.RequireProvidersBlock != nil && other.RequireProvidersBlock != nil {
 		merge, d := x.RequireProvidersBlock.Merge(other.RequireProvidersBlock)
 		diagnostics.AddDiagnostics(d)
-		if d == nil || !d.HasError() {
+		if utils.IsNotEmpty(d) {
 			mergedSelefraBlock.RequireProvidersBlock = merge
 		}
 	} else if x.RequireProvidersBlock != nil {
@@ -101,8 +105,9 @@ func (x *SelefraBlock) Merge(other *SelefraBlock) (*SelefraBlock, *schema.Diagno
 
 	// ConnectionBlock
 	if x.ConnectionBlock != nil && other.ConnectionBlock != nil {
-		// TODO block location
-		diagnostics.AddErrorMsg("selefra.connection duplicated")
+		errorTips := fmt.Sprintf("selefra connection block can not duplicated")
+		report := RenderErrorTemplate(errorTips, x.ConnectionBlock.GetNodeLocation(""))
+		diagnostics.AddErrorMsg(report)
 	} else if x.ConnectionBlock != nil {
 		mergedSelefraBlock.ConnectionBlock = x.ConnectionBlock
 	} else {
@@ -118,7 +123,9 @@ func (x *SelefraBlock) Check(module *Module, validatorContext *ValidatorContext)
 
 	// The local name of the project
 	if x.Name == "" {
-		diagnostics.AddErrorMsg("selefra.cloud.name can not be empty")
+		errorTips := fmt.Sprintf("selefra name must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	// cloud block is optional, but if it is configured, it must be legal
@@ -130,11 +137,12 @@ func (x *SelefraBlock) Check(module *Module, validatorContext *ValidatorContext)
 		x.ConnectionBlock.Check(module, validatorContext)
 	}
 
-	if len(x.RequireProvidersBlock) == 0 {
-		diagnostics.AddErrorMsg("selefra.providers can not be empty")
-	} else {
-		diagnostics.AddDiagnostics(x.RequireProvidersBlock.Check(module, validatorContext))
-	}
+	// TODO To be determined, after discussion to determine the logic
+	//if len(x.RequireProvidersBlock) == 0 {
+	//	diagnostics.AddErrorMsg("selefra.providers can not be empty")
+	//} else {
+	//	diagnostics.AddDiagnostics(x.RequireProvidersBlock.Check(module, validatorContext))
+	//}
 
 	return diagnostics
 }
@@ -178,7 +186,9 @@ func (x *CloudBlock) Check(module *Module, validatorContext *ValidatorContext) *
 
 	// check project name
 	if x.Project == "" {
-		diagnostics.AddErrorMsg("selefra.cloud.project can not be empty")
+		errorTips := fmt.Sprintf("cloud project must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("project"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	return diagnostics
@@ -237,24 +247,28 @@ func (x *ConnectionBlock) Check(module *Module, validatorContext *ValidatorConte
 	diagnostics := schema.NewDiagnostics()
 
 	if x.Type == "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("connection.type can not be empty")
+		errorTips := fmt.Sprintf("Connection type must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("type"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	if x.Host == "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("connection.host can not be empty")
+		errorTips := fmt.Sprintf("Connection host must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("host"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	// Add safety Tips
 	if x.Username != "" && x.Password == "" {
-		// TODO block location
-		diagnostics.AddWarn("For security reasons, it is not recommended that you use an empty password when connecting to the database")
+		errorTips := fmt.Sprintf("For security reasons, it is not recommended that you use an empty password when connecting to the database")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("password"))
+		diagnostics.AddWarn(report)
 	}
 
 	if x.Database == "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("connection.database can not be empty")
+		errorTips := fmt.Sprintf("Connection database must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("database"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	return diagnostics
@@ -296,8 +310,9 @@ func (x RequireProvidersBlock) Merge(other RequireProvidersBlock) (RequireProvid
 	// merge self
 	for _, requireProviderBlock := range x {
 		if _, exists := providerNameSet[requireProviderBlock.Name]; exists {
-			// TODO block location
-			diagnostics.AddErrorMsg("require provider name duplicated")
+			errorTips := fmt.Sprintf("Selefra required providers with the same name is not allowed in the same module. The required provider name %s is the duplication", requireProviderBlock.Name)
+			report := RenderErrorTemplate(errorTips, requireProviderBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		providerNameSet[requireProviderBlock.Name] = struct{}{}
@@ -307,8 +322,9 @@ func (x RequireProvidersBlock) Merge(other RequireProvidersBlock) (RequireProvid
 	// merge other
 	for _, requireProviderBlock := range other {
 		if _, exists := providerNameSet[requireProviderBlock.Name]; exists {
-			// TODO block location
-			diagnostics.AddErrorMsg("require provider name duplicated")
+			errorTips := fmt.Sprintf("Selefra required providers with the same name is not allowed in the same module. The required provider name %s is the duplication", requireProviderBlock.Name)
+			report := RenderErrorTemplate(errorTips, requireProviderBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		providerNameSet[requireProviderBlock.Name] = struct{}{}
@@ -328,15 +344,17 @@ func (x RequireProvidersBlock) Check(module *Module, validatorContext *Validator
 	for _, requireProviderBlock := range x {
 
 		if _, exists := providerNameSet[requireProviderBlock.Name]; exists {
-			// TODO block location
-			diagnostics.AddErrorMsg("require provider name duplicated")
+			errorTips := fmt.Sprintf("Selefra required providers with the same name is not allowed in the same module. The required provider name %s is the duplication", requireProviderBlock.Name)
+			report := RenderErrorTemplate(errorTips, requireProviderBlock.GetNodeLocation("name"))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		providerNameSet[requireProviderBlock.Name] = struct{}{}
 
 		if _, exists := providerSourceSet[requireProviderBlock.Source]; exists {
-			// TODO block location
-			diagnostics.AddErrorMsg("require provider name duplicated")
+			errorTips := fmt.Sprintf("Selefra required providers with the same source is not allowed in the same module. The required provider source %s is the duplication", requireProviderBlock.Source)
+			report := RenderErrorTemplate(errorTips, requireProviderBlock.GetNodeLocation("source"))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		providerSourceSet[requireProviderBlock.Name] = struct{}{}
@@ -397,25 +415,28 @@ func (x *RequireProviderBlock) Check(module *Module, validatorContext *Validator
 	diagnostics := schema.NewDiagnostics()
 
 	if x.Name == "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("selefra.providers.name can not be empty")
+		errorTips := fmt.Sprintf("Reqioired provider name must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	if x.Source == "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("selefra.providers.source can not be empty")
+		errorTips := fmt.Sprintf("Reqioired provider source must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("source"))
+		diagnostics.AddErrorMsg(report)
 	}
 
-	if x.Version == "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("selefra.providers.version can not be empty")
-	}
+	//if x.Version == "" {
+	//	// TODO block location
+	//	diagnostics.AddErrorMsg("selefra.providers.version can not be empty")
+	//}
 
 	// check file is exists
 	if x.Path != "" {
 		if !utils.ExistsFile(x.Path) {
-			// TODO block location
-			diagnostics.AddErrorMsg("selefra.providers.path file not found")
+			errorTips := fmt.Sprintf("Reqioired provider path not exists: %s", x.Path)
+			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("path"))
+			diagnostics.AddErrorMsg(report)
 		}
 	}
 
@@ -484,7 +505,7 @@ func (x *RequireProviderBlock) IsEmpty() bool {
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-// TODO wait discussion
+// TODO wait discussion, Add some configuration blocks to support a private registry
 //type RegistryBlock struct {
 //	Type        string
 //	Private     bool
