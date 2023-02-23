@@ -98,6 +98,7 @@ func (x *CloudApplyCommandExecutor) initCloudClient(ctx context.Context, module 
 		login, diagnostics := client.Login(credentials.Token)
 		if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
 			cli_ui.ShowLoginFailed(credentials.Token)
+			return false
 		} else {
 
 			// login success
