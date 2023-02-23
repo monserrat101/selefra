@@ -60,7 +60,7 @@ func NewGitHubRegistryModuleLoader(options *GitHubRegistryModuleLoaderOptions) (
 	}
 
 	// The version to which the module will be downloaded
-	moduleDownloadDirectory := filepath.Join(utils.AbsPath(options.DownloadDirectory), registry.ModulesListDirectoryName, moduleNameAndVersion.Name, moduleVersion)
+	moduleDownloadDirectory := filepath.Join(utils.AbsPath(options.DownloadDirectory), DownloadModulesDirectoryName, moduleNameAndVersion.Name, moduleVersion)
 
 	options.Version = moduleVersion
 	return &GitHubRegistryModuleLoader{
