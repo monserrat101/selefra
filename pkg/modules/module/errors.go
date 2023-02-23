@@ -59,6 +59,7 @@ func RenderErrorTemplate(errorType string, location *NodeLocation) string {
 			if realLineIndex == location.End.Line {
 				end = location.End.Column - 1
 			}
+			//s.WriteString(fmt.Sprintf("| %"+lineWidth+"d: ", realLineIndex))
 			s.WriteString(fmt.Sprintf("| %-"+lineWidth+"d ", realLineIndex))
 			s.WriteString(lineString)
 			s.WriteString("\n")
@@ -70,6 +71,7 @@ func RenderErrorTemplate(errorType string, location *NodeLocation) string {
 				s.WriteString("\n")
 			}
 		} else if (realLineIndex >= location.Begin.Line-cutoff && realLineIndex < location.Begin.Line) || (realLineIndex > location.End.Line && realLineIndex <= location.End.Line+cutoff) {
+			//s.WriteString(fmt.Sprintf("| %"+lineWidth+"d: ", realLineIndex))
 			s.WriteString(fmt.Sprintf("| %-"+lineWidth+"d ", realLineIndex))
 			s.WriteString(lineString)
 			s.WriteString("\n")
