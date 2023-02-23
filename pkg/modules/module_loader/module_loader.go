@@ -26,7 +26,7 @@ type ModuleLoaderOptions struct {
 	Version string `json:"version" yaml:"version"`
 
 	// What is the download path configured in the current system
-	DownloadDirectory string
+	DownloadDirectory string `json:"download-directory" yaml:"download-directory"`
 
 	// TODO Can be used to track download progress
 	ProgressTracker getter.ProgressTracker
@@ -35,7 +35,7 @@ type ModuleLoaderOptions struct {
 	MessageChannel *message.Channel[*schema.Diagnostics] `json:"message-channel"`
 
 	// How do I go from the root module to the current module
-	DependenciesTree []string
+	DependenciesTree []string `json:"dependencies-tree" yaml:"dependencies-tree"`
 }
 
 // DeepDependenciesTree The dependence goes deeper
