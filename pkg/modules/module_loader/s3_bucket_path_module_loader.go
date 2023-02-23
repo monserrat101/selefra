@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 )
 
+// TODO Need to test
+
 // ------------------------------------------------- --------------------------------------------------------------------
 
 type S3BucketModuleLoaderOptions struct {
@@ -67,7 +69,7 @@ func (x *S3BucketModuleLoader) Load(ctx context.Context) (*module.Module, bool) 
 	localDirectoryModuleLoaderOptions := &LocalDirectoryModuleLoaderOptions{
 		// TODO
 		//ModuleLoaderOptions: x.options.ModuleLoaderOptions.Copy(),
-		ModuleDirectory:     x.moduleDownloadDirectoryPath,
+		ModuleDirectory: x.moduleDownloadDirectoryPath,
 	}
 	loader, err := NewLocalDirectoryModuleLoader(localDirectoryModuleLoaderOptions)
 	if err != nil {
