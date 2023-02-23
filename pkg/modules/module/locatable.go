@@ -51,9 +51,9 @@ func rightLeafNode(node *yaml.Node) *yaml.Node {
 }
 
 func (x *NodeLocation) ReadSourceString() string {
-	//if x == nil {
-	//	return ""
-	//}
+	if x == nil {
+		return ""
+	}
 	file, err := os.ReadFile(x.Path)
 	if err != nil {
 		return err.Error()
@@ -121,11 +121,68 @@ func NewLocatableImpl() *LocatableImpl {
 }
 
 func (x *LocatableImpl) GetNodeLocation(relativeSelector string) *NodeLocation {
-	value, err := x.yamlSelectorTrie.Query(relativeSelector)
-	if err != nil {
-		return nil
+
+	// Example(with .key or .value):
+	// foo.key
+	// foo.value
+	selectorPathLocation, err := x.yamlSelectorTrie.Query(relativeSelector)
+	if err == nil {
+		return selectorPathLocation
 	}
-	return value
+
+	//// Example(without .key or .value):
+	//// foo
+	//// bar
+	//keyLocation, keyErr := x.yamlSelectorTrie.Query(relativeSelector + ".key")
+	//valueLocation, valueErr := x.yamlSelectorTrie.Query(relativeSelector + ".value")
+	//if keyErr != nil && valueErr != nil {
+	//	return nil
+	//}
+
+	return nil
+}
+
+//func mergeKeyValueLocation(keyLocation, valueLocation *NodeLocation) *NodeLocation {
+//	if keyLocation == nil {
+//		return valueLocation
+//	} else if valueLocation == nil {
+//		return keyLocation
+//	}
+//
+//	return &NodeLocation{}
+//	if x == nil {
+//		return other
+//	} else if other == nil {
+//		return x
+//	}
+//	NodeLocation{
+//		YamlSelector:,
+//	}
+//}
+
+// foo.bar.key --> foo.bar
+// foo.bar[1] --> foo.bar
+func baseYamlSelector(yamlSelector string) string {
+	if len(yamlSelector) == 0 {
+		return ""
+	}
+
+	// Look for boundary characters
+	var delimiterCharacter byte
+	switch yamlSelector[len(yamlSelector)-1] {
+	case ']':
+		delimiterCharacter = '['
+	default:
+		delimiterCharacter = '.'
+	}
+
+	for index := len(yamlSelector) - 2; index >= 0; index-- {
+		if yamlSelector[index] == delimiterCharacter {
+			return yamlSelector[0:index]
+		}
+	}
+
+	return ""
 }
 
 func (x *LocatableImpl) SetNodeLocation(relativeSelector string, nodeLocation *NodeLocation) error {
