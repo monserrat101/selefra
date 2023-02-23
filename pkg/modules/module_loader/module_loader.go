@@ -38,6 +38,16 @@ type ModuleLoaderOptions struct {
 	DependenciesTree []string
 }
 
+// DeepDependenciesTree The dependence goes deeper
+func (x *ModuleLoaderOptions) DeepDependenciesTree(source string) []string {
+	dependenciesTree := make([]string, len(x.DependenciesTree)+1)
+	dependenciesTree[0] = source
+	for index, source := range x.DependenciesTree {
+		dependenciesTree[index+1] = source
+	}
+	return dependenciesTree
+}
+
 func (x *ModuleLoaderOptions) Copy() *ModuleLoaderOptions {
 	return &ModuleLoaderOptions{
 		Source:  x.Source,

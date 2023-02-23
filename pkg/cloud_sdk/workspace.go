@@ -65,7 +65,7 @@ func workspaceYamlFileSlice(dirname string) ([]*cloud.SyncWorkplace_ProjectWorkp
 }
 
 //
-//type Workspace struct {
+//type ModuleLocalDirectory struct {
 //}
 //
 //type WorkPlaceReq struct {

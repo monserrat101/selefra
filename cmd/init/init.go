@@ -181,7 +181,7 @@ func initFunc(cmd *cobra.Command, args []string) error {
 //		opt, err := json.Marshal(storageOptions)
 //		workspace := global.WorkSpace()
 //		initRes, err := plugProvider.Init(ctx, &shard.ProviderInitRequest{
-//			Workspace: &workspace,
+//			ModuleLocalDirectory: &workspace,
 //			Storage: &shard.Storage{
 //				Type:           0,
 //				StorageOptions: opt,

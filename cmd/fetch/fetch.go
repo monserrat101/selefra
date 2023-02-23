@@ -204,7 +204,7 @@ func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 //
 //	plugProvider := plug.Provider()
 //	initRes, err := plugProvider.Init(ctx, &shard.ProviderInitRequest{
-//		Workspace: pointer.ToStringPointer(global.WorkSpace()),
+//		ModuleLocalDirectory: pointer.ToStringPointer(global.WorkSpace()),
 //		Storage: &shard.Storage{
 //			Type:           0,
 //			StorageOptions: opt,

@@ -24,17 +24,28 @@ type LocalDirectoryModuleLoaderOptions struct {
 	ModuleDirectory string `json:"module-directory" yaml:"module-directory"`
 }
 
-func (x *LocalDirectoryModuleLoaderOptions) Copy() *LocalDirectoryModuleLoaderOptions {
-	return &LocalDirectoryModuleLoaderOptions{
-		ModuleLoaderOptions: x.ModuleLoaderOptions.Copy(),
-		ModuleDirectory:     x.ModuleDirectory,
-	}
-}
+//func (x *LocalDirectoryModuleLoaderOptions) Copy() *LocalDirectoryModuleLoaderOptions {
+//	return &LocalDirectoryModuleLoaderOptions{
+//		ModuleLoaderOptions: x.ModuleLoaderOptions.Copy(),
+//		ModuleDirectory:     x.ModuleDirectory,
+//	}
+//}
 
-func (x *LocalDirectoryModuleLoaderOptions) CopyForModuleDirectory(moduleDirectory string) *LocalDirectoryModuleLoaderOptions {
-	options := x.Copy()
-	options.ModuleDirectory = moduleDirectory
-	return options
+//func (x *LocalDirectoryModuleLoaderOptions) CopyForModuleDirectory(source, moduleDirectory string) *LocalDirectoryModuleLoaderOptions {
+//	options := x.Copy()
+//	options.Source = source
+//	options.ModuleDirectory = moduleDirectory
+//	options.DependenciesTree = append(options.DependenciesTree, source)
+//	return options
+//}
+
+// BuildFullName Gets the globally unique identity of the module
+func (x *LocalDirectoryModuleLoaderOptions) BuildFullName() string {
+	if x.Source == "" {
+		return x.ModuleDirectory
+	} else {
+		return fmt.Sprintf("%s @ %s", x.Source, x.ModuleDirectory)
+	}
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -48,8 +59,11 @@ var _ ModuleLoader[*LocalDirectoryModuleLoaderOptions] = &LocalDirectoryModuleLo
 
 func NewLocalDirectoryModuleLoader(options *LocalDirectoryModuleLoaderOptions) (*LocalDirectoryModuleLoader, error) {
 
+	// convert to abs path
+	options.ModuleDirectory = utils.AbsPath(options.ModuleDirectory)
+
 	if !utils.ExistsDirectory(options.ModuleDirectory) {
-		return nil, fmt.Errorf("module directory %s does not exist or is not directory", options.ModuleDirectory)
+		return nil, fmt.Errorf("module %s does not exist or is not directory", options.BuildFullName())
 	}
 
 	return &LocalDirectoryModuleLoader{
@@ -67,18 +81,17 @@ func (x *LocalDirectoryModuleLoader) Load(ctx context.Context) (*module.Module, 
 		x.options.MessageChannel.SenderWaitAndClose()
 	}()
 
-	diagnostics := schema.NewDiagnostics()
-
 	// check path
-	if diagnostics.AddDiagnostics(x.checkModuleDirectory()).HasError() {
-		x.options.MessageChannel.Send(diagnostics)
+	d := x.checkModuleDirectory()
+	x.options.MessageChannel.Send(d)
+	if utils.HasError(d) {
 		return nil, false
 	}
 
 	// list all yaml file
 	yamlFilePathSlice, d := x.listModuleDirectoryYamlFilePath()
-	if diagnostics.AddDiagnostics(d).HasError() {
-		x.options.MessageChannel.Send(diagnostics)
+	x.options.MessageChannel.Send(d)
+	if utils.HasError(d) {
 		return nil, false
 	}
 
@@ -87,10 +100,10 @@ func (x *LocalDirectoryModuleLoader) Load(ctx context.Context) (*module.Module, 
 	isHasError := false
 	for index, yamlFilePath := range yamlFilePathSlice {
 		yamlFileModule, d := parser.NewYamlFileToModuleParser(yamlFilePath).Parse()
+		x.options.MessageChannel.Send(d)
 		if utils.HasError(d) {
 			isHasError = true
 		}
-		x.options.MessageChannel.Send(d)
 		yamlFileModuleSlice[index] = yamlFileModule
 	}
 	if isHasError {
@@ -98,14 +111,14 @@ func (x *LocalDirectoryModuleLoader) Load(ctx context.Context) (*module.Module, 
 	}
 
 	// Merge these modules
-	finalModule := &module.Module{}
+	finalModule := module.NewModule()
 	hasError := false
 	for _, yamlFileModule := range yamlFileModuleSlice {
 		merge, d := finalModule.Merge(yamlFileModule)
-		if d != nil && d.HasError() {
+		x.options.MessageChannel.Send(d)
+		if utils.HasError(d) {
 			hasError = true
 		}
-		x.options.MessageChannel.Send(d)
 		if merge != nil {
 			finalModule = merge
 		}
@@ -115,7 +128,7 @@ func (x *LocalDirectoryModuleLoader) Load(ctx context.Context) (*module.Module, 
 	}
 
 	// Print phased results
-	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("load module from %s success", x.options.ModuleDirectory))
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("load module %s success", x.options.BuildFullName()))
 
 	// load sub modules
 	subModuleSlice, loadSuccess := x.loadSubModules(ctx, finalModule.ModulesBlock)
@@ -123,6 +136,9 @@ func (x *LocalDirectoryModuleLoader) Load(ctx context.Context) (*module.Module, 
 		return nil, false
 	}
 	finalModule.SubModules = subModuleSlice
+	finalModule.Source = x.options.Source
+	finalModule.ModuleLocalDirectory = x.options.ModuleDirectory
+	finalModule.DependenciesPath = x.options.DependenciesTree
 
 	return finalModule, true
 }
@@ -132,94 +148,162 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 	for _, moduleBlock := range modulesBlock {
 		for index, useModuleSource := range moduleBlock.Uses {
 
-			useLocation := moduleBlock.GetNodeLocation(fmt.Sprintf("uses[%d]._value", index))
-			moduleDirectoryPath := filepath.Dir(useLocation.Path)
+			useLocation := moduleBlock.GetNodeLocation(fmt.Sprintf("uses[%d]%s", index, module.NodeLocationSelfValue))
+			//moduleDirectoryPath := filepath.Dir(useLocation.Path)
 
 			switch NewModuleLoaderBySource(useModuleSource) {
+
+			// Unsupported loading mode
 			case ModuleLoaderTypeInvalid:
 				errorReport := module.RenderErrorTemplate(fmt.Sprintf("invalid module uses source %s, unsupported module loader", useModuleSource), useLocation)
 				x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
 				return nil, false
+
+			// Load the module from the bucket in S3
 			case ModuleLoaderTypeS3Bucket:
-				s3BucketModuleLoaderOptions := &S3BucketModuleLoaderOptions{
-					ModuleLoaderOptions: x.options.ModuleLoaderOptions.Copy(),
-					S3BucketURL:         useModuleSource,
-				}
-				loader, err := NewS3BucketModuleLoader(s3BucketModuleLoaderOptions)
-				if err != nil {
-					s3BucketModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
-					errorReport := module.RenderErrorTemplate(fmt.Sprintf("create s3 module loader error: %s", err.Error()), useLocation)
-					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
-					return nil, false
-				}
-				subModule, loadSuccess := loader.Load(ctx)
-				if !loadSuccess {
+				subModule, ok := x.loadS3BucketModule(ctx, useLocation, useModuleSource)
+				if !ok {
 					return nil, false
 				}
 				subModuleSlice = append(subModuleSlice, subModule)
 
-			// TODO 2023-2-20 15:31:17 Comment this out for now. Tuning this process takes too long and may not be possible
-			//case ModuleLoaderTypeGitHubRegistry:
-			//	gitHubRegistryModuleLoaderOptions := &GitHubRegistryModuleLoaderOptions{
-			//		ModuleLoaderOptions:  x.options.ModuleLoaderOptions.Copy(),
-			//		RegistryRepoFullName: useModuleSource,
-			//	}
-			//	loader, err := NewGitHubRegistryModuleLoader(gitHubRegistryModuleLoaderOptions)
-			//	if err != nil {
-			//		gitHubRegistryModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
-			//		errorReport := module.RenderErrorTemplate(fmt.Sprintf("create github registry module loader error: %s", err.Error()), useLocation)
-			//		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
-			//		return nil, false
-			//	}
-			//	subModule, loadSuccess := loader.Load(ctx)
-			//	if !loadSuccess {
-			//		return nil, false
-			//	}
-			//	subModuleSlice = append(subModuleSlice, subModule)
-
-			case ModuleLoaderTypeLocalDirectory:
-				// The path of the submodule should be from the current path
-				submoduleDirectoryPath := filepath.Join(moduleDirectoryPath, useModuleSource)
-				localDirectoryModuleLoaderOptions := x.options.CopyForModuleDirectory(submoduleDirectoryPath)
-				loader, err := NewLocalDirectoryModuleLoader(localDirectoryModuleLoaderOptions)
-				if err != nil {
-					localDirectoryModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
-					errorReport := module.RenderErrorTemplate(fmt.Sprintf("create local directory module loader error: %s", err.Error()), useLocation)
-					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
+			case ModuleLoaderTypeGitHubRegistry:
+				subModule, ok := x.loadGitHubRegistryModule(ctx, useLocation, useModuleSource)
+				if !ok {
 					return nil, false
 				}
-				subModule, loadSuccess := loader.Load(ctx)
-				if !loadSuccess {
+				subModuleSlice = append(subModuleSlice, subModule)
+
+			case ModuleLoaderTypeLocalDirectory:
+				subModule, ok := x.loadLocalDirectoryModule(ctx, useLocation, useModuleSource)
+				if !ok {
 					return nil, false
 				}
 				subModuleSlice = append(subModuleSlice, subModule)
 
 			case ModuleLoaderTypeURL:
-				urlModuleLoaderOptions := &URLModuleLoaderOptions{
-					ModuleLoaderOptions: x.options.ModuleLoaderOptions.Copy(),
-					ModuleURL:           useModuleSource,
-				}
-				loader, err := NewURLModuleLoader(urlModuleLoaderOptions)
-				if err != nil {
-					urlModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
-					errorReport := module.RenderErrorTemplate(fmt.Sprintf("create url module loader error: %s", err.Error()), useLocation)
-					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
-					return nil, false
-				}
-				subModule, loadSuccess := loader.Load(ctx)
-				if !loadSuccess {
+				subModule, ok := x.loadURLModule(ctx, useLocation, useModuleSource)
+				if !ok {
 					return nil, false
 				}
 				subModuleSlice = append(subModuleSlice, subModule)
 
 			default:
-				errorReport := module.RenderErrorTemplate(fmt.Sprintf("module source %s can  cannot be assign loader", useModuleSource), useLocation)
+				errorReport := module.RenderErrorTemplate(fmt.Sprintf("module source %s can cannot be assign loader", useModuleSource), useLocation)
 				x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
 				return nil, false
 			}
 		}
 	}
 	return subModuleSlice, true
+}
+
+func (x *LocalDirectoryModuleLoader) loadURLModule(ctx context.Context, useLocation *module.NodeLocation, useModuleSource string) (*module.Module, bool) {
+	urlModuleLoaderOptions := &URLModuleLoaderOptions{
+		ModuleLoaderOptions: &ModuleLoaderOptions{
+			Source: useModuleSource,
+			// TODO
+			Version:           "",
+			DownloadDirectory: x.options.DownloadDirectory,
+			// TODO
+			ProgressTracker:  x.options.ProgressTracker,
+			MessageChannel:   x.options.MessageChannel.MakeChildChannel(),
+			DependenciesTree: x.options.DeepDependenciesTree(useModuleSource),
+		},
+		ModuleURL: useModuleSource,
+	}
+	loader, err := NewURLModuleLoader(urlModuleLoaderOptions)
+	if err != nil {
+		urlModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
+		errorReport := module.RenderErrorTemplate(fmt.Sprintf("create url module %s error: %s", useModuleSource, err.Error()), useLocation)
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
+		return nil, false
+	}
+	return loader.Load(ctx)
+}
+
+func (x *LocalDirectoryModuleLoader) loadLocalDirectoryModule(ctx context.Context, useLocation *module.NodeLocation, useModuleSource string) (*module.Module, bool) {
+
+	// The path of the submodule should be from the current path
+	subModuleDirectory := filepath.Join(utils.AbsPath(x.options.ModuleDirectory), useModuleSource)
+
+	subModuleLocalDirectoryOptions := &LocalDirectoryModuleLoaderOptions{
+		ModuleLoaderOptions: &ModuleLoaderOptions{
+			Source: useModuleSource,
+			// TODO
+			Version:           "",
+			DownloadDirectory: x.options.DownloadDirectory,
+			// TODO
+			ProgressTracker:  x.options.ProgressTracker,
+			MessageChannel:   x.options.MessageChannel.MakeChildChannel(),
+			DependenciesTree: x.options.DeepDependenciesTree(useModuleSource),
+		},
+		ModuleDirectory: subModuleDirectory,
+	}
+
+	loader, err := NewLocalDirectoryModuleLoader(subModuleLocalDirectoryOptions)
+	if err != nil {
+		subModuleLocalDirectoryOptions.MessageChannel.SenderWaitAndClose()
+		errorReport := module.RenderErrorTemplate(fmt.Sprintf("create local directory module %s error: %s", subModuleLocalDirectoryOptions.BuildFullName(), err.Error()), useLocation)
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
+		return nil, false
+	}
+	return loader.Load(ctx)
+}
+
+func (x *LocalDirectoryModuleLoader) loadGitHubRegistryModule(ctx context.Context, useLocation *module.NodeLocation, useModuleSource string) (*module.Module, bool) {
+
+	githubOptions := &GitHubRegistryModuleLoaderOptions{
+		ModuleLoaderOptions: &ModuleLoaderOptions{
+			Source: useModuleSource,
+			// TODO
+			Version: "",
+			// TODO
+			//ProgressTracker:   x.ProgressTracker,
+			DownloadDirectory: x.options.DownloadDirectory,
+			MessageChannel:    x.options.MessageChannel.MakeChildChannel(),
+			DependenciesTree:  x.options.DeepDependenciesTree(useModuleSource),
+		},
+		RegistryRepoFullName: useModuleSource,
+	}
+
+	loader, err := NewGitHubRegistryModuleLoader(githubOptions)
+	if err != nil {
+		githubOptions.MessageChannel.SenderWaitAndClose()
+		errorReport := module.RenderErrorTemplate(fmt.Sprintf("create github registry module %s error: %s", githubOptions.Source, err.Error()), useLocation)
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
+		return nil, false
+	}
+
+	return loader.Load(ctx)
+}
+
+func (x *LocalDirectoryModuleLoader) loadS3BucketModule(ctx context.Context, useLocation *module.NodeLocation, useModuleSource string) (*module.Module, bool) {
+
+	s3Options := &S3BucketModuleLoaderOptions{
+		ModuleLoaderOptions: &ModuleLoaderOptions{
+			Source: useModuleSource,
+			// TODO
+			Version: "",
+			// TODO
+			//ProgressTracker:   x.ProgressTracker,
+			DownloadDirectory: x.options.DownloadDirectory,
+			MessageChannel:    x.options.MessageChannel.MakeChildChannel(),
+			DependenciesTree:  x.options.DeepDependenciesTree(useModuleSource),
+		},
+		S3BucketURL: useModuleSource,
+	}
+
+	loader, err := NewS3BucketModuleLoader(s3Options)
+
+	if err != nil {
+		s3Options.MessageChannel.SenderWaitAndClose()
+		errorReport := module.RenderErrorTemplate(fmt.Sprintf("create s3 module loader %s error: %s", s3Options.Source, err.Error()), useLocation)
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
+		return nil, false
+	}
+
+	return loader.Load(ctx)
 }
 
 func (x *LocalDirectoryModuleLoader) Options() *LocalDirectoryModuleLoaderOptions {
@@ -231,14 +315,14 @@ func (x *LocalDirectoryModuleLoader) checkModuleDirectory() *schema.Diagnostics 
 	info, err := os.Stat(x.options.ModuleDirectory)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return schema.NewDiagnostics().AddErrorMsg("%s module directory %s not found", x.Name(), x.options.ModuleDirectory)
+			return schema.NewDiagnostics().AddErrorMsg("module %s not found", x.options.BuildFullName())
 		} else {
-			return schema.NewDiagnostics().AddErrorMsg("%s module directory %s, error message: %s", x.Name(), x.options.ModuleDirectory, err.Error())
+			return schema.NewDiagnostics().AddErrorMsg("module %s load error: %s", x.options.BuildFullName(), err.Error())
 		}
 	}
 
 	if !info.IsDir() {
-		return schema.NewDiagnostics().AddErrorMsg("%s module directory %s found, but not directory", x.Name(), x.options.ModuleDirectory)
+		return schema.NewDiagnostics().AddErrorMsg("module %s found, but not is directory", x.options.BuildFullName())
 	}
 
 	return nil
@@ -248,7 +332,7 @@ func (x *LocalDirectoryModuleLoader) checkModuleDirectory() *schema.Diagnostics 
 func (x *LocalDirectoryModuleLoader) listModuleDirectoryYamlFilePath() ([]string, *schema.Diagnostics) {
 	dir, err := os.ReadDir(x.options.ModuleDirectory)
 	if err != nil {
-		return nil, schema.NewDiagnostics().AddErrorMsg("%s module directory %s visit error: ", x.Name(), x.options.ModuleDirectory)
+		return nil, schema.NewDiagnostics().AddErrorMsg("module %s read error: %s", x.options.BuildFullName(), err.Error())
 	}
 	yamlFileSlice := make([]string, 0)
 	for _, entry := range dir {
@@ -256,7 +340,7 @@ func (x *LocalDirectoryModuleLoader) listModuleDirectoryYamlFilePath() ([]string
 			continue
 		}
 		if IsYamlFile(entry) {
-			yamlFilePath := filepath.Join(x.options.ModuleDirectory, entry.Name())
+			yamlFilePath := filepath.Join(utils.AbsPath(x.options.ModuleDirectory), entry.Name())
 			yamlFileSlice = append(yamlFileSlice, yamlFilePath)
 		}
 	}

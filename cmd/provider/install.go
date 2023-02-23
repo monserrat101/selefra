@@ -111,7 +111,7 @@ func install(ctx context.Context, downloadWorkspace string, args ...string) erro
 //		storageOpt := pgstorage.DefaultPgStorageOpts()
 //		opt, err := json.Marshal(storageOpt)
 //		initRes, err := plugProvider.Init(ctx, &shard.ProviderInitRequest{
-//			Workspace: pointer.ToStringPointer(global.WorkSpace()),
+//			ModuleLocalDirectory: pointer.ToStringPointer(global.WorkSpace()),
 //			Storage: &shard.Storage{
 //				Type:           0,
 //				StorageOptions: opt,

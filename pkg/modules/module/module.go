@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-utils/pkg/reflect_util"
 	"reflect"
@@ -30,7 +31,7 @@ type Module struct {
 	// The source of the root module is the current path
 	Source string
 	// Local path of the module
-	Workspace string
+	ModuleLocalDirectory string
 
 	// How is the dependency from the top-level module to the current module, in fact, all the way to use the concatenation
 	DependenciesPath []string
@@ -44,8 +45,11 @@ func NewModule() *Module {
 
 // BuildFullName The full path name of the module, which can be understood at a glance
 func (x *Module) BuildFullName() string {
-	// TODO Generate a name that uniquely locates to the module
-	return "TODO"
+	if x.Source == "" {
+		return x.ModuleLocalDirectory
+	} else {
+		return fmt.Sprintf("%s @ %s", x.Source, x.ModuleLocalDirectory)
+	}
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------

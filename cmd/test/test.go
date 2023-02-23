@@ -99,7 +99,7 @@ func testFunc(cmd *cobra.Command, args []string) error {
 //
 //			provider := plug.Provider()
 //			initRes, err := provider.Init(ctx, &shard.ProviderInitRequest{
-//				Workspace: pointer.ToStringPointer(global.WorkSpace()),
+//				ModuleLocalDirectory: pointer.ToStringPointer(global.WorkSpace()),
 //				Storage: &shard.Storage{
 //					Type:           0,
 //					StorageOptions: opt,
