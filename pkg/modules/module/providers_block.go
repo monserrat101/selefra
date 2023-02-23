@@ -1,6 +1,7 @@
 package module
 
 import (
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-utils/pkg/pointer"
 	"gopkg.in/yaml.v3"
@@ -33,8 +34,9 @@ func (x ProvidersBlock) Merge(other ProvidersBlock) (ProvidersBlock, *schema.Dia
 	// merge self
 	for _, providerBlock := range x {
 		if _, exists := nameSet[providerBlock.Name]; exists {
-			// TODO block location
-			diagnostics.AddErrorMsg("merge providers block error, find same provider %s", providerBlock.Name)
+			errorTips := fmt.Sprintf("Provider with the same name is not allowed in the same module. The provider name %s is duplication", providerBlock.Name)
+			report := RenderErrorTemplate(errorTips, providerBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		mergedProviders = append(mergedProviders, providerBlock)
@@ -43,8 +45,9 @@ func (x ProvidersBlock) Merge(other ProvidersBlock) (ProvidersBlock, *schema.Dia
 	// merge other
 	for _, providerBlock := range other {
 		if _, exists := nameSet[providerBlock.Name]; exists {
-			// TODO block location
-			diagnostics.AddErrorMsg("merge providers block error, find same provider %s", providerBlock.Name)
+			errorTips := fmt.Sprintf("Provider with the same name is not allowed in the same module. The provider name %s is duplication", providerBlock.Name)
+			report := RenderErrorTemplate(errorTips, providerBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		mergedProviders = append(mergedProviders, providerBlock)
@@ -59,8 +62,9 @@ func (x ProvidersBlock) Check(module *Module, validatorContext *ValidatorContext
 	providerNameSet := make(map[string]struct{}, 0)
 	for _, providerBlock := range x {
 		if _, exists := providerNameSet[providerBlock.Name]; exists {
-			// TODO block location
-			diagnostics.AddErrorMsg("provider name conflict error, find same provider %s", providerBlock.Name)
+			errorTips := fmt.Sprintf("Provider with the same name is not allowed in the same module. The provider name %s is duplication", providerBlock.Name)
+			report := RenderErrorTemplate(errorTips, providerBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		diagnostics.AddDiagnostics(providerBlock.Check(module, validatorContext))
@@ -163,15 +167,9 @@ func (x *ProviderBlock) MarshalYAML() (interface{}, error) {
 	}
 
 	return configurationMappingNode, nil
-	//out, err := yaml.Marshal(configurationMappingNode)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//s := string(out)
-	//return strings.TrimLeft(s, "|"), nil
 }
 
-// If the provider is not configured, this is the default configuration
+// GetDefaultProviderConfigYamlConfiguration If the provider is not configured, this is the default configuration
 func GetDefaultProviderConfigYamlConfiguration(providerName, providerVersion string) string {
 	block := ProviderBlock{
 		Name:          "default-" + providerName,
@@ -188,26 +186,28 @@ func (x *ProviderBlock) Check(module *Module, validatorContext *ValidatorContext
 	diagnostics := schema.NewDiagnostics()
 
 	if x.Name == "" {
-		diagnostics.AddErrorMsg("provider block name must not be empty")
-	}
-
-	if x.Cache != "" {
-		// TODO check cache style
+		errorTips := fmt.Sprintf("Provider configuration name must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	if x.Provider == "" && !module.HasRequiredProviderName(x.Provider) {
-		diagnostics.AddErrorMsg("")
+		errorTips := fmt.Sprintf("Provider name %s not found in selefra.providers", x.Provider)
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("provider"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	if x.MaxGoroutines != nil {
 		if *x.MaxGoroutines > 3000 {
-
+			errorTips := fmt.Sprintf("Provider %s max_goroutines is too big", x.Name)
+			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("max_goroutines"))
+			diagnostics.AddWarn(report)
 		} else if *x.MaxGoroutines < 0 {
-
+			errorTips := fmt.Sprintf("Provider %s max_goroutines must greater than 0 ", x.Name)
+			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("max_goroutines"))
+			diagnostics.AddErrorMsg(report)
 		}
 	}
-
-	// TODO check other field
 
 	return diagnostics
 }
