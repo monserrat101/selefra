@@ -10,6 +10,9 @@ import (
 )
 
 func TestLocalDirectoryModuleLoader_Load(t *testing.T) {
+
+	source := "./test_data/contains_sub_module"
+
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
 			t.Log(message.ToString())
@@ -17,12 +20,13 @@ func TestLocalDirectoryModuleLoader_Load(t *testing.T) {
 	})
 	loader, err := NewLocalDirectoryModuleLoader(&LocalDirectoryModuleLoaderOptions{
 		ModuleLoaderOptions: &ModuleLoaderOptions{
-			MessageChannel:    messageChannel,
-			DownloadDirectory: testDownloadDirectory,
-			Source:            "rules-aws-misconfigure-s3@v0.0.1",
+			Source:            source,
 			Version:           "",
+			DownloadDirectory: testDownloadDirectory,
+			MessageChannel:    messageChannel,
+			DependenciesTree:  []string{source},
 		},
-		ModuleDirectory: "./test_data/contains_sub_module",
+		ModuleDirectory: source,
 	})
 	assert.Nil(t, err)
 	rootModule, isLoadSuccess := loader.Load(context.Background())
