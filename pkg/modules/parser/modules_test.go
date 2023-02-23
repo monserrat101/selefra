@@ -28,4 +28,7 @@ func TestYamlFileToModuleParser_parseModulesBlock(t *testing.T) {
 	assert.NotEmpty(t, moduleBlock.GetNodeLocation("uses.value").ReadSourceString())
 	assert.NotEmpty(t, moduleBlock.GetNodeLocation("uses").ReadSourceString())
 
+	assert.NotEmpty(t, moduleBlock.GetNodeLocation("uses[0]").ReadSourceString())
+	assert.NotEmpty(t, moduleBlock.GetNodeLocation("uses[0].value").ReadSourceString())
+
 }
