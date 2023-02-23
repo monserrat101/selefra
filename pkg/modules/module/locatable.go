@@ -118,28 +118,33 @@ func NewLocatableImpl() *LocatableImpl {
 	}
 }
 
+const (
+	NodeLocationSelfKey   = "._key"
+	NodeLocationSelfValue = "._value"
+)
+
 func (x *LocatableImpl) GetNodeLocation(relativeSelector string) *NodeLocation {
 
-	// Example(with .key or .value):
-	// foo.key
-	// foo.value
+	// Example(with ._key or ._value):
+	// foo._key
+	// foo._value
 	selectorPathLocation, err := x.yamlSelectorTrie.Query(relativeSelector)
 	if err == nil {
 		return selectorPathLocation
 	}
 
-	// Example(without .key or .value):
+	// Example(without ._key or ._value):
 	// foo
 	// bar
-	keyLocation, keyErr := x.yamlSelectorTrie.Query(relativeSelector + ".key")
-	valueLocation, valueErr := x.yamlSelectorTrie.Query(relativeSelector + ".value")
+	keyLocation, keyErr := x.yamlSelectorTrie.Query(relativeSelector + NodeLocationSelfKey)
+	valueLocation, valueErr := x.yamlSelectorTrie.Query(relativeSelector + NodeLocationSelfValue)
 	if keyErr != nil && valueErr != nil {
 		return nil
 	}
-	return mergeKeyValueLocation(keyLocation, valueLocation)
+	return MergeKeyValueLocation(keyLocation, valueLocation)
 }
 
-func mergeKeyValueLocation(keyLocation, valueLocation *NodeLocation) *NodeLocation {
+func MergeKeyValueLocation(keyLocation, valueLocation *NodeLocation) *NodeLocation {
 	if keyLocation == nil {
 		return valueLocation
 	} else if valueLocation == nil {

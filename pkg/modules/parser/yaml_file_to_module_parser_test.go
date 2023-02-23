@@ -8,10 +8,11 @@ import (
 )
 
 func TestYamlFileToModuleParser_Parse(t *testing.T) {
-	module, diagnostics := NewYamlFileToModuleParser("./test_data/test.yaml").Parse()
+	module, diagnostics := NewYamlFileToModuleParser("./test_data/test_modules.yaml").Parse()
+	if utils.IsNotEmpty(diagnostics) {
+		t.Log(diagnostics.ToString())
+	}
 	assert.False(t, utils.HasError(diagnostics))
-	t.Log(diagnostics.ToString())
-	t.Log(module)
 
 	location := module.RulesBlock[0].MetadataBlock.GetNodeLocation("tags[0].value")
 	s := location.ReadSourceString()

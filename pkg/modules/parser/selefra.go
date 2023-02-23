@@ -59,7 +59,7 @@ func (x *YamlFileToModuleParser) parseSelefraBlock(selefraBlockKeyNode, selefraB
 			selefraBlock.ConnectionBlock = x.parseConnectionBlock(entry.key, entry.value, diagnostics)
 
 		default:
-			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
+			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.key, entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
 		}
 	}
 
@@ -110,7 +110,7 @@ func (x *YamlFileToModuleParser) parseCloudBlock(cloudBlockKeyNode, cloudBlockVa
 			cloudBlock.HostName = x.parseStringValueWithDiagnosticsAndSetLocation(cloudBlock, CloudBlockHostnameFieldName, entry, blockPath, diagnostics)
 
 		default:
-			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
+			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.key, entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
 
 		}
 	}
@@ -184,7 +184,7 @@ func (x *YamlFileToModuleParser) parseRequiredProviderBlock(index int, node *yam
 			requiredProviderBlock.Path = x.parseStringValueWithDiagnosticsAndSetLocation(requiredProviderBlock, RequiredProviderBlockPathFieldName, entry, blockPath, diagnostics)
 
 		default:
-			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
+			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.key, entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
 
 		}
 	}

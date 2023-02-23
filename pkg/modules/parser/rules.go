@@ -74,7 +74,7 @@ func (x *YamlFileToModuleParser) parseRuleBlock(index int, ruleBlockNode *yaml.N
 			ruleBlock.Output = x.parseStringValueWithDiagnosticsAndSetLocation(ruleBlock, RuleBlockOutputFieldName, entry, blockPath, diagnostics)
 
 		default:
-			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
+			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.key, entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
 		}
 	}
 
@@ -83,7 +83,7 @@ func (x *YamlFileToModuleParser) parseRuleBlock(index int, ruleBlockNode *yaml.N
 	}
 
 	// set location
-	x.setLocationWithDiagnostics(ruleBlock, ".value", blockPath, ruleBlockNode, diagnostics)
+	x.setLocationKVWithDiagnostics(ruleBlock, "", blockPath, newNodeEntry(nil, ruleBlockNode), diagnostics)
 
 	return ruleBlock
 }
@@ -141,7 +141,7 @@ func (x *YamlFileToModuleParser) parseMetadataBlock(ruleIndex int, ruleBlock *mo
 			ruleMetadataBlock.Description = x.parseStringValueWithDiagnosticsAndSetLocation(ruleMetadataBlock, RuleMetadataBlockDescriptionFieldName, entry, blockPath, diagnostics)
 
 		default:
-			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
+			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.key, entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
 		}
 	}
 

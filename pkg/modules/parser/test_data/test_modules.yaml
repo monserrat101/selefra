@@ -79,8 +79,6 @@ modules:
     uses: ./rules/
     input:
       name: selefra
-    output:
-      - "This is a test output message, resource region is {{.region}}."
 
 variables:
   - key: test

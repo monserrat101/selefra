@@ -8,6 +8,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const VariablesBlockName = "variables"
+
 func (x *YamlFileToModuleParser) parseVariablesBlock(variablesBlockKeyNode, variableBlockValueNode *yaml.Node, diagnostics *schema.Diagnostics) module.VariablesBlock {
 
 	blockPath := VariablesBlockName
@@ -58,11 +60,14 @@ func (x *YamlFileToModuleParser) parseVariableBlock(index int, node *yaml.Node, 
 			variableBlock.Key = x.parseStringValueWithDiagnosticsAndSetLocation(variableBlock, VariableBlockKeyFieldName, entry, blockPath, diagnostics)
 
 		case VariableBlockDefaultFieldName:
-			anyValue, d := x.parseAny(entry.value, fmt.Sprintf("%s.%s", blockPath, VariableBlockDefaultFieldName))
+			fieldSelector := fmt.Sprintf("%s.%s", blockPath, VariableBlockDefaultFieldName)
+			anyValue, d := x.parseAny(entry.value, fieldSelector)
 			diagnostics.AddDiagnostics(d)
 			if !reflect_util.IsNil(anyValue) {
 				variableBlock.Default = anyValue
 			}
+			// set location
+			x.setLocationKVWithDiagnostics(variableBlock, VariableBlockDefaultFieldName, fieldSelector, entry, diagnostics)
 
 		case VariableBlockDescriptionFieldName:
 			variableBlock.Description = x.parseStringValueWithDiagnosticsAndSetLocation(variableBlock, VariableBlockDescriptionFieldName, entry, blockPath, diagnostics)
@@ -71,7 +76,7 @@ func (x *YamlFileToModuleParser) parseVariableBlock(index int, node *yaml.Node, 
 			variableBlock.Author = x.parseStringValueWithDiagnosticsAndSetLocation(variableBlock, VariableBlockAuthorFieldName, entry, blockPath, diagnostics)
 
 		default:
-			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
+			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.key, entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
 		}
 	}
 
@@ -83,7 +88,7 @@ func (x *YamlFileToModuleParser) parseVariableBlock(index int, node *yaml.Node, 
 	}
 
 	// set location
-	x.setLocationWithDiagnostics(variableBlock, ".value", blockPath, node, diagnostics)
+	x.setLocationKVWithDiagnostics(variableBlock, "", blockPath, newNodeEntry(nil, node), diagnostics)
 
 	return variableBlock
 }

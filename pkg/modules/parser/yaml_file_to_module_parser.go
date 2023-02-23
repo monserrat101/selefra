@@ -13,10 +13,7 @@ import (
 	"strings"
 )
 
-const (
-	VariablesBlockName = "variables"
-	ModulesBlockName   = "modules"
-)
+const DocSiteUrl = "http://selefra.io/docs"
 
 // YamlFileToModuleParser Read a yaml file as a module, but the module is only for program convenience. There is no such file module; a module should at least be a folder
 type YamlFileToModuleParser struct {
@@ -36,19 +33,16 @@ func (x *YamlFileToModuleParser) Parse() (*module.Module, *schema.Diagnostics) {
 	// 1. read yaml file
 	yamlFileBytes, err := os.ReadFile(x.yamlFilePath)
 	if err != nil {
-		// TODO
 		return nil, diagnostics.AddErrorMsg("YamlParserError, read yaml file %s error: %s", x.yamlFilePath, err.Error())
 	}
 
 	documentNode := &yaml.Node{}
 	err = yaml.Unmarshal(yamlFileBytes, documentNode)
 	if err != nil {
-		// TODO
 		return nil, diagnostics.AddErrorMsg("yaml file %s unmarshal error: %s", x.yamlFilePath, err.Error())
 	}
 
 	if documentNode.Kind != yaml.DocumentNode {
-		// TODO
 		return nil, diagnostics.AddErrorMsg("yaml file %s unmarshal error, not have document node", x.yamlFilePath)
 	}
 
@@ -80,10 +74,10 @@ func (x *YamlFileToModuleParser) parseUintValueWithDiagnosticsAndSetLocation(blo
 	valueInteger := x.parseUintWithDiagnostics(entry.value, blockBasePath+"."+fieldName, diagnostics)
 
 	if entry.key != nil {
-		x.setLocationWithDiagnostics(block, fieldName+".key", blockBasePath, entry.key, diagnostics)
+		x.setLocationWithDiagnostics(block, fieldName+module.NodeLocationSelfKey, blockBasePath, entry.key, diagnostics)
 	}
 
-	x.setLocationWithDiagnostics(block, fieldName+".value", blockBasePath, entry.value, diagnostics)
+	x.setLocationWithDiagnostics(block, fieldName+module.NodeLocationSelfValue, blockBasePath, entry.value, diagnostics)
 
 	return valueInteger
 }
@@ -92,10 +86,10 @@ func (x *YamlFileToModuleParser) parseStringValueWithDiagnosticsAndSetLocation(b
 	valueString := x.parseStringWithDiagnostics(entry.value, blockBasePath+"."+fieldName, diagnostics)
 
 	if entry.key != nil {
-		x.setLocationWithDiagnostics(block, fieldName+".key", blockBasePath, entry.key, diagnostics)
+		x.setLocationWithDiagnostics(block, fieldName+module.NodeLocationSelfKey, blockBasePath, entry.key, diagnostics)
 	}
 
-	x.setLocationWithDiagnostics(block, fieldName+".value", blockBasePath, entry.value, diagnostics)
+	x.setLocationWithDiagnostics(block, fieldName+module.NodeLocationSelfValue, blockBasePath, entry.value, diagnostics)
 
 	return valueString
 }
@@ -133,10 +127,9 @@ func (x *YamlFileToModuleParser) parseStringSliceAndSetLocation(block module.Blo
 
 				elementSlice = append(elementSlice, useNodeValue)
 
-				relativePath := fmt.Sprintf("%s[%d].value", fieldName, index)
+				relativePath := fmt.Sprintf("%s[%d]%s", fieldName, index, module.NodeLocationSelfValue)
 				err := block.SetNodeLocation(relativePath, module.BuildLocationFromYamlNode(x.yamlFilePath, elementFullPath, elementNode))
 				if err != nil {
-					// TODO build error message
 					diagnostics.AddErrorMsg("file = %s, set location %s error: %s", x.yamlFilePath, elementFullPath, err.Error())
 				}
 			}
@@ -153,10 +146,9 @@ func (x *YamlFileToModuleParser) parseStringSliceAndSetLocation(block module.Blo
 
 			elementSlice = append(elementSlice, useNodeValue)
 
-			relativePath := fmt.Sprintf("%s[%d].value", fieldName, index)
+			relativePath := fmt.Sprintf("%s[%d]%s", fieldName, index, module.NodeLocationSelfValue)
 			err := block.SetNodeLocation(relativePath, module.BuildLocationFromYamlNode(x.yamlFilePath, elementFullPath, elementNode))
 			if err != nil {
-				// TODO build error message
 				diagnostics.AddErrorMsg("file = %s, set location %s error: %s", x.yamlFilePath, elementFullPath, err.Error())
 			}
 		}
@@ -294,11 +286,11 @@ func (x *YamlFileToModuleParser) toMap(node *yaml.Node, blockPath string) (map[s
 func (x *YamlFileToModuleParser) setLocationKVWithDiagnostics(block module.Block, relativeYamlSelectorPath, fullYamlSelectorPath string, nodeEntry *nodeEntry, diagnostics *schema.Diagnostics) {
 
 	if nodeEntry.key != nil {
-		x.setLocationWithDiagnostics(block, relativeYamlSelectorPath+".key", fullYamlSelectorPath, nodeEntry.key, diagnostics)
+		x.setLocationWithDiagnostics(block, relativeYamlSelectorPath+module.NodeLocationSelfKey, fullYamlSelectorPath, nodeEntry.key, diagnostics)
 	}
 
 	if nodeEntry.value != nil {
-		x.setLocationWithDiagnostics(block, relativeYamlSelectorPath+".value", fullYamlSelectorPath, nodeEntry.value, diagnostics)
+		x.setLocationWithDiagnostics(block, relativeYamlSelectorPath+module.NodeLocationSelfValue, fullYamlSelectorPath, nodeEntry.value, diagnostics)
 	}
 }
 
@@ -310,31 +302,30 @@ func (x *YamlFileToModuleParser) setLocationWithDiagnostics(block module.Block, 
 	}
 }
 
-func (x *YamlFileToModuleParser) buildNodeErrorMsgForUnSupport(node *yaml.Node, blockPath string) *schema.Diagnostics {
-	// TODO document link
-	return x.buildNodeErrorMsg(blockPath, node, fmt.Sprintf("syntax error, do not support %s", blockPath))
+func (x *YamlFileToModuleParser) buildNodeErrorMsgForUnSupport(keyNode, valueNode *yaml.Node, blockPath string) *schema.Diagnostics {
+	keyLocation := module.BuildLocationFromYamlNode(x.yamlFilePath, blockPath, keyNode)
+	valueLocation := module.BuildLocationFromYamlNode(x.yamlFilePath, blockPath, valueNode)
+	location := module.MergeKeyValueLocation(keyLocation, valueLocation)
+	location.YamlSelector = keyLocation.YamlSelector
+	errorMsg := fmt.Sprintf("syntax error, do not support %s", blockPath)
+	report := RenderErrorTemplate(errorMsg, location)
+	return schema.NewDiagnostics().AddErrorMsg(report)
 }
 
 func (x *YamlFileToModuleParser) buildNodeErrorMsgForScalarType(node *yaml.Node, blockPath string, scalarTypeName string) *schema.Diagnostics {
-	// TODO document link
 	return x.buildNodeErrorMsg(blockPath, node, fmt.Sprintf("syntax error, %s must is a %s type", blockPath, scalarTypeName))
 }
 
 func (x *YamlFileToModuleParser) buildNodeErrorMsgForMappingType(node *yaml.Node, blockPath string) *schema.Diagnostics {
-	// TODO document link
 	return x.buildNodeErrorMsg(blockPath, node, fmt.Sprintf("syntax error, %s block must is a mapping type", blockPath))
 }
 
 func (x *YamlFileToModuleParser) buildNodeErrorMsgForArrayType(node *yaml.Node, blockPath string) *schema.Diagnostics {
-	// TODO document link
 	return x.buildNodeErrorMsg(blockPath, node, fmt.Sprintf("syntax error, %s block must is a array type", blockPath))
 }
 
 func (x *YamlFileToModuleParser) buildNodeErrorMsg(blockPath string, node *yaml.Node, errorMessage string) *schema.Diagnostics {
-	// TODO maybe some glance ?
-	// TODO document link
 	location := module.BuildLocationFromYamlNode(x.yamlFilePath, blockPath, node)
-	// "file %s at line %d column %d has syntax error: %s" x.yamlFilePath, node.Line, node.Column, errorMsg
 	report := RenderErrorTemplate(errorMessage, location)
 	return schema.NewDiagnostics().AddErrorMsg(report)
 }
@@ -391,7 +382,7 @@ func RenderErrorTemplate(errorType string, location *module.NodeLocation) string
 			underline := withUnderline(lineString, begin, end)
 			if underline != "" {
 				s.WriteString(fmt.Sprintf("|    "))
-				s.WriteString(underline)
+				s.WriteString(color.RedString(underline))
 				s.WriteString("\n")
 			}
 		} else if (realLineIndex >= location.Begin.Line-cutoff && realLineIndex < location.Begin.Line) || (realLineIndex > location.End.Line && realLineIndex <= location.End.Line+cutoff) {
@@ -400,6 +391,8 @@ func RenderErrorTemplate(errorType string, location *module.NodeLocation) string
 			s.WriteString("\n")
 		}
 	}
+	s.WriteString("--> See our docs: " + DocSiteUrl + "\n")
+
 	return s.String()
 }
 

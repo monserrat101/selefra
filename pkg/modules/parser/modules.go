@@ -11,6 +11,10 @@ import (
 
 // ------------------------------------------------ ---------------------------------------------------------------------
 
+const (
+	ModulesBlockName = "modules"
+)
+
 // Parse modules block
 func (x *YamlFileToModuleParser) parseModulesBlock(moduleBlockKeyNode, moduleBlockValueNode *yaml.Node, diagnostics *schema.Diagnostics) module.ModulesBlock {
 
@@ -67,7 +71,7 @@ func (x *YamlFileToModuleParser) parseModuleBlock(moduleIndex int, moduleBlockNo
 			}
 
 		default:
-			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
+			diagnostics.AddDiagnostics(x.buildNodeErrorMsgForUnSupport(entry.key, entry.value, fmt.Sprintf("%s.%s", blockPath, key)))
 
 		}
 	}
