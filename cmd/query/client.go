@@ -4,46 +4,102 @@ import (
 	"context"
 	"github.com/c-bata/go-prompt"
 	"github.com/selefra/selefra-provider-sdk/storage"
-	"github.com/selefra/selefra/pkg/pgstorage"
-	"github.com/selefra/selefra/ui"
+	"github.com/selefra/selefra-provider-sdk/storage_factory"
+	"github.com/selefra/selefra/cli_ui"
+	"github.com/selefra/selefra/pkg/utils"
+	"os"
 	"strings"
 )
 
-type QueryClient struct {
-	Ctx     context.Context
-	Storage storage.Storage
+// ------------------------------------------------- --------------------------------------------------------------------
+
+// SQLQueryClient TODO Optimize the experience of writing SQL statements
+type SQLQueryClient struct {
+	storageType storage_factory.StorageType
+	Storage     storage.Storage
+
 	Tables  []prompt.Suggest
 	Columns []prompt.Suggest
 }
 
-func NewQueryClient(ctx context.Context) (*QueryClient, error) {
-	sto, diag := pgstorage.Storage(ctx)
-	if diag != nil {
-		err := ui.PrintDiagnostic(diag.GetDiagnosticSlice())
-		if err != nil {
-			return nil, err
-		}
+func NewQueryClient(ctx context.Context, storageType storage_factory.StorageType, storage storage.Storage) (*SQLQueryClient, error) {
+	client := &SQLQueryClient{
+		storageType: storageType,
+		Storage:     storage,
 	}
+	client.initTablesSuggest(ctx)
+	client.initColumnsSuggest(ctx)
 
-	tables := CreateTablesSuggest(ctx, sto)
-	columns := CreateColumnsSuggest(ctx, sto)
-
-	return &QueryClient{
-		Ctx:     ctx,
-		Storage: sto,
-		Tables:  tables,
-		Columns: columns,
-	}, nil
+	return client, nil
 }
 
+// ------------------------------------------------- --------------------------------------------------------------------
+
+func (x *SQLQueryClient) Run(ctx context.Context) {
+	p := prompt.New(func(in string) {
+		strArr := strings.Split(in, "\\")
+		s := strArr[0]
+
+		res, err := x.Storage.Query(ctx, s)
+		if err != nil {
+			cli_ui.Errorln(err)
+		} else {
+			tables, e := res.ReadRows(-1)
+			if e != nil && e.HasError() {
+				cli_ui.Errorln(err)
+				return
+			}
+			header := tables.GetColumnNames()
+			body := tables.GetMatrix()
+			var tableBody [][]string
+			for i := range body {
+				var row []string
+				for j := range body[i] {
+					row = append(row, utils.Strava(body[i][j]))
+				}
+				tableBody = append(tableBody, row)
+			}
+
+			// \g or \G use row mode show query result
+			if len(strArr) > 1 && (strArr[1] == "g" || strArr[1] == "G") {
+				cli_ui.ShowRows(header, tableBody, []string{}, true)
+			} else {
+				cli_ui.ShowTable(header, tableBody, []string{}, true)
+			}
+
+		}
+		if s == "exit;" || s == ".exit" {
+			os.Exit(0)
+		}
+	}, x.completer,
+		prompt.OptionTitle("Table"),
+		prompt.OptionPrefix("> "),
+		prompt.OptionAddKeyBind(prompt.KeyBind{
+			Key: prompt.ControlC,
+			Fn: func(buffer *prompt.Buffer) {
+				os.Exit(0)
+			},
+		}),
+	)
+	p.Run()
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
 // if there are no spaces this is the first word
-func (q *QueryClient) isFirstWord(text string) bool {
+func (x *SQLQueryClient) isFirstWord(text string) bool {
 	return strings.LastIndex(text, " ") == -1
 }
 
-func (q *QueryClient) formatSuggest(text string, before string) []prompt.Suggest {
+func (x *SQLQueryClient) completer(d prompt.Document) []prompt.Suggest {
+	text := d.TextBeforeCursor()
+	s := x.formatSuggest(d.Text, text)
+	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
+}
+
+func (x *SQLQueryClient) formatSuggest(text string, before string) []prompt.Suggest {
 	var s []prompt.Suggest
-	if q.isFirstWord(text) {
+	if x.isFirstWord(text) {
 		if text != "" {
 			s = []prompt.Suggest{
 				{Text: "SELECT"},
@@ -53,51 +109,58 @@ func (q *QueryClient) formatSuggest(text string, before string) []prompt.Suggest
 	} else {
 		texts := strings.Split(before, " ")
 		if strings.ToLower(texts[len(texts)-2]) == "from" {
-			s = q.Tables
+			s = x.Tables
 		}
 		if strings.ToLower(texts[len(texts)-2]) == "select" {
-			s = q.Columns
+			s = x.Columns
 		}
 		if strings.ToLower(texts[len(texts)-2]) == "," {
-			s = q.Columns
+			s = x.Columns
 		}
 	}
 	return s
 }
 
-func (q *QueryClient) completer(d prompt.Document) []prompt.Suggest {
-	text := d.TextBeforeCursor()
-	s := q.formatSuggest(d.Text, text)
-	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
-}
+// ------------------------------------------------- --------------------------------------------------------------------
 
-func CreateTablesSuggest(ctx context.Context, s storage.Storage) []prompt.Suggest {
-	res, diag := s.Query(ctx, TABLESQL)
-	tables := []prompt.Suggest{}
+func (x *SQLQueryClient) initTablesSuggest(ctx context.Context) {
+	res, diag := x.Storage.Query(ctx, x.getTablesSuggestSQL())
+	var tables []prompt.Suggest
 	if diag != nil {
-		_ = ui.PrintDiagnostic(diag.GetDiagnosticSlice())
+		_ = cli_ui.PrintDiagnostic(diag.GetDiagnosticSlice())
 	} else {
 		rows, diag := res.ReadRows(-1)
 		if diag != nil {
-			_ = ui.PrintDiagnostic(diag.GetDiagnosticSlice())
+			_ = cli_ui.PrintDiagnostic(diag.GetDiagnosticSlice())
 		}
 		for i := range rows.GetMatrix() {
 			tableName := rows.GetMatrix()[i][0].(string)
 			tables = append(tables, prompt.Suggest{Text: tableName})
 		}
 	}
-	return tables
+	x.Tables = tables
 }
 
-func CreateColumnsSuggest(ctx context.Context, s storage.Storage) []prompt.Suggest {
-	res, err := s.Query(ctx, COLUMNSQL)
-	columns := []prompt.Suggest{}
+func (x *SQLQueryClient) getTablesSuggestSQL() string {
+	switch x.storageType {
+	case storage_factory.StorageTypePostgresql:
+		return TABLESQL
+	default:
+		return ""
+	}
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
+func (x *SQLQueryClient) initColumnsSuggest(ctx context.Context) {
+	rs, err := x.Storage.Query(ctx, x.getColumnsSuggestSQL())
+	var columns []prompt.Suggest
 	if err != nil {
-		_ = ui.PrintDiagnostic(err.GetDiagnosticSlice())
+		_ = cli_ui.PrintDiagnostic(err.GetDiagnosticSlice())
 	} else {
-		rows, err := res.ReadRows(-1)
+		rows, err := rs.ReadRows(-1)
 		if err != nil {
-			_ = ui.PrintDiagnostic(err.GetDiagnosticSlice())
+			_ = cli_ui.PrintDiagnostic(err.GetDiagnosticSlice())
 		}
 		for i := range rows.GetMatrix() {
 			schemaName := rows.GetMatrix()[i][0].(string)
@@ -106,5 +169,16 @@ func CreateColumnsSuggest(ctx context.Context, s storage.Storage) []prompt.Sugge
 			columns = append(columns, prompt.Suggest{Text: columnName, Description: schemaName + "." + tableName})
 		}
 	}
-	return columns
+	x.Columns = columns
 }
+
+func (x *SQLQueryClient) getColumnsSuggestSQL() string {
+	switch x.storageType {
+	case storage_factory.StorageTypePostgresql:
+		return COLUMNSQL
+	default:
+		return ""
+	}
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------

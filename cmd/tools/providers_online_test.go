@@ -11,7 +11,7 @@ import (
 
 func getProviderAndConfigOnline() (registry.ProviderBinary, *config.RootConfig, error) {
 	global.Init("getProviderAndConfigOnline", global.WithWorkspace("../../tests/workspace/online"))
-	global.SetToken("4fe8ed36488c479d0ba7292fe09a4132")
+	global.SetToken("xxxxxxxxxxxxxxxxxxxxxx")
 	global.SERVER = "dev-api.selefra.io"
 	ctx := context.Background()
 	cof, err := config.GetConfig()
@@ -34,7 +34,7 @@ func getProviderAndConfigOnline() (registry.ProviderBinary, *config.RootConfig, 
 
 func TestGetProvidersOnline(t *testing.T) {
 	global.Init("TestGetProvidersOnline", global.WithWorkspace("../../tests/workspace/online"))
-	global.SetToken("4fe8ed36488c479d0ba7292fe09a4132")
+	global.SetToken("xxxxxxxxxxxxxxxxxxxxxx")
 	global.SERVER = "dev-api.selefra.io"
 	s, err := config.GetConfig()
 	if err != nil {
@@ -46,7 +46,7 @@ func TestGetProvidersOnline(t *testing.T) {
 		t.Error(err)
 	}
 	if len(provider) == 0 {
-		t.Error("Provider is empty")
+		t.Error("ProviderBlock is empty")
 	}
 }
 

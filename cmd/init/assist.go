@@ -1,15 +1,15 @@
 package init
 
 import (
+	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/cmd/version"
-	"github.com/selefra/selefra/ui"
 )
 
 func initHeaderOutput(providers []string) {
 	for i := range providers {
-		ui.Successln(providers[i] + " [✔]\n")
+		cli_ui.Successln(providers[i] + " [✔]\n")
 	}
-	ui.Successf(`Running with selefra-cli %s
+	cli_ui.Successf(`Running with selefra-cli %s
 
 	This command will walk you through creating a new Selefra project
 

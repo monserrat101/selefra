@@ -8,11 +8,11 @@ package fetch
 //	}
 //	global.WorkSpace() = "../../tests/workspace/online"
 //	global.SERVER = "dev-api.selefra.io"
-//	global.LOGINTOKEN = "4fe8ed36488c479d0ba7292fe09a4132"
+//	global.LOGINTOKEN = "xxxxxxxxxxxxxxxxxxxxxx"
 //	ctx := context.Background()
 //	var cof = &config.SelefraConfig{}
 //	err := cof.GetConfig()
-//	for _, p := range cof.Selefra.ProviderDecls {
+//	for _, p := range cof.Selefra.RequireProvidersBlock {
 //		err = Fetch(ctx, cof, p)
 //		if err != nil {
 //			t.Error(err)

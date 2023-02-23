@@ -6,7 +6,7 @@ package provider
 //		return
 //	}
 //	global.Init("TestSyncOnline", global.WithWorkspace("../../tests/workspace/online"))
-//	global.SetToken("4fe8ed36488c479d0ba7292fe09a4132")
+//	global.SetToken("xxxxxxxxxxxxxxxxxxxxxx")
 //	global.SERVER = "dev-api.selefra.io"
 //	_, err := Sync(nil)
 //	if err != nil {

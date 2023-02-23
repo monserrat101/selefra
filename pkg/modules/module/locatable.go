@@ -1,0 +1,135 @@
+package module
+
+import (
+	"github.com/golang-infrastructure/go-trie"
+	"gopkg.in/yaml.v3"
+	"os"
+	"strings"
+	"unicode/utf8"
+)
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
+// Locatable Used to find the file and location of each block. All blocks should implement this interface
+type Locatable interface {
+
+	// GetNodeLocation Gets the location of the block
+	GetNodeLocation(selector string) *NodeLocation
+
+	// SetNodeLocation Set the location of the node
+	SetNodeLocation(selector string, nodeLocation *NodeLocation) error
+}
+
+// NodeLocation A piece of location information used to represent a block
+type NodeLocation struct {
+
+	// The path from the root node of yaml to the current node
+	YamlSelector string
+
+	// path for find file, It is usually stored in a file system, which is the location of a file
+	Path string
+
+	// Represents a continuous piece of text in a file, with a starting position and an ending position
+	Begin, End *Position
+}
+
+func BuildLocationFromYamlNode(yamlFilePath string, yamlSelector string, node *yaml.Node) *NodeLocation {
+	endNode := rightLeafNode(node)
+	return &NodeLocation{
+		Path:         yamlFilePath,
+		YamlSelector: yamlSelector,
+		Begin:        NewPosition(node.Line, node.Column),
+		End:          NewPosition(endNode.Line, endNode.Column+utf8.RuneCountInString(endNode.Value)),
+	}
+}
+
+func rightLeafNode(node *yaml.Node) *yaml.Node {
+	if node.Kind == yaml.ScalarNode {
+		return node
+	}
+	return node.Content[len(node.Content)-1]
+}
+
+func (x *NodeLocation) ReadSourceString() string {
+	//if x == nil {
+	//	return ""
+	//}
+	file, err := os.ReadFile(x.Path)
+	if err != nil {
+		return err.Error()
+	}
+	split := strings.Split(string(file), "\n")
+	buff := strings.Builder{}
+	inCollection := false
+loop:
+	for lineIndex, lineString := range split {
+		for columnIndex, columnCharacter := range lineString {
+			if (lineIndex+1) >= x.Begin.Line && (columnIndex+1) >= x.Begin.Column {
+				inCollection = true
+			}
+			if inCollection {
+				buff.WriteRune(columnCharacter)
+			}
+			if (lineIndex+1) >= x.End.Line && (columnIndex+1) >= x.End.Column {
+				inCollection = false
+				break loop
+			}
+		}
+		if inCollection {
+			buff.WriteRune('\n')
+		}
+	}
+	return buff.String()
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
+// Position Represents a point in a file
+type Position struct {
+
+	// which line
+	Line int
+
+	// which column
+	Column int
+}
+
+func NewPosition(line, column int) *Position {
+	return &Position{
+		Line:   line,
+		Column: column,
+	}
+}
+
+//func (x *Position) ReadString() string {
+//
+//}
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
+type LocatableImpl struct {
+	yamlSelectorTrie *trie.Trie[*NodeLocation]
+}
+
+var _ Locatable = &LocatableImpl{}
+
+func NewLocatableImpl() *LocatableImpl {
+	return &LocatableImpl{
+		// TODO Improve the efficiency of the tree
+		yamlSelectorTrie: trie.New[*NodeLocation](trie.DefaultPathSplitFunc),
+	}
+}
+
+func (x *LocatableImpl) GetNodeLocation(relativeSelector string) *NodeLocation {
+	value, err := x.yamlSelectorTrie.Query(relativeSelector)
+	if err != nil {
+		return nil
+	}
+	return value
+}
+
+func (x *LocatableImpl) SetNodeLocation(relativeSelector string, nodeLocation *NodeLocation) error {
+	return x.yamlSelectorTrie.Add(relativeSelector, nodeLocation)
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------

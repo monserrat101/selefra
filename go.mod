@@ -4,11 +4,10 @@ go 1.19
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/aws/aws-sdk-go v1.44.149
-	github.com/blastrain/vitess-sqlparser v0.0.0-20201030050434-a139afbb1aba
+	github.com/aws/aws-sdk-go v1.44.149 // indirect
 	github.com/c-bata/go-prompt v0.2.6
 	github.com/containerd/containerd v1.6.12
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.14.1
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-getter v1.6.2
@@ -21,7 +20,7 @@ require (
 	github.com/selefra/selefra-utils v0.0.2
 	github.com/songzhibin97/gkit v1.2.7
 	github.com/spf13/cobra v1.6.1
-	github.com/spf13/viper v1.14.0
+	github.com/spf13/viper v1.14.0 // indirect
 	github.com/stretchr/testify v1.8.1
 	github.com/vbauerster/mpb/v7 v7.5.3
 	go.uber.org/zap v1.23.0
@@ -58,6 +57,11 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-infrastructure/go-heap v0.0.2 // indirect
+	github.com/golang-infrastructure/go-queue v0.0.0-20221128180429-701892f44bcc // indirect
+	github.com/golang-infrastructure/go-reflect-utils v0.0.0-20221130143747-965ef2eb09c3 // indirect
+	github.com/golang-infrastructure/go-stack v0.0.2 // indirect
+	github.com/golang-infrastructure/go-tuple v0.0.0-20221215155811-4ed54fe7d579 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
@@ -66,7 +70,6 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
-	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
@@ -80,13 +83,12 @@ require (
 	github.com/jackc/pgx/v4 v4.17.2 // indirect
 	github.com/jackc/puddle v1.3.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/juju/errors v1.0.0 // indirect
 	github.com/klauspost/compress v1.15.12 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mattn/go-tty v0.0.4 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
@@ -128,7 +130,7 @@ require (
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/oauth2 v0.2.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.103.0 // indirect
@@ -136,4 +138,9 @@ require (
 	google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+)
+
+require (
+	github.com/golang-infrastructure/go-trie v0.0.0-20230204150600-10750ecebaec
+	github.com/hashicorp/go-version v1.6.0
 )

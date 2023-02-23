@@ -11,7 +11,8 @@ func NewProviderCmd() *cobra.Command {
 		Long:  "Top-level command to interact with providers",
 	}
 
-	cmd.AddCommand(newCmdProviderUpdate(), newCmdProviderRemove(), newCmdProviderRemove(), newCmdProviderList(), newCmdProviderInstall())
+	//cmd.AddCommand(newCmdProviderUpdate(), newCmdProviderRemove(), newCmdProviderRemove(), newCmdProviderList(), newCmdProviderInstall())
+	cmd.AddCommand(newCmdProviderRemove(), newCmdProviderRemove(), newCmdProviderList(), newCmdProviderInstall())
 
 	cmd.SetHelpFunc(cmd.HelpFunc())
 	return cmd
