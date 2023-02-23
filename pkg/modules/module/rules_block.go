@@ -25,7 +25,7 @@ func (x RulesBlock) Merge(other RulesBlock) (RulesBlock, *schema.Diagnostics) {
 	// merge self
 	for _, ruleBlock := range x {
 		if _, exists := ruleNameSet[ruleBlock.Name]; exists {
-			errorTips := fmt.Sprintf("Rule with the same name is not allowed in the same module. The rule name %s is the duplication", ruleBlock.Name)
+			errorTips := fmt.Sprintf("Rule with the same name is not allowed in the same module. The rule name %s is duplication", ruleBlock.Name)
 			report := RenderErrorTemplate(errorTips, ruleBlock.GetNodeLocation(""))
 			diagnostics.AddErrorMsg(report)
 			continue
@@ -37,7 +37,7 @@ func (x RulesBlock) Merge(other RulesBlock) (RulesBlock, *schema.Diagnostics) {
 	// merge other
 	for _, ruleBlock := range other {
 		if _, exists := ruleNameSet[ruleBlock.Name]; exists {
-			errorTips := fmt.Sprintf("Rule with the same name is not allowed in the same module. The rule name %s is the duplication", ruleBlock.Name)
+			errorTips := fmt.Sprintf("Rule with the same name is not allowed in the same module. The rule name %s is duplication", ruleBlock.Name)
 			report := RenderErrorTemplate(errorTips, ruleBlock.GetNodeLocation(""))
 			diagnostics.AddErrorMsg(report)
 			continue
