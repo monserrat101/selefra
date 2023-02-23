@@ -1,6 +1,7 @@
 package module
 
 import (
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-utils/pkg/reflect_util"
 )
@@ -23,8 +24,9 @@ func (x VariablesBlock) Merge(other VariablesBlock) (VariablesBlock, *schema.Dia
 	// merge self
 	for _, variableBlock := range x {
 		if _, exists := variableKeySet[variableBlock.Key]; exists {
-			// TODO
-			diagnostics.AddErrorMsg("variables block merge failed, find same name variable %s", variableBlock.Key)
+			errorTips := fmt.Sprintf("Variable with the same key is not allowed in the same module. The key %s is duplication", variableBlock.Key)
+			report := RenderErrorTemplate(errorTips, variableBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		mergedVariables = append(mergedVariables, variableBlock)
@@ -34,8 +36,9 @@ func (x VariablesBlock) Merge(other VariablesBlock) (VariablesBlock, *schema.Dia
 	// merge other
 	for _, variableBlock := range other {
 		if _, exists := variableKeySet[variableBlock.Key]; exists {
-			// TODO
-			diagnostics.AddErrorMsg("variables block merge failed, find same name variable %s", variableBlock.Key)
+			errorTips := fmt.Sprintf("Variable with the same key is not allowed in the same module. The key %s is duplication", variableBlock.Key)
+			report := RenderErrorTemplate(errorTips, variableBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		mergedVariables = append(mergedVariables, variableBlock)
@@ -52,8 +55,9 @@ func (x VariablesBlock) Check(module *Module, validatorContext *ValidatorContext
 	variableKeySet := make(map[string]struct{}, 0)
 	for _, variableBlock := range x {
 		if _, exists := variableKeySet[variableBlock.Key]; exists {
-			// TODO
-			diagnostics.AddErrorMsg("variables block check failed, find same name variable")
+			errorTips := fmt.Sprintf("Variable with the same key is not allowed in the same module. The key %s is duplication", variableBlock.Key)
+			report := RenderErrorTemplate(errorTips, variableBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		variableKeySet[variableBlock.Key] = struct{}{}
@@ -108,13 +112,15 @@ func (x *VariableBlock) Check(module *Module, validatorContext *ValidatorContext
 	diagnostics := schema.NewDiagnostics()
 
 	if x.Key == "" {
-		// TODO build error message
-		diagnostics.AddErrorMsg("variable block .key must be specified")
+		errorTips := fmt.Sprintf("Variable key must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("key"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	if reflect_util.IsNil(x.Default) {
-		// TODO build error message
-		diagnostics.AddErrorMsg("variable block .default must be specified")
+		errorTips := fmt.Sprintf("Variable default must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("default"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	return diagnostics
