@@ -1,6 +1,7 @@
 package module
 
 import (
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 )
 
@@ -21,8 +22,9 @@ func (x ModulesBlock) Merge(other ModulesBlock) (ModulesBlock, *schema.Diagnosti
 	// merge myself
 	for _, moduleBlock := range x {
 		if _, exists := moduleNameSet[moduleBlock.Name]; exists {
-			// TODO error message
-			diagnostics.AddErrorMsg("merge modules block error, find same name module %s", moduleBlock.Name)
+			errorTips := fmt.Sprintf("Module with the same name is not allowed in the same module. The module name %s is the duplication", moduleBlock.Name)
+			report := RenderErrorTemplate(errorTips, moduleBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		mergedModules = append(mergedModules, moduleBlock)
@@ -32,8 +34,9 @@ func (x ModulesBlock) Merge(other ModulesBlock) (ModulesBlock, *schema.Diagnosti
 	// merge other
 	for _, moduleBlock := range other {
 		if _, exists := moduleNameSet[moduleBlock.Name]; exists {
-			// TODO error message
-			diagnostics.AddErrorMsg("merge modules block error, find same name module %s", moduleBlock.Name)
+			errorTips := fmt.Sprintf("Module with the same name is not allowed in the same module. The module name %s is the duplication", moduleBlock.Name)
+			report := RenderErrorTemplate(errorTips, moduleBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		mergedModules = append(mergedModules, moduleBlock)
@@ -93,25 +96,26 @@ func (x *ModuleBlock) Check(module *Module, validatorContext *ValidatorContext) 
 	diagnostics := schema.NewDiagnostics()
 
 	if x.Name == "" {
-		// TODO error message
-		diagnostics.AddErrorMsg("module name can not be empty")
+		errorTips := fmt.Sprintf("Module name must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	if len(x.Uses) == 0 {
-		// // TODO error message
-		diagnostics.AddErrorMsg("module uses can not be empty")
+		errorTips := fmt.Sprintf("Module uses must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("uses"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	if len(x.Input) != 0 {
-		// TODO error message
-		diagnostics.AddDiagnostics(x.checkInput())
+		diagnostics.AddDiagnostics(x.checkInput(module, validatorContext))
 	}
 
 	return diagnostics
 }
 
-func (x *ModuleBlock) checkInput() *schema.Diagnostics {
-	// TODO
+func (x *ModuleBlock) checkInput(module *Module, validatorContext *ValidatorContext) *schema.Diagnostics {
+	// nothing to do now
 	return nil
 }
 
