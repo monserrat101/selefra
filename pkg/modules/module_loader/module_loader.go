@@ -48,17 +48,17 @@ func (x *ModuleLoaderOptions) DeepDependenciesTree(source string) []string {
 	return dependenciesTree
 }
 
-func (x *ModuleLoaderOptions) Copy() *ModuleLoaderOptions {
-	return &ModuleLoaderOptions{
-		Source:  x.Source,
-		Version: x.Version,
-		// TODO
-		//ProgressTracker:   x.ProgressTracker,
-		DownloadDirectory: x.DownloadDirectory,
-		MessageChannel:    x.MessageChannel.MakeChildChannel(),
-		DependenciesTree:  append([]string{}, x.DependenciesTree...),
-	}
-}
+//func (x *ModuleLoaderOptions) Copy() *ModuleLoaderOptions {
+//	return &ModuleLoaderOptions{
+//		Source:  x.Source,
+//		Version: x.Version,
+//		// TODO
+//		//ProgressTracker:   x.ProgressTracker,
+//		DownloadDirectory: x.DownloadDirectory,
+//		MessageChannel:    x.MessageChannel.MakeChildChannel(),
+//		DependenciesTree:  append([]string{}, x.DependenciesTree...),
+//	}
+//}
 
 // ------------------------------------------------- --------------------------------------------------------------------
 

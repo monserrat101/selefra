@@ -65,7 +65,8 @@ func (x *S3BucketModuleLoader) Load(ctx context.Context) (*module.Module, bool) 
 
 	// step 02. The download is decompressed and converted to loading from the local path
 	localDirectoryModuleLoaderOptions := &LocalDirectoryModuleLoaderOptions{
-		ModuleLoaderOptions: x.options.ModuleLoaderOptions.Copy(),
+		// TODO
+		//ModuleLoaderOptions: x.options.ModuleLoaderOptions.Copy(),
 		ModuleDirectory:     x.moduleDownloadDirectoryPath,
 	}
 	loader, err := NewLocalDirectoryModuleLoader(localDirectoryModuleLoaderOptions)

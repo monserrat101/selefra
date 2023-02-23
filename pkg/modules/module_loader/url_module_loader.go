@@ -21,8 +21,9 @@ type URLModuleLoaderOptions struct {
 
 func (x *URLModuleLoaderOptions) Copy() *URLModuleLoaderOptions {
 	return &URLModuleLoaderOptions{
-		ModuleLoaderOptions: x.ModuleLoaderOptions.Copy(),
-		ModuleURL:           x.ModuleURL,
+		// TODO
+		//ModuleLoaderOptions: x.ModuleLoaderOptions.Copy(),
+		ModuleURL: x.ModuleURL,
 	}
 }
 
@@ -78,8 +79,9 @@ func (x *URLModuleLoader) Load(ctx context.Context) (*module.Module, bool) {
 
 	// step 02. The download is decompressed and converted to loading from the local path
 	localDirectoryModuleLoaderOptions := &LocalDirectoryModuleLoaderOptions{
-		ModuleLoaderOptions: x.options.ModuleLoaderOptions.Copy(),
-		ModuleDirectory:     x.moduleDownloadDirectoryPath,
+		// TODO
+		//ModuleLoaderOptions: x.options.ModuleLoaderOptions.Copy(),
+		ModuleDirectory: x.moduleDownloadDirectoryPath,
 	}
 	loader, err := NewLocalDirectoryModuleLoader(localDirectoryModuleLoaderOptions)
 	if err != nil {

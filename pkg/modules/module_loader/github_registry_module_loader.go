@@ -7,6 +7,7 @@ import (
 	"github.com/selefra/selefra-utils/pkg/pointer"
 	"github.com/selefra/selefra/pkg/modules/module"
 	"github.com/selefra/selefra/pkg/registry"
+	"github.com/selefra/selefra/pkg/utils"
 	"github.com/selefra/selefra/pkg/version"
 	"path/filepath"
 )
@@ -49,18 +50,19 @@ func NewGitHubRegistryModuleLoader(options *GitHubRegistryModuleLoaderOptions) (
 		return nil, err
 	}
 	moduleVersion := moduleNameAndVersion.Version
+	// If it is the latest version, change it to the type it should be
 	if moduleNameAndVersion.IsLatestVersion() {
 		moduleVersion = metadata.LatestVersion
 	}
 
 	if !metadata.HasVersion(moduleVersion) {
-		// TODO
-		return nil, fmt.Errorf("module version not found ")
+		return nil, fmt.Errorf("module version not found, uses source %s", options.Source)
 	}
 
 	// The version to which the module will be downloaded
-	moduleDownloadDirectory := filepath.Join(options.DownloadDirectory, registry.ModulesListDirectoryName, moduleNameAndVersion.Name, moduleVersion)
+	moduleDownloadDirectory := filepath.Join(utils.AbsPath(options.DownloadDirectory), registry.ModulesListDirectoryName, moduleNameAndVersion.Name, moduleVersion)
 
+	options.Version = moduleVersion
 	return &GitHubRegistryModuleLoader{
 		githubRegistry:          githubRegistry,
 		options:                 options,
@@ -87,20 +89,32 @@ func (x *GitHubRegistryModuleLoader) Load(ctx context.Context) (*module.Module, 
 	}
 	moduleDownloadDirectory, err := x.githubRegistry.Download(ctx, x.downloadModule, downloadOptions)
 	if err != nil {
-		// TODO
 		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("from github registry download module %s failed: %s", x.downloadModule.String(), err.Error()))
 		return nil, false
 	}
 
+	// send tips
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("download github module %s to local directory %s", x.downloadModule.String(), moduleDownloadDirectory))
+
 	// Continue to load submodules, if any
 	localDirectoryModuleLoaderOptions := &LocalDirectoryModuleLoaderOptions{
-		ModuleLoaderOptions: x.options.ModuleLoaderOptions.Copy(),
-		ModuleDirectory:     moduleDownloadDirectory,
+		ModuleLoaderOptions: &ModuleLoaderOptions{
+			Source:  x.options.Source,
+			Version: x.options.Version,
+			// TODO
+			//ProgressTracker:   x.ProgressTracker,
+			DownloadDirectory: x.options.DownloadDirectory,
+			MessageChannel:    x.options.MessageChannel.MakeChildChannel(),
+			// The dependency level does not increase
+			DependenciesTree: x.options.DependenciesTree,
+		},
+		ModuleDirectory: moduleDownloadDirectory,
 	}
 	loader, err := NewLocalDirectoryModuleLoader(localDirectoryModuleLoaderOptions)
 	if err != nil {
 		localDirectoryModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
-		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("new local directory %s module loader failed: %s", moduleDownloadDirectory, err.Error()))
+		errorTips := fmt.Sprintf("github module %s local path %s load failed: %s", x.options.Source, moduleDownloadDirectory, err.Error())
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorTips))
 		return nil, false
 	}
 
