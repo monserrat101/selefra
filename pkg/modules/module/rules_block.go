@@ -1,7 +1,9 @@
 package module
 
 import (
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
+	"github.com/selefra/selefra/pkg/modules/parser"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -21,8 +23,9 @@ func (x RulesBlock) Merge(other RulesBlock) (RulesBlock, *schema.Diagnostics) {
 	// merge self
 	for _, ruleBlock := range x {
 		if _, exists := ruleNameSet[ruleBlock.Name]; exists {
-			// TODO block location
-			diagnostics.AddErrorMsg("rule block find same name %s", ruleBlock.Name)
+			errorTips := fmt.Sprintf("Rule with the same name is not allowed in the same module. The rule name %s is the duplication", ruleBlock.Name)
+			report := parser.RenderErrorTemplate(errorTips, ruleBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		ruleNameSet[ruleBlock.Name] = struct{}{}
@@ -32,8 +35,9 @@ func (x RulesBlock) Merge(other RulesBlock) (RulesBlock, *schema.Diagnostics) {
 	// merge other
 	for _, ruleBlock := range other {
 		if _, exists := ruleNameSet[ruleBlock.Name]; exists {
-			// TODO block location
-			diagnostics.AddErrorMsg("rule block find same name %s", ruleBlock.Name)
+			errorTips := fmt.Sprintf("Rule with the same name is not allowed in the same module. The rule name %s is the duplication", ruleBlock.Name)
+			report := parser.RenderErrorTemplate(errorTips, ruleBlock.GetNodeLocation(""))
+			diagnostics.AddErrorMsg(report)
 			continue
 		}
 		ruleNameSet[ruleBlock.Name] = struct{}{}
@@ -46,15 +50,9 @@ func (x RulesBlock) Merge(other RulesBlock) (RulesBlock, *schema.Diagnostics) {
 func (x RulesBlock) Check(module *Module, validatorContext *ValidatorContext) *schema.Diagnostics {
 	diagnostics := schema.NewDiagnostics()
 
-	// The module must contain at least one rule block; otherwise, the module is considered invalid
-	if len(x) == 0 {
-		// TODO block location
-		diagnostics.AddErrorMsg("module must contain at least one rule block")
-	} else {
-		// Each block should be able to pass inspection
-		for _, ruleBlock := range x {
-			diagnostics.AddDiagnostics(ruleBlock.Check(module, validatorContext))
-		}
+	// Each block should be able to pass inspection
+	for _, ruleBlock := range x {
+		diagnostics.AddDiagnostics(ruleBlock.Check(module, validatorContext))
 	}
 
 	return diagnostics
@@ -188,7 +186,7 @@ type RuleMetadataBlock struct {
 	Description string `yaml:"description" json:"description"`
 
 	*LocatableImpl `yaml:"-"`
-	runtime *RuleMetadataBlockRuntime
+	runtime        *RuleMetadataBlockRuntime
 }
 
 var _ Block = &RuleMetadataBlock{}
