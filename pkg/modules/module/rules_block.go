@@ -105,28 +105,28 @@ func (x *RuleBlock) Check(module *Module, validatorContext *ValidatorContext) *s
 
 	diagnostics := schema.NewDiagnostics()
 
-	// TODO required: name, query, output
-
 	// name
 	if x.Name == "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("rule.name must not be empty")
+		errorTips := fmt.Sprintf("Rule name must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	// query
 	if x.Query == "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("rule.query must not be empty")
+		errorTips := fmt.Sprintf("Rule query must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("query"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	// output
 	if x.Output == "" {
-		// TODO block location
-		diagnostics.AddErrorMsg("rule.output must not be empty")
+		errorTips := fmt.Sprintf("Rule output must not be empty")
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("output"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	if x.MetadataBlock != nil {
-		// TODO block location
 		diagnostics.AddDiagnostics(x.MetadataBlock.Check(module, validatorContext))
 	}
 
@@ -205,10 +205,11 @@ func (x *RuleMetadataBlock) Check(module *Module, validatorContext *ValidatorCon
 
 	// The rule id must be globally unique if it specifies
 	if x.Id != "" {
-		if otherRuleBlock, exists := validatorContext.GetRuleBlockById(x.Id); exists {
-			// TODO block location
-			_ = otherRuleBlock
-			diagnostics.AddErrorMsg("rule.metadata.id must be globally unique, find duplicates rule id %s", x.Id)
+		if _, exists := validatorContext.GetRuleBlockById(x.Id); exists {
+			errorTips := fmt.Sprintf("Rule metadata id must not duplication: %s", x.Id)
+			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("id"))
+			diagnostics.AddErrorMsg(report)
+
 		} else {
 			validatorContext.AddRuleBlock(x.runtime.rule)
 		}
