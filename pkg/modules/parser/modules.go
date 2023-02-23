@@ -11,6 +11,7 @@ import (
 
 // ------------------------------------------------ ---------------------------------------------------------------------
 
+// Parse modules block
 func (x *YamlFileToModuleParser) parseModulesBlock(moduleBlockKeyNode, moduleBlockValueNode *yaml.Node, diagnostics *schema.Diagnostics) module.ModulesBlock {
 
 	// modules must be an array element
@@ -27,6 +28,7 @@ func (x *YamlFileToModuleParser) parseModulesBlock(moduleBlockKeyNode, moduleBlo
 			modulesBlock = append(modulesBlock, block)
 		}
 	}
+
 	return modulesBlock
 }
 
@@ -38,13 +40,14 @@ const (
 	ModuleBlockInputFieldName = "input"
 )
 
-func (x *YamlFileToModuleParser) parseModuleBlock(index int, moduleBlockNode *yaml.Node, diagnostics *schema.Diagnostics) *module.ModuleBlock {
+// Parse module block
+func (x *YamlFileToModuleParser) parseModuleBlock(moduleIndex int, moduleBlockNode *yaml.Node, diagnostics *schema.Diagnostics) *module.ModuleBlock {
 
-	blockPath := fmt.Sprintf("%s[%d]", ModulesBlockName, index)
+	blockPath := fmt.Sprintf("%s[%d]", ModulesBlockName, moduleIndex)
 
 	toMap, d := x.toMap(moduleBlockNode, blockPath)
 	diagnostics.AddDiagnostics(d)
-	if d != nil && d.HasError() {
+	if utils.HasError(d) {
 		return nil
 	}
 
@@ -58,7 +61,7 @@ func (x *YamlFileToModuleParser) parseModuleBlock(index int, moduleBlockNode *ya
 			moduleBlock.Uses = x.parseStringSliceAndSetLocation(moduleBlock, ModuleBlockUsesFieldName, entry, blockPath, diagnostics)
 
 		case ModuleBlockInputFieldName:
-			inputMap := x.parseModuleInputBlock(moduleBlock, index, entry.value, diagnostics)
+			inputMap := x.parseModuleInputBlock(moduleBlock, moduleIndex, entry.key, entry.value, diagnostics)
 			if len(inputMap) != 0 {
 				moduleBlock.Input = inputMap
 			}
@@ -69,7 +72,7 @@ func (x *YamlFileToModuleParser) parseModuleBlock(index int, moduleBlockNode *ya
 		}
 	}
 
-	if moduleBlock.Name == "" && len(moduleBlock.Uses) == 0 && len(moduleBlock.Input) == 0 {
+	if moduleBlock.IsEmpty() {
 		return nil
 	}
 
@@ -79,16 +82,16 @@ func (x *YamlFileToModuleParser) parseModuleBlock(index int, moduleBlockNode *ya
 	return moduleBlock
 }
 
-func (x *YamlFileToModuleParser) parseModuleInputBlock(moduleBlock *module.ModuleBlock, index int, node *yaml.Node, diagnostics *schema.Diagnostics) map[string]any {
+func (x *YamlFileToModuleParser) parseModuleInputBlock(moduleBlock *module.ModuleBlock, index int, keyNode, valueNode *yaml.Node, diagnostics *schema.Diagnostics) map[string]any {
 
 	blockPath := fmt.Sprintf("%s[%d].%s", ModulesBlockName, index, ModuleBlockInputFieldName)
 
-	if node.Kind != yaml.MappingNode {
-		diagnostics.AddDiagnostics(x.buildNodeErrorMsgForMappingType(node, blockPath))
+	if valueNode.Kind != yaml.MappingNode {
+		diagnostics.AddDiagnostics(x.buildNodeErrorMsgForMappingType(valueNode, blockPath))
 		return nil
 	}
 
-	toMap, d := x.toMap(node, blockPath)
+	toMap, d := x.toMap(valueNode, blockPath)
 	diagnostics.AddDiagnostics(d)
 	if utils.HasError(d) {
 		return nil
@@ -109,6 +112,8 @@ func (x *YamlFileToModuleParser) parseModuleInputBlock(moduleBlock *module.Modul
 	if len(inputMap) == 0 {
 		return nil
 	}
+
+	x.setLocationKVWithDiagnostics(moduleBlock, ModuleBlockInputFieldName, blockPath, newNodeEntry(keyNode, valueNode), diagnostics)
 
 	return inputMap
 }

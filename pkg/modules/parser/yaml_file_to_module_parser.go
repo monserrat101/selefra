@@ -164,6 +164,9 @@ func (x *YamlFileToModuleParser) parseStringSliceAndSetLocation(block module.Blo
 		diagnostics.AddDiagnostics(x.buildNodeErrorMsgForArrayType(entry.key, blockPath))
 	}
 
+	// set self location
+	x.setLocationKVWithDiagnostics(block, fieldName, blockPath, entry, diagnostics)
+
 	return elementSlice
 }
 

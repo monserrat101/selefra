@@ -116,6 +116,9 @@ func (x *ModuleBlock) checkInput() *schema.Diagnostics {
 }
 
 func (x *ModuleBlock) IsEmpty() bool {
+	if x == nil {
+		return true
+	}
 	return x.Name == "" && len(x.Uses) == 0 && len(x.Input) == 0
 }
 

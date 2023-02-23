@@ -43,13 +43,15 @@ func BuildLocationFromYamlNode(yamlFilePath string, yamlSelector string, node *y
 	}
 }
 
+// Gets the end point of a node
 func rightLeafNode(node *yaml.Node) *yaml.Node {
-	if node.Kind == yaml.ScalarNode {
+	if node.Kind == yaml.ScalarNode || len(node.Content) == 0 {
 		return node
 	}
-	return node.Content[len(node.Content)-1]
+	return rightLeafNode(node.Content[len(node.Content)-1])
 }
 
+// ReadSourceString Read the source string content based on location information
 func (x *NodeLocation) ReadSourceString() string {
 	if x == nil {
 		return ""
@@ -101,10 +103,6 @@ func NewPosition(line, column int) *Position {
 	}
 }
 
-//func (x *Position) ReadString() string {
-//
-//}
-
 // ------------------------------------------------- --------------------------------------------------------------------
 
 type LocatableImpl struct {
@@ -130,35 +128,31 @@ func (x *LocatableImpl) GetNodeLocation(relativeSelector string) *NodeLocation {
 		return selectorPathLocation
 	}
 
-	//// Example(without .key or .value):
-	//// foo
-	//// bar
-	//keyLocation, keyErr := x.yamlSelectorTrie.Query(relativeSelector + ".key")
-	//valueLocation, valueErr := x.yamlSelectorTrie.Query(relativeSelector + ".value")
-	//if keyErr != nil && valueErr != nil {
-	//	return nil
-	//}
-
-	return nil
+	// Example(without .key or .value):
+	// foo
+	// bar
+	keyLocation, keyErr := x.yamlSelectorTrie.Query(relativeSelector + ".key")
+	valueLocation, valueErr := x.yamlSelectorTrie.Query(relativeSelector + ".value")
+	if keyErr != nil && valueErr != nil {
+		return nil
+	}
+	return mergeKeyValueLocation(keyLocation, valueLocation)
 }
 
-//func mergeKeyValueLocation(keyLocation, valueLocation *NodeLocation) *NodeLocation {
-//	if keyLocation == nil {
-//		return valueLocation
-//	} else if valueLocation == nil {
-//		return keyLocation
-//	}
-//
-//	return &NodeLocation{}
-//	if x == nil {
-//		return other
-//	} else if other == nil {
-//		return x
-//	}
-//	NodeLocation{
-//		YamlSelector:,
-//	}
-//}
+func mergeKeyValueLocation(keyLocation, valueLocation *NodeLocation) *NodeLocation {
+	if keyLocation == nil {
+		return valueLocation
+	} else if valueLocation == nil {
+		return keyLocation
+	}
+
+	return &NodeLocation{
+		YamlSelector: baseYamlSelector(keyLocation.YamlSelector),
+		Path:         keyLocation.Path,
+		Begin:        keyLocation.Begin,
+		End:          valueLocation.End,
+	}
+}
 
 // foo.bar.key --> foo.bar
 // foo.bar[1] --> foo.bar
