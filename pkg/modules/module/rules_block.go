@@ -3,6 +3,9 @@ package module
 import (
 	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
+	"github.com/selefra/selefra/pkg/utils"
+	"path/filepath"
+	"strings"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -209,9 +212,23 @@ func (x *RuleMetadataBlock) Check(module *Module, validatorContext *ValidatorCon
 			errorTips := fmt.Sprintf("Rule metadata id must not duplication: %s", x.Id)
 			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("id"))
 			diagnostics.AddErrorMsg(report)
-
 		} else {
 			validatorContext.AddRuleBlock(x.runtime.rule)
+		}
+	}
+
+	if x.Remediation != "" {
+		if strings.Contains(x.Remediation, "..") {
+			errorTips := fmt.Sprintf("Rule %s metadata remediation can not contains ..", x.runtime.rule.Name)
+			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("remediation"))
+			diagnostics.AddErrorMsg(report)
+		} else {
+			remediationFileExists := filepath.Join(utils.AbsPath(module.Workspace), x.Remediation)
+			if !utils.Exists(remediationFileExists) {
+				errorTips := fmt.Sprintf("Rule %s metadata file do not exists or it is is not file", x.runtime.rule.Name)
+				report := RenderErrorTemplate(errorTips, x.GetNodeLocation("remediation"))
+				diagnostics.AddErrorMsg(report)
+			}
 		}
 	}
 
