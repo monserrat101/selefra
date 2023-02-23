@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"github.com/fatih/color"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/modules/module"
 	"github.com/selefra/selefra/pkg/utils"
@@ -13,7 +12,7 @@ import (
 	"strings"
 )
 
-const DocSiteUrl = "http://selefra.io/docs"
+
 
 // YamlFileToModuleParser Read a yaml file as a module, but the module is only for program convenience. There is no such file module; a module should at least be a folder
 type YamlFileToModuleParser struct {
@@ -308,7 +307,7 @@ func (x *YamlFileToModuleParser) buildNodeErrorMsgForUnSupport(keyNode, valueNod
 	location := module.MergeKeyValueLocation(keyLocation, valueLocation)
 	location.YamlSelector = keyLocation.YamlSelector
 	errorMsg := fmt.Sprintf("syntax error, do not support %s", blockPath)
-	report := RenderErrorTemplate(errorMsg, location)
+	report := module.RenderErrorTemplate(errorMsg, location)
 	return schema.NewDiagnostics().AddErrorMsg(report)
 }
 
@@ -326,90 +325,8 @@ func (x *YamlFileToModuleParser) buildNodeErrorMsgForArrayType(node *yaml.Node, 
 
 func (x *YamlFileToModuleParser) buildNodeErrorMsg(blockPath string, node *yaml.Node, errorMessage string) *schema.Diagnostics {
 	location := module.BuildLocationFromYamlNode(x.yamlFilePath, blockPath, node)
-	report := RenderErrorTemplate(errorMessage, location)
+	report := module.RenderErrorTemplate(errorMessage, location)
 	return schema.NewDiagnostics().AddErrorMsg(report)
-}
-
-// RenderErrorTemplate Output Example:
-//
-// error[E827890]: syntax error, do not support modules[1].output
-//
-//	 -->  test_data\test.yaml:83:7 ( modules[1].output )
-//	| 78   - name: example_module
-//	| 79     uses: ./rules/
-//	| 80     input:
-//	| 81       name: selefra
-//	| 82     output:
-//	| 83       - "This is a test output message, resource region is {{.region}}."
-//	|          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//	| 84
-//	| 85 variables:
-//	| 86   - key: test
-//	| 87     default:
-func RenderErrorTemplate(errorType string, location *module.NodeLocation) string {
-	s := strings.Builder{}
-
-	s.WriteString(fmt.Sprintf("%s: %s \n", color.RedString("error[E827890]"), errorType))
-	s.WriteString(fmt.Sprintf("%s %s:%d:%d ( %s ) \n", color.BlueString(" --> "), location.Path, location.Begin.Line, location.Begin.Column, location.YamlSelector))
-
-	file, err := os.ReadFile(location.Path)
-	if err != nil {
-		// TODO
-		return err.Error()
-	}
-	split := strings.Split(string(file), "\n")
-	// The number of characters used for lines depends on the actual number of lines in the file
-	lineWidth := strconv.Itoa(len(strconv.Itoa(len(split))))
-	for lineIndex, lineString := range split {
-		// There can be a newline problem on Windows platforms
-		lineString = strings.TrimRight(lineString, "\r")
-		realLineIndex := lineIndex + 1
-		// Go ahead and back a few more lines
-		cutoff := 5
-		if realLineIndex >= location.Begin.Line && realLineIndex <= location.End.Line {
-			begin := 0
-			end := len(lineString) + 1
-			if realLineIndex == location.Begin.Line {
-				begin = location.Begin.Column - 1
-			}
-			if realLineIndex == location.End.Line {
-				end = location.End.Column - 1
-			}
-			s.WriteString(fmt.Sprintf("| %-"+lineWidth+"d ", realLineIndex))
-			s.WriteString(lineString)
-			s.WriteString("\n")
-			// Error underlining
-			underline := withUnderline(lineString, begin, end)
-			if underline != "" {
-				s.WriteString(fmt.Sprintf("|    "))
-				s.WriteString(color.RedString(underline))
-				s.WriteString("\n")
-			}
-		} else if (realLineIndex >= location.Begin.Line-cutoff && realLineIndex < location.Begin.Line) || (realLineIndex > location.End.Line && realLineIndex <= location.End.Line+cutoff) {
-			s.WriteString(fmt.Sprintf("| %-"+lineWidth+"d ", realLineIndex))
-			s.WriteString(lineString)
-			s.WriteString("\n")
-		}
-	}
-	s.WriteString("--> See our docs: " + DocSiteUrl + "\n")
-
-	return s.String()
-}
-
-// Underline the lines in red
-func withUnderline(line string, begin, end int) string {
-	underline := make([]string, 0)
-	for index, _ := range line {
-		if index >= begin && index <= end {
-			underline = append(underline, color.RedString("^"))
-		} else {
-			underline = append(underline, color.RedString(" "))
-		}
-	}
-	if len(underline) == 0 {
-		return ""
-	}
-	return strings.Join(underline, "")
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------

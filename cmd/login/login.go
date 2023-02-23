@@ -52,9 +52,18 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	// Read the token from standard input
-	token, d := cli_ui.InputCloudToken(host)
-	if err := cli_ui.PrintDiagnostics(d); err != nil {
-		return err
+	var token string
+	if len(args) != 0 {
+		token = args[0]
+	} else {
+		token, d = cli_ui.InputCloudToken(host)
+		if err := cli_ui.PrintDiagnostics(d); err != nil {
+			return err
+		}
+	}
+	if token == "" {
+		cli_ui.Errorf("token can not be empty")
+		return nil
 	}
 
 	credentials, d := client.Login(token)

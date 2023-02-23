@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/modules/module"
-	"github.com/selefra/selefra/pkg/modules/parser"
 	"github.com/selefra/selefra/pkg/registry"
 	selefraVersion "github.com/selefra/selefra/pkg/version"
 )
@@ -72,7 +71,7 @@ func NewProviderVote(ctx context.Context, requiredProviderBlock *module.RequireP
 }
 
 // Vote Each module can participate in voting
-func (x *ProviderVote) Vote(module *module.Module, requiredProviderBlock *module.RequireProviderBlock) *schema.Diagnostics {
+func (x *ProviderVote) Vote(voteModule *module.Module, requiredProviderBlock *module.RequireProviderBlock) *schema.Diagnostics {
 
 	x.TotalVoteTimes++
 
@@ -84,12 +83,12 @@ func (x *ProviderVote) Vote(module *module.Module, requiredProviderBlock *module
 	constraint, err := version.NewConstraint(versionString)
 	if err != nil {
 		location := requiredProviderBlock.GetNodeLocation("version.value")
-		report := parser.RenderErrorTemplate(fmt.Sprintf("provider version constraint parse failed: %s", versionString), location)
+		report := module.RenderErrorTemplate(fmt.Sprintf("provider version constraint parse failed: %s", versionString), location)
 		return schema.NewDiagnostics().AddErrorMsg(report)
 	}
 	for _, voteSummary := range x.VersionVoteCountMap {
 		if selefraVersion.IsConstraintsAllow(constraint, voteSummary.ProviderVersion) {
-			voteSummary.VoteSet[module] = struct{}{}
+			voteSummary.VoteSet[voteModule] = struct{}{}
 		}
 	}
 
@@ -108,7 +107,7 @@ func (x *ProviderVote) InitProviderVersionVoteCountMap(ctx context.Context, bloc
 	metadata, err := provider.GetMetadata(ctx, registry.NewProvider(x.ProviderName, selefraVersion.VersionLatest))
 	if err != nil {
 		location := block.GetNodeLocation("source.value")
-		report := parser.RenderErrorTemplate(fmt.Sprintf("get provider %s version from registry error: %s", x.ProviderName, err.Error()), location)
+		report := module.RenderErrorTemplate(fmt.Sprintf("get provider %s version from registry error: %s", x.ProviderName, err.Error()), location)
 		return diagnostics.AddErrorMsg(report)
 	}
 	if len(metadata.Versions) == 0 {

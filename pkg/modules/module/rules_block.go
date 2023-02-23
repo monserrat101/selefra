@@ -3,7 +3,6 @@ package module
 import (
 	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
-	"github.com/selefra/selefra/pkg/modules/parser"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -24,7 +23,7 @@ func (x RulesBlock) Merge(other RulesBlock) (RulesBlock, *schema.Diagnostics) {
 	for _, ruleBlock := range x {
 		if _, exists := ruleNameSet[ruleBlock.Name]; exists {
 			errorTips := fmt.Sprintf("Rule with the same name is not allowed in the same module. The rule name %s is the duplication", ruleBlock.Name)
-			report := parser.RenderErrorTemplate(errorTips, ruleBlock.GetNodeLocation(""))
+			report := RenderErrorTemplate(errorTips, ruleBlock.GetNodeLocation(""))
 			diagnostics.AddErrorMsg(report)
 			continue
 		}
@@ -36,7 +35,7 @@ func (x RulesBlock) Merge(other RulesBlock) (RulesBlock, *schema.Diagnostics) {
 	for _, ruleBlock := range other {
 		if _, exists := ruleNameSet[ruleBlock.Name]; exists {
 			errorTips := fmt.Sprintf("Rule with the same name is not allowed in the same module. The rule name %s is the duplication", ruleBlock.Name)
-			report := parser.RenderErrorTemplate(errorTips, ruleBlock.GetNodeLocation(""))
+			report := RenderErrorTemplate(errorTips, ruleBlock.GetNodeLocation(""))
 			diagnostics.AddErrorMsg(report)
 			continue
 		}

@@ -137,7 +137,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 
 			switch NewModuleLoaderBySource(useModuleSource) {
 			case ModuleLoaderTypeInvalid:
-				errorReport := parser.RenderErrorTemplate(fmt.Sprintf("invalid module uses source %s", useModuleSource), useLocation)
+				errorReport := module.RenderErrorTemplate(fmt.Sprintf("invalid module uses source %s", useModuleSource), useLocation)
 				x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
 				return nil, false
 			case ModuleLoaderTypeS3Bucket:
@@ -148,7 +148,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 				loader, err := NewS3BucketModuleLoader(s3BucketModuleLoaderOptions)
 				if err != nil {
 					s3BucketModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
-					errorReport := parser.RenderErrorTemplate(fmt.Sprintf("create s3 module loader error: %s", err.Error()), useLocation)
+					errorReport := module.RenderErrorTemplate(fmt.Sprintf("create s3 module loader error: %s", err.Error()), useLocation)
 					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
 					return nil, false
 				}
@@ -167,7 +167,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 			//	loader, err := NewGitHubRegistryModuleLoader(gitHubRegistryModuleLoaderOptions)
 			//	if err != nil {
 			//		gitHubRegistryModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
-			//		errorReport := parser.RenderErrorTemplate(fmt.Sprintf("create github registry module loader error: %s", err.Error()), useLocation)
+			//		errorReport := module.RenderErrorTemplate(fmt.Sprintf("create github registry module loader error: %s", err.Error()), useLocation)
 			//		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
 			//		return nil, false
 			//	}
@@ -184,7 +184,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 				loader, err := NewLocalDirectoryModuleLoader(localDirectoryModuleLoaderOptions)
 				if err != nil {
 					localDirectoryModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
-					errorReport := parser.RenderErrorTemplate(fmt.Sprintf("create local directory module loader error: %s", err.Error()), useLocation)
+					errorReport := module.RenderErrorTemplate(fmt.Sprintf("create local directory module loader error: %s", err.Error()), useLocation)
 					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
 					return nil, false
 				}
@@ -202,7 +202,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 				loader, err := NewURLModuleLoader(urlModuleLoaderOptions)
 				if err != nil {
 					urlModuleLoaderOptions.MessageChannel.SenderWaitAndClose()
-					errorReport := parser.RenderErrorTemplate(fmt.Sprintf("create url module loader error: %s", err.Error()), useLocation)
+					errorReport := module.RenderErrorTemplate(fmt.Sprintf("create url module loader error: %s", err.Error()), useLocation)
 					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
 					return nil, false
 				}
@@ -213,7 +213,7 @@ func (x *LocalDirectoryModuleLoader) loadSubModules(ctx context.Context, modules
 				subModuleSlice = append(subModuleSlice, subModule)
 
 			default:
-				errorReport := parser.RenderErrorTemplate(fmt.Sprintf("module source %s can  cannot be assign loader", useModuleSource), useLocation)
+				errorReport := module.RenderErrorTemplate(fmt.Sprintf("module source %s can  cannot be assign loader", useModuleSource), useLocation)
 				x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorReport))
 				return nil, false
 			}

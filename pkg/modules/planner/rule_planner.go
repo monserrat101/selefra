@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/modules/module"
-	"github.com/selefra/selefra/pkg/modules/parser"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -77,7 +76,7 @@ func (x *RulePlanner) MakePlan(ctx context.Context) (*RulePlan, *schema.Diagnost
 	query, err := ruleScope.RenderingTemplate(x.ruleBlock.Query, x.ruleBlock.Query)
 	if err != nil {
 		location := x.ruleBlock.GetNodeLocation("query.value")
-		report := parser.RenderErrorTemplate(fmt.Sprintf("rendering template error: %s", err.Error()), location)
+		report := module.RenderErrorTemplate(fmt.Sprintf("rendering template error: %s", err.Error()), location)
 		return nil, diagnostics.AddErrorMsg(report)
 	}
 	bindingProviders, bindingTables := x.extractBinding(query, x.tableToProviderMap)
