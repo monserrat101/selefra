@@ -181,7 +181,7 @@ func (x *CloudApplyCommandExecutor) UploadIssue(ctx context.Context, r *executor
 	if r.RuleBlock.MetadataBlock != nil {
 		consoleOutput.WriteString(fmt.Sprintf("id %s, ", r.RuleBlock.MetadataBlock.Id))
 	}
-	consoleOutput.WriteString(fmt.Sprintf("output %s, ", r.RuleBlock.Output))
+	consoleOutput.WriteString(fmt.Sprintf("output %s", r.RuleBlock.Output))
 	cli_ui.Successln(consoleOutput.String())
 
 	// send to cloud
