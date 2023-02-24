@@ -178,7 +178,7 @@ func (x *CloudApplyCommandExecutor) UploadIssue(ctx context.Context, r *executor
 	//}
 	var consoleOutput strings.Builder
 	consoleOutput.WriteString(fmt.Sprintf("Rule name %s, ", r.RuleBlock.Name))
-	if r.RuleBlock.MetadataBlock != nil {
+	if r.RuleBlock.MetadataBlock != nil && r.RuleBlock.MetadataBlock.Id != "" {
 		consoleOutput.WriteString(fmt.Sprintf("id %s, ", r.RuleBlock.MetadataBlock.Id))
 	}
 	consoleOutput.WriteString(fmt.Sprintf("output %s", r.RuleBlock.Output))
