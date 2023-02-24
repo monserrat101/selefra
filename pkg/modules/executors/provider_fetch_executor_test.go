@@ -67,7 +67,10 @@ func TestProviderFetchExecutor_Execute(t *testing.T) {
 	}
 
 	// Develop a data pull plan
-	providerFetchPlans, d := planner.NewProviderFetchPlanner(rootModule, providersInstallPlan.ToMap()).MakePlan(context.Background())
+	providerFetchPlans, d := planner.NewProviderFetchPlanner(&planner.ProviderFetchPlannerOptions{
+		Module:                       rootModule,
+		ProviderVersionVoteWinnerMap: providersInstallPlan.ToMap(),
+	}).MakePlan(context.Background())
 	if utils.IsNotEmpty(d) {
 		t.Log(d.ToString())
 	}
