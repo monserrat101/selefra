@@ -94,7 +94,7 @@ func (x *SelefraBlock) Merge(other *SelefraBlock) (*SelefraBlock, *schema.Diagno
 	if x.RequireProvidersBlock != nil && other.RequireProvidersBlock != nil {
 		merge, d := x.RequireProvidersBlock.Merge(other.RequireProvidersBlock)
 		diagnostics.AddDiagnostics(d)
-		if utils.IsNotEmpty(d) {
+		if utils.NotHasError(d) {
 			mergedSelefraBlock.RequireProvidersBlock = merge
 		}
 	} else if x.RequireProvidersBlock != nil {
