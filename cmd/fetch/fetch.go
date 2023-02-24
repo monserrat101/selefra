@@ -139,7 +139,10 @@ func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 	}
 
 	// Develop a data pull plan
-	providerFetchPlans, d := planner.NewProviderFetchPlanner(rootModule, providersInstallPlan.ToMap()).MakePlan(context.Background())
+	providerFetchPlans, d := planner.NewProviderFetchPlanner(&planner.ProviderFetchPlannerOptions{
+		Module:                       rootModule,
+		ProviderVersionVoteWinnerMap: providersInstallPlan.ToMap(),
+	}).MakePlan(context.Background())
 	_ = cli_ui.PrintDiagnostics(d)
 	if utils.HasError(d) {
 		return nil

@@ -169,7 +169,10 @@ func (x *ApplyCommandExecutor) install(ctx context.Context) (planner.ProvidersIn
 func (x *ApplyCommandExecutor) fetch(ctx context.Context, providersInstallPlan planner.ProvidersInstallPlan) (*executors.ProviderFetchExecutor, planner.ProvidersFetchPlan, bool) {
 
 	// Develop a data pull plan
-	providerFetchPlans, d := planner.NewProviderFetchPlanner(x.rootModule, providersInstallPlan.ToMap()).MakePlan(ctx)
+	providerFetchPlans, d := planner.NewProviderFetchPlanner(&planner.ProviderFetchPlannerOptions{
+		Module:                       x.rootModule,
+		ProviderVersionVoteWinnerMap: providersInstallPlan.ToMap(),
+	}).MakePlan(ctx)
 	if err := x.cloudApplyCommandExecutor.UploadLog(ctx, d); err != nil {
 		return nil, nil, false
 	}

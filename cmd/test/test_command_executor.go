@@ -123,7 +123,10 @@ func (x *TestCommandExecutor) makeProvidersFetchPlan(ctx context.Context, rootMo
 	}
 
 	// 3. make fetch plan
-	providersFetchPlan, d := planner.NewProviderFetchPlanner(rootModule, providersInstallPlan.ToMap()).MakePlan(ctx)
+	providersFetchPlan, d := planner.NewProviderFetchPlanner(&planner.ProviderFetchPlannerOptions{
+		Module:                       rootModule,
+		ProviderVersionVoteWinnerMap: providersInstallPlan.ToMap(),
+	}).MakePlan(ctx)
 	x.options.MessageChannel.Send(d)
 	if utils.HasError(d) {
 		return nil, nil, false

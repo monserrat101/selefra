@@ -2,6 +2,7 @@ package planner
 
 import (
 	"context"
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage"
@@ -116,17 +117,27 @@ func (x *ProviderFetchPlan) GetMaxGoroutines() uint64 {
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
+// ProviderFetchPlannerOptions This parameter is required when creating the provider execution plan
+type ProviderFetchPlannerOptions struct {
+
+	// Which module is the execution plan being generated for
+	Module *module.Module
+
+	// Provider version that wins the vote
+	ProviderVersionVoteWinnerMap map[string]string
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
 type ProviderFetchPlanner struct {
-	module                       *module.Module
-	providerVersionVoteWinnerMap map[string]string
+	options *ProviderFetchPlannerOptions
 }
 
 var _ Planner[ProvidersFetchPlan] = &ProviderFetchPlanner{}
 
-func NewProviderFetchPlanner(module *module.Module, providerVersionVoteWinnerMap map[string]string) *ProviderFetchPlanner {
+func NewProviderFetchPlanner(options *ProviderFetchPlannerOptions) *ProviderFetchPlanner {
 	return &ProviderFetchPlanner{
-		module:                       module,
-		providerVersionVoteWinnerMap: providerVersionVoteWinnerMap,
+		options: options,
 	}
 }
 
@@ -144,15 +155,21 @@ func (x *ProviderFetchPlanner) expandByConfiguration() ([]*ProviderFetchPlan, *s
 	diagnostics := schema.NewDiagnostics()
 	providerFetchPlanSlice := make([]*ProviderFetchPlan, 0)
 
+	if x.options.Module.SelefraBlock == nil {
+		return nil, diagnostics.AddErrorMsg("module %s must have selefra block for make fetch plan", x.options.Module.BuildFullName())
+	} else if len(x.options.Module.SelefraBlock.RequireProvidersBlock) == 0 {
+		return nil, diagnostics.AddErrorMsg("module %s selefra block not have providers block", x.options.Module.BuildFullName())
+	}
+
 	// Start a task for those that have a task written
 	providerNamePlanCountMap := make(map[string]int, 0)
-	providerNameMap := x.module.SelefraBlock.RequireProvidersBlock.ToNameMap()
-	for _, providerBlock := range x.module.ProvidersBlock {
+	providerNameMap := x.options.Module.SelefraBlock.RequireProvidersBlock.ToNameMap()
+	for _, providerBlock := range x.options.Module.ProvidersBlock {
 		block, exists := providerNameMap[providerBlock.Provider]
 		if !exists {
-			// TODO provider name not found
-			diagnostics.AddErrorMsg("provider name %s not found", providerBlock.Provider)
-		} else if providerWinnerVersion, exists := x.providerVersionVoteWinnerMap[block.Source]; exists {
+			errorTips := fmt.Sprintf("provider name %s not found", providerBlock.Provider)
+			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, providerBlock.GetNodeLocation("")))
+		} else if providerWinnerVersion, exists := x.options.ProviderVersionVoteWinnerMap[block.Source]; exists {
 			// Start a plan for the provider
 			providerNamePlanCountMap[block.Source]++
 			providerFetchPlanSlice = append(providerFetchPlanSlice, NewProviderFetchPlan(block.Source, providerWinnerVersion, providerBlock))
@@ -166,7 +183,7 @@ func (x *ProviderFetchPlanner) expandByConfiguration() ([]*ProviderFetchPlan, *s
 	}
 
 	// See if there is another project that has not been activated, and if there is, start a pull plan for it as well
-	for providerName, providerVersion := range x.providerVersionVoteWinnerMap {
+	for providerName, providerVersion := range x.options.ProviderVersionVoteWinnerMap {
 		if providerNamePlanCountMap[providerName] > 0 {
 			continue
 		}
