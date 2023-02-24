@@ -12,8 +12,6 @@ import (
 	"strings"
 )
 
-
-
 // YamlFileToModuleParser Read a yaml file as a module, but the module is only for program convenience. There is no such file module; a module should at least be a folder
 type YamlFileToModuleParser struct {
 	yamlFilePath string

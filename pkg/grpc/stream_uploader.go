@@ -167,8 +167,12 @@ func (x *StreamUploader[Client, ID, Request, Response]) RunUploaderWorker() {
 			x.workerWg.Done()
 		}()
 
+		timer := time.NewTimer(time.Second)
+		defer timer.Stop()
+
 		continueIdleCount := 0
 		for {
+			timer.Reset(time.Second)
 			select {
 			case task, ok := <-x.waitSendTaskQueue:
 
@@ -186,7 +190,7 @@ func (x *StreamUploader[Client, ID, Request, Response]) RunUploaderWorker() {
 					x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("stream uploader name %s, send message success, id = %s", x.options.Name, utils.Strava(task.TaskId)))
 				}
 
-			case <-time.After(time.Second):
+			case <-timer.C:
 
 				continueIdleCount++
 				x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("stream uploader name %s, wait task, idle count %d", x.options.Name, continueIdleCount))

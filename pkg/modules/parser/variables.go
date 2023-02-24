@@ -80,10 +80,7 @@ func (x *YamlFileToModuleParser) parseVariableBlock(index int, node *yaml.Node, 
 		}
 	}
 
-	if variableBlock.Key == "" &&
-		reflect_util.IsNil(variableBlock.Default) &&
-		variableBlock.Description == "" &&
-		variableBlock.Author == "" {
+	if variableBlock.IsEmpty() {
 		return nil
 	}
 

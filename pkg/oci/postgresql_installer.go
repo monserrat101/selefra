@@ -150,13 +150,9 @@ func (x *PostgreSQLInstaller) Install(ctx context.Context) bool {
 	}
 
 	diagnostics.AddDiagnostics(x.ChangeConfigFilePort(15432))
-	if utils.IsNotEmpty(diagnostics) {
-		x.options.MessageChannel.Send(diagnostics)
-	}
-
 	x.options.MessageChannel.Send(diagnostics)
 
-	return true
+	return utils.NotHasError(diagnostics)
 }
 
 // Start the postgresql database
@@ -238,6 +234,7 @@ func (x *PostgreSQLInstaller) buildPgLogFilePath() string {
 
 // ------------------------------------------------ ---------------------------------------------------------------------
 
+// TODO Parameter is not used
 // ChangeConfigFilePort Change the port number in the configuration file
 func (x *PostgreSQLInstaller) ChangeConfigFilePort(port int) *schema.Diagnostics {
 

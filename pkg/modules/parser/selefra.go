@@ -63,12 +63,7 @@ func (x *YamlFileToModuleParser) parseSelefraBlock(selefraBlockKeyNode, selefraB
 		}
 	}
 
-	if selefraBlock.Name == "" &&
-		selefraBlock.CloudBlock == nil &&
-		selefraBlock.CliVersion == "" &&
-		selefraBlock.LogLevel == "" &&
-		len(selefraBlock.RequireProvidersBlock) == 0 &&
-		selefraBlock.ConnectionBlock == nil {
+	if selefraBlock.IsEmpty() {
 		return nil
 	}
 
@@ -115,7 +110,7 @@ func (x *YamlFileToModuleParser) parseCloudBlock(cloudBlockKeyNode, cloudBlockVa
 		}
 	}
 
-	if cloudBlock.Project == "" && cloudBlock.Organization == "" && cloudBlock.HostName == "" {
+	if cloudBlock.IsEmpty() {
 		return nil
 	}
 
@@ -189,7 +184,7 @@ func (x *YamlFileToModuleParser) parseRequiredProviderBlock(index int, node *yam
 		}
 	}
 
-	if requiredProviderBlock.Name == "" && requiredProviderBlock.Source == "" && requiredProviderBlock.Version == "" && requiredProviderBlock.Path == "" {
+	if requiredProviderBlock.IsEmpty() {
 		return nil
 	}
 

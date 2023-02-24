@@ -37,7 +37,7 @@ func ExistsDirectory(directoryPath string) bool {
 func EnsureDirectoryExists(directoryPath string) error {
 	_, err := os.Stat(directoryPath)
 	if errors.Is(err, os.ErrNotExist) {
-		err := os.Mkdir(directoryPath, 0755)
+		err := os.MkdirAll(directoryPath, 0755)
 		if err != nil {
 			return err
 		}
@@ -48,24 +48,30 @@ func EnsureDirectoryExists(directoryPath string) error {
 func EnsureDirectoryNotExists(directoryPath string) error {
 	_, err := os.Stat(directoryPath)
 	if errors.Is(err, os.ErrNotExist) {
-		err := os.RemoveAll(directoryPath)
-		if err != nil {
-			return err
-		}
+		return nil
 	}
-	return nil
+	return os.RemoveAll(directoryPath)
 }
 
 // EnsureFileExists Make sure the file exists, and if it does not, use the given content to create the file
-func EnsureFileExists(filepath string, initBytes []byte) error {
-	_, err := os.Stat(filepath)
-	if errors.Is(err, os.ErrNotExist) {
-		err = os.Mkdir(filepath, 0755)
-		if err != nil {
-			return err
-		}
+func EnsureFileExists(fileFullPath string, initBytes []byte) error {
+
+	_, err := os.Stat(fileFullPath)
+
+	if err == nil {
+		return nil
 	}
-	return nil
+
+	if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	err = EnsureDirectoryExists(filepath.Dir(fileFullPath))
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(fileFullPath, initBytes, os.ModePerm)
 }
 
 func ReadYamlFile[T any](yamlFilePath string) (T, error) {
