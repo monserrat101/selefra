@@ -257,7 +257,7 @@ func (x *ModuleQueryExecutorWorker) processRuleRow(ctx context.Context, rulePlan
 	// Inject the queried rows into the scope
 	values := row.GetValues()
 	for index, columnName := range row.GetColumnNames() {
-		rowScope.DeclareVariable(columnName, values[index])
+		rowScope.SetVariable(columnName, values[index])
 	}
 
 	// Render the actual values for the query results of the rule

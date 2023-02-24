@@ -8,12 +8,15 @@ import (
 	"github.com/selefra/selefra/pkg/modules/module"
 	"github.com/selefra/selefra/pkg/registry"
 	selefraVersion "github.com/selefra/selefra/pkg/version"
+	"strings"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
 // ProviderVersionVoteService When multiple versions of the same provider are available for a module, which version should be used? So take a vote!
 type ProviderVersionVoteService struct {
+
+	// <providerName, ProviderVote>
 	providerVersionVoteMap map[string]*ProviderVote
 }
 
@@ -28,11 +31,11 @@ func (x *ProviderVersionVoteService) Vote(ctx context.Context, module *module.Mo
 	diagnostics := schema.NewDiagnostics()
 	for _, requiredProviderBlock := range module.SelefraBlock.RequireProvidersBlock {
 		if _, exists := x.providerVersionVoteMap[requiredProviderBlock.Source]; !exists {
-			vote, d := NewProviderVote(ctx, requiredProviderBlock)
+			providerVote, d := NewProviderVote(ctx, requiredProviderBlock)
 			if diagnostics.AddDiagnostics(d).HasError() {
 				return diagnostics
 			}
-			x.providerVersionVoteMap[requiredProviderBlock.Source] = vote
+			x.providerVersionVoteMap[requiredProviderBlock.Source] = providerVote
 		}
 		d := x.providerVersionVoteMap[requiredProviderBlock.Source].Vote(module, requiredProviderBlock)
 		if diagnostics.AddDiagnostics(d).HasError() {
@@ -82,14 +85,25 @@ func (x *ProviderVote) Vote(voteModule *module.Module, requiredProviderBlock *mo
 	}
 	constraint, err := version.NewConstraint(versionString)
 	if err != nil {
-		location := requiredProviderBlock.GetNodeLocation("version._value")
-		report := module.RenderErrorTemplate(fmt.Sprintf("provider version constraint parse failed: %s", versionString), location)
+		location := requiredProviderBlock.GetNodeLocation("version" + module.NodeLocationSelfValue)
+		report := module.RenderErrorTemplate(fmt.Sprintf("required provider version constraint parse failed: %s", versionString), location)
 		return schema.NewDiagnostics().AddErrorMsg(report)
 	}
+
+	voteSuccessCount := 0
 	for _, voteSummary := range x.VersionVoteCountMap {
 		if selefraVersion.IsConstraintsAllow(constraint, voteSummary.ProviderVersion) {
 			voteSummary.VoteSet[voteModule] = struct{}{}
+			voteSuccessCount++
 		}
+	}
+
+	if voteSuccessCount == 0 {
+		canUseVersions := selefraVersion.Sort(x.GetVoteVersions())
+		location := requiredProviderBlock.GetNodeLocation("version" + module.NodeLocationSelfValue)
+		errorTips := fmt.Sprintf("required provider version constraint %s , no version was found that met the requirements, can use versions: %s", versionString, strings.Join(canUseVersions, ", "))
+		report := module.RenderErrorTemplate(errorTips, location)
+		return schema.NewDiagnostics().AddErrorMsg(report)
 	}
 
 	return nil
@@ -97,8 +111,12 @@ func (x *ProviderVote) Vote(voteModule *module.Module, requiredProviderBlock *mo
 
 // InitProviderVersionVoteCountMap Obtain the Provider versions from Registry and vote for these products later
 func (x *ProviderVote) InitProviderVersionVoteCountMap(ctx context.Context, block *module.RequireProviderBlock) *schema.Diagnostics {
+
 	diagnostics := schema.NewDiagnostics()
+
 	x.VersionVoteCountMap = make(map[string]*VersionVoteSummary)
+
+	// It's not actually going to download, so it doesn't matter what the path is here
 	options := registry.NewProviderGithubRegistryOptions("./")
 	provider, err := registry.NewProviderGithubRegistry(options)
 	if err != nil {
@@ -106,12 +124,12 @@ func (x *ProviderVote) InitProviderVersionVoteCountMap(ctx context.Context, bloc
 	}
 	metadata, err := provider.GetMetadata(ctx, registry.NewProvider(x.ProviderName, selefraVersion.VersionLatest))
 	if err != nil {
-		location := block.GetNodeLocation("source._value")
-		report := module.RenderErrorTemplate(fmt.Sprintf("get provider %s version from registry error: %s", x.ProviderName, err.Error()), location)
+		location := block.GetNodeLocation("source" + module.NodeLocationSelfValue)
+		report := module.RenderErrorTemplate(fmt.Sprintf("get provider %s meta infomartion from registry error: %s", x.ProviderName, err.Error()), location)
 		return diagnostics.AddErrorMsg(report)
 	}
 	if len(metadata.Versions) == 0 {
-		return diagnostics.AddErrorMsg("provider %s no version", x.ProviderName)
+		return diagnostics.AddErrorMsg("provider %s registry metadata not found any version", x.ProviderName)
 	}
 	for _, providerVersion := range metadata.Versions {
 		summary, d := NewVoteSummary(x.ProviderName, providerVersion)
@@ -153,17 +171,13 @@ func (x *ProviderVote) GetVoteVersions() []string {
 	return versionStringSlice
 }
 
-// ToModuleUseProviderVersionMap Convert to which versions of this Provider are supported by the module
-func (x *ProviderVote) ToModuleUseProviderVersionMap() map[*module.Module][]string {
+// ToModuleAllowProviderVersionMap Convert to which versions of this Provider are supported by the module
+func (x *ProviderVote) ToModuleAllowProviderVersionMap() map[*module.Module][]string {
 	moduleUseProviderVersionMap := make(map[*module.Module][]string, 0)
 	for providerVersion, voteSummary := range x.VersionVoteCountMap {
 		for module := range voteSummary.VoteSet {
-			versionSlice, exists := moduleUseProviderVersionMap[module]
-			if !exists {
-				versionSlice = make([]string, 0)
-			}
-			versionSlice = append(versionSlice, providerVersion)
-			moduleUseProviderVersionMap[module] = versionSlice
+			versionSlice := moduleUseProviderVersionMap[module]
+			moduleUseProviderVersionMap[module] = append(versionSlice, providerVersion)
 		}
 	}
 	return moduleUseProviderVersionMap
@@ -183,7 +197,6 @@ type VersionVoteSummary struct {
 func NewVoteSummary(providerName, providerVersion string) (*VersionVoteSummary, *schema.Diagnostics) {
 	newVersion, err := version.NewVersion(providerVersion)
 	if err != nil {
-		// TODO
 		return nil, schema.NewDiagnostics().AddErrorMsg("parse provider %s version %s error: %s", providerName, providerVersion, err.Error())
 	}
 	return &VersionVoteSummary{

@@ -127,7 +127,7 @@ func (x *ProviderInstallPlanner) providerVersionVote(ctx context.Context) (map[s
 func (x *ProviderInstallPlanner) buildVersionVoteFailedReport(providerVote *ProviderVote) string {
 	report := strings.Builder{}
 	report.WriteString(fmt.Sprintf("Failed to vote version for provider %s: \n", providerVote.ProviderName))
-	for module, versionSlice := range providerVote.ToModuleUseProviderVersionMap() {
+	for module, versionSlice := range providerVote.ToModuleAllowProviderVersionMap() {
 		version.Sort(versionSlice)
 		report.WriteString(fmt.Sprintf("Module %s suport version: %s \n", module.BuildFullName(), strings.Join(versionSlice, ", ")))
 	}

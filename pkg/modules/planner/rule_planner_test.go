@@ -29,7 +29,7 @@ func TestRulePlanner_MakePlan(t *testing.T) {
 	messageChannel.ReceiverWait()
 
 	scope := NewScope()
-	scope.DeclareVariable("account_id", "100000875657")
+	scope.SetVariable("account_id", "100000875657")
 	tableToProviderMap := map[string]string{
 		"aws_s3_buckets":           "aws",
 		"aws_s3_bucket_cors_rules": "aws",
