@@ -68,8 +68,15 @@ func TestModuleQueryExecutor_Execute(t *testing.T) {
 		t.Log(d.ToString())
 	}
 
-	// Develop a data pull plan
-	providerFetchPlans, d := planner.NewProviderFetchPlanner(rootModule, providersInstallPlan.ToMap()).MakePlan(context.Background())
+	messageChannel = message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
+		if utils.IsNotEmpty(message) {
+			t.Log(message.ToString())
+		}
+	})
+	providerFetchPlans, d := planner.NewProviderFetchPlanner(&planner.ProviderFetchPlannerOptions{
+		Module:                       rootModule,
+		ProviderVersionVoteWinnerMap: providersInstallPlan.ToMap(),
+	}).MakePlan(context.Background())
 	if utils.IsNotEmpty(d) {
 		t.Log(d.ToString())
 	}
