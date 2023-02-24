@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/modules/module"
+	"sort"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -43,17 +44,36 @@ func (x *RulePlan) String() string {
 // ------------------------------------------------- --------------------------------------------------------------------
 
 // MakeRulePlan Plan the execution of the rule
-func MakeRulePlan(ctx context.Context, ruleBlock *module.RuleBlock, moduleScope *Scope, tableToProviderMap map[string]string) (*RulePlan, *schema.Diagnostics) {
-	return NewRulePlanner(ruleBlock, moduleScope, tableToProviderMap).MakePlan(ctx)
+func MakeRulePlan(ctx context.Context, options *RulePlannerOptions) (*RulePlan, *schema.Diagnostics) {
+	return NewRulePlanner(options).MakePlan(ctx)
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
+// RulePlannerOptions Parameters required when creating a module execution plan
+type RulePlannerOptions struct {
+
+	// The execution plan of the module to which it is associated
+	ModulePlan *ModulePlan
+
+	// The module to which it is associated
+	Module *module.Module
+
+	// The scope of the owning module
+	ModuleScope *Scope
+
+	// Is the execution plan for which block
+	RuleBlock *module.RuleBlock
+
+	// Mapping between the table and the provider
+	TableToProviderMap map[string]string
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
 // RulePlanner An enforcement plan for this rule
 type RulePlanner struct {
-	ruleBlock          *module.RuleBlock
-	moduleScope        *Scope
-	tableToProviderMap map[string]string
+	options *RulePlannerOptions
 }
 
 var _ Planner[*RulePlan] = &RulePlanner{}
@@ -62,34 +82,56 @@ func (x *RulePlanner) Name() string {
 	return "rule-planner"
 }
 
-func NewRulePlanner(ruleBlock *module.RuleBlock, moduleScope *Scope, tableToProviderMap map[string]string) *RulePlanner {
+func NewRulePlanner(options *RulePlannerOptions) *RulePlanner {
 	return &RulePlanner{
-		ruleBlock:          ruleBlock,
-		moduleScope:        moduleScope,
-		tableToProviderMap: tableToProviderMap,
+		options: options,
 	}
 }
 
+// MakePlan Develop an implementation plan for rule
 func (x *RulePlanner) MakePlan(ctx context.Context) (*RulePlan, *schema.Diagnostics) {
+
 	diagnostics := schema.NewDiagnostics()
-	ruleScope := ExtendScope(x.moduleScope)
-	query, err := ruleScope.RenderingTemplate(x.ruleBlock.Query, x.ruleBlock.Query)
+
+	// Render the query statement for the Rule
+	ruleScope := ExtendScope(x.options.ModuleScope)
+	query, err := ruleScope.RenderingTemplate(x.options.RuleBlock.Query, x.options.RuleBlock.Query)
 	if err != nil {
-		location := x.ruleBlock.GetNodeLocation("query._value")
-		report := module.RenderErrorTemplate(fmt.Sprintf("rendering template error: %s", err.Error()), location)
+		location := x.options.RuleBlock.GetNodeLocation("query" + module.NodeLocationSelfValue)
+		// TODO 2023-2-24 15:10:15 bug: Can't correct marks used in yaml | a line
+		report := module.RenderErrorTemplate(fmt.Sprintf("rendering query template error: %s", err.Error()), location)
 		return nil, diagnostics.AddErrorMsg(report)
 	}
-	bindingProviders, bindingTables := x.extractBinding(query, x.tableToProviderMap)
+
+	// Resolve the binding of the Rule to the Provider and table
+	bindingProviders, bindingTables := x.extractBinding(query, x.options.TableToProviderMap)
 	if len(bindingProviders) != 1 {
-		// TODO
-		return nil, diagnostics.AddErrorMsg("rule must and only binding one provider: %s", x.ruleBlock.Query)
+		var errorTips string
+		if len(bindingProviders) == 0 {
+			errorTips = fmt.Sprintf("Your rule query should use at least one of the provider tables. Check that your sql is written correctly: %s", x.options.RuleBlock.Query)
+		} else {
+			errorTips = fmt.Sprintf("The tables used in your rule query span multiple providers; the current version of the rule query only allows several tables from one provider to be used: %s", x.options.RuleBlock.Query)
+		}
+		location := x.options.RuleBlock.GetNodeLocation("query" + module.NodeLocationSelfValue)
+		// TODO 2023-2-24 15:10:15 bug: Can't correct marks used in yaml | a line
+		report := module.RenderErrorTemplate(errorTips, location)
+		return nil, diagnostics.AddErrorMsg(report)
 	}
+
+	// Create a Rule execution plan
 	return &RulePlan{
-		RuleBlock:           x.ruleBlock,
+
+		ModulePlan: x.options.ModulePlan,
+		Module:     x.options.Module,
+
+		RuleBlock: x.options.RuleBlock,
+
 		BindingProviderName: bindingProviders[0],
-		Query:               query,
 		BindingTables:       bindingTables,
-		RuleScope:           ruleScope,
+
+		Query: query,
+
+		RuleScope: ruleScope,
 	}, diagnostics
 }
 
@@ -123,6 +165,11 @@ func (x *RulePlanner) extractBinding(query string, tableToProviderMap map[string
 	for tableName := range bindingTableSet {
 		bindingTables = append(bindingTables, tableName)
 	}
+
+	// keep dictionary order, show it to console need keep same
+	sort.Strings(bindingProviders)
+	sort.Strings(bindingTables)
+
 	return
 }
 

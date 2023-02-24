@@ -66,6 +66,16 @@ func (x ModulesBlock) SetNodeLocation(selector string, nodeLocation *NodeLocatio
 	panic("not supported")
 }
 
+func (x ModulesBlock) ModulesInputMap() map[string]*ModuleBlock {
+	modulesInputMap := make(map[string]*ModuleBlock)
+	for _, subModuleBlock := range x {
+		for _, uses := range subModuleBlock.Uses {
+			modulesInputMap[uses] = subModuleBlock
+		}
+	}
+	return modulesInputMap
+}
+
 // ------------------------------------------------- --------------------------------------------------------------------
 
 // ModuleBlock Used to represent a common element in the modules array

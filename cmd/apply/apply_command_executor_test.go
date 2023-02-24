@@ -7,7 +7,8 @@ import (
 )
 
 func TestApplyCommandExecutor_Run(t *testing.T) {
-	projectWorkspace := "./test_data"
+	//projectWorkspace := "./test_data/test_fetch_module"
+	projectWorkspace := "D:\\selefra\\workplace"
 	downloadWorkspace := "./test_download"
 
 	cli_runtime.Init(projectWorkspace)

@@ -35,7 +35,14 @@ func TestRulePlanner_MakePlan(t *testing.T) {
 		"aws_s3_bucket_cors_rules": "aws",
 	}
 
-	plan, diagnostics := NewRulePlanner(rootModule.RulesBlock[0], scope, tableToProviderMap).MakePlan(context.Background())
+	options := &RulePlannerOptions{
+		ModulePlan:         nil,
+		Module:             rootModule,
+		ModuleScope:        scope,
+		RuleBlock:          rootModule.RulesBlock[0],
+		TableToProviderMap: tableToProviderMap,
+	}
+	plan, diagnostics := NewRulePlanner(options).MakePlan(context.Background())
 	t.Log(diagnostics.ToString())
 	assert.False(t, utils.HasError(diagnostics))
 	//t.Log(json_util.ToJsonString(plan))

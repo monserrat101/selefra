@@ -205,7 +205,10 @@ func (x *ApplyCommandExecutor) fetch(ctx context.Context, providersInstallPlan p
 
 // Start querying the policy and output the query results to the console and upload them to the cloud
 func (x *ApplyCommandExecutor) query(ctx context.Context, fetchExecutor *executors.ProviderFetchExecutor, providerFetchPlans planner.ProvidersFetchPlan) bool {
-	plan, d := planner.MakeModuleQueryPlan(ctx, x.rootModule, fetchExecutor.GetTableToProviderMap())
+	plan, d := planner.MakeModuleQueryPlan(ctx, &planner.ModulePlannerOptions{
+		Module:             x.rootModule,
+		TableToProviderMap: fetchExecutor.GetTableToProviderMap(),
+	})
 	if err := x.cloudApplyCommandExecutor.UploadLog(ctx, d); err != nil {
 		return false
 	}

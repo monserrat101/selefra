@@ -4,13 +4,14 @@ import (
 	"context"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/modules/module"
+	moduleBlock "github.com/selefra/selefra/pkg/modules/module"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
 // MakeModuleQueryPlan Generate an execution plan for the module
-func MakeModuleQueryPlan(ctx context.Context, module *module.Module, tableToProviderMap map[string]string) (*ModulePlan, *schema.Diagnostics) {
-	return NewModulePlanner(module, tableToProviderMap).MakePlan(ctx)
+func MakeModuleQueryPlan(ctx context.Context, options *ModulePlannerOptions) (*ModulePlan, *schema.Diagnostics) {
+	return NewModulePlanner(options).MakePlan(ctx)
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -46,18 +47,28 @@ type ModulePlan struct {
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
+// ModulePlannerOptions Options when creating the Module Planner
+type ModulePlannerOptions struct {
+
+	// make plan for which module
+	Module *module.Module
+
+	// Table to Provider mapping
+	TableToProviderMap map[string]string
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
 // ModulePlanner Used to generate an execution plan for a module
 type ModulePlanner struct {
-	module             *module.Module
-	tableToProviderMap map[string]string
+	options *ModulePlannerOptions
 }
 
 var _ Planner[*ModulePlan] = &ModulePlanner{}
 
-func NewModulePlanner(module *module.Module, tableToProviderMap map[string]string) *ModulePlanner {
+func NewModulePlanner(options *ModulePlannerOptions) *ModulePlanner {
 	return &ModulePlanner{
-		module:             module,
-		tableToProviderMap: tableToProviderMap,
+		options: options,
 	}
 }
 
@@ -66,37 +77,54 @@ func (x *ModulePlanner) Name() string {
 }
 
 func (x *ModulePlanner) MakePlan(ctx context.Context) (*ModulePlan, *schema.Diagnostics) {
-	return x.buildModulePlanner(ctx, x.module, NewScope(), x.tableToProviderMap)
+	return x.buildModulePlanner(ctx, x.options.Module, NewScope())
 }
 
-func (x *ModulePlanner) buildModulePlanner(ctx context.Context, module *module.Module, scope *Scope, tableToProviderMap map[string]string) (*ModulePlan, *schema.Diagnostics) {
+// Specify execution plans for modules and submodules
+func (x *ModulePlanner) buildModulePlanner(ctx context.Context, module *module.Module, moduleScope *Scope) (*ModulePlan, *schema.Diagnostics) {
+
 	diagnostics := schema.NewDiagnostics()
+
 	modulePlan := &ModulePlan{
 		Module: module,
+		// Inherits the scope of the parent module
+		ModuleScope:    moduleScope,
+		SubModulesPlan: nil,
+		RulesPlan:      nil,
 	}
 
 	// Generate an execution plan for the rules in the module
 	for _, ruleBlock := range module.RulesBlock {
-		rulePlan, d := NewRulePlanner(ruleBlock, scope, tableToProviderMap).MakePlan(ctx)
-		rulePlan.ModulePlan = modulePlan
-		rulePlan.Module = module
+		rulePlan, d := NewRulePlanner(&RulePlannerOptions{
+			ModulePlan:         modulePlan,
+			Module:             module,
+			ModuleScope:        modulePlan.ModuleScope,
+			RuleBlock:          ruleBlock,
+			TableToProviderMap: x.options.TableToProviderMap,
+		}).MakePlan(ctx)
 		if diagnostics.Add(d).HasError() {
 			return nil, diagnostics
 		}
 		modulePlan.RulesPlan = append(modulePlan.RulesPlan, rulePlan)
 	}
 
+	var subModuleInputMap map[string]*moduleBlock.ModuleBlock
+	if len(module.ModulesBlock) != 0 {
+		subModuleInputMap = module.ModulesBlock.ModulesInputMap()
+	}
 	// Generate an execution plan for the submodules
 	for _, subModule := range module.SubModules {
 
-		// The scope of a submodule
-		subModuleScope := NewScope()
-		// The scope of a submodule inherits from the current module
-		subModuleScope.Extend(scope)
-		// Also, the submodule may have some initialized variables
-		// TODO
+		subModuleScope := ExtendScope(modulePlan.ModuleScope)
 
-		subModulePlan, d := x.buildModulePlanner(ctx, subModule, subModuleScope, tableToProviderMap)
+		// Also, the module may have some initialized variables
+		if subModuleInputMap != nil {
+			if subModuleBlock := subModuleInputMap[subModule.Source]; subModuleBlock != nil && len(subModuleBlock.Input) != 0 {
+				subModuleScope.SetVariables(subModuleBlock.Input)
+			}
+		}
+
+		subModulePlan, d := x.buildModulePlanner(ctx, subModule, subModuleScope)
 		if diagnostics.AddDiagnostics(d).HasError() {
 			return nil, diagnostics
 		}

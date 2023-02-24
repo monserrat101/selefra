@@ -100,7 +100,10 @@ func TestModuleQueryExecutor_Execute(t *testing.T) {
 	}
 	messageChannel.ReceiverWait()
 
-	plan, d := planner.MakeModuleQueryPlan(context.Background(), rootModule, fetchExecutor.GetTableToProviderMap())
+	plan, d := planner.MakeModuleQueryPlan(context.Background(), &planner.ModulePlannerOptions{
+		Module:             rootModule,
+		TableToProviderMap: fetchExecutor.GetTableToProviderMap(),
+	})
 	if utils.IsNotEmpty(d) {
 		t.Log(d.ToString())
 	}
