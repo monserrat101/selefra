@@ -59,17 +59,20 @@ func RenderErrorTemplate(errorType string, location *NodeLocation) string {
 			if realLineIndex == location.End.Line {
 				end = location.End.Column - 1
 			}
+
 			//s.WriteString(fmt.Sprintf("| %"+lineWidth+"d: ", realLineIndex))
 			s.WriteString(fmt.Sprintf("| %-"+lineWidth+"d ", realLineIndex))
 			s.WriteString(lineString)
 			s.WriteString("\n")
+
 			// Error underlining
 			underline := withUnderline(lineString, begin, end)
 			if underline != "" {
-				s.WriteString(fmt.Sprintf("|    "))
+				s.WriteString(fmt.Sprintf("| %"+lineWidth+"s ", " "))
 				s.WriteString(color.RedString(underline))
 				s.WriteString("\n")
 			}
+
 		} else if (realLineIndex >= location.Begin.Line-cutoff && realLineIndex < location.Begin.Line) || (realLineIndex > location.End.Line && realLineIndex <= location.End.Line+cutoff) {
 			//s.WriteString(fmt.Sprintf("| %"+lineWidth+"d: ", realLineIndex))
 			s.WriteString(fmt.Sprintf("| %-"+lineWidth+"d ", realLineIndex))
