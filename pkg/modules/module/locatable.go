@@ -35,6 +35,9 @@ type NodeLocation struct {
 
 func BuildLocationFromYamlNode(yamlFilePath string, yamlSelector string, node *yaml.Node) *NodeLocation {
 	endNode := rightLeafNode(node)
+	if endNode == nil {
+		return nil
+	}
 	return &NodeLocation{
 		Path:         yamlFilePath,
 		YamlSelector: yamlSelector,
@@ -45,7 +48,7 @@ func BuildLocationFromYamlNode(yamlFilePath string, yamlSelector string, node *y
 
 // Gets the end point of a node
 func rightLeafNode(node *yaml.Node) *yaml.Node {
-	if node.Kind == yaml.ScalarNode || len(node.Content) == 0 {
+	if node == nil || node.Kind == yaml.ScalarNode || len(node.Content) == 0 {
 		return node
 	}
 	return rightLeafNode(node.Content[len(node.Content)-1])
