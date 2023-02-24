@@ -92,6 +92,7 @@ func (x *ApplyCommandExecutor) Run(ctx context.Context) {
 	x.cloudApplyCommandExecutor.ShutdownAndWait(ctx)
 	x.cloudApplyCommandExecutor.ChangeTaskLogStatus(log.StageType_STAGE_TYPE_INFRASTRUCTURE_ANALYSIS, log.Status_STATUS_SUCCESS)
 
+	_ = x.cloudApplyCommandExecutor.UploadLog(ctx, schema.NewDiagnostics().AddInfo("Apply done"))
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
