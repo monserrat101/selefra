@@ -9,7 +9,6 @@ import (
 	"github.com/selefra/selefra/pkg/cli_runtime"
 	"github.com/selefra/selefra/pkg/grpc/pb/log"
 	"github.com/selefra/selefra/pkg/message"
-	"github.com/selefra/selefra/pkg/modules/executors"
 	"github.com/selefra/selefra/pkg/modules/module"
 	"github.com/selefra/selefra/pkg/modules/module_loader"
 	"github.com/selefra/selefra/pkg/modules/planner"
@@ -150,7 +149,7 @@ func (x *ApplyCommandExecutor) install(ctx context.Context) (planner.ProvidersIn
 			_ = x.cloudApplyCommandExecutor.UploadLog(ctx, message)
 		}
 	})
-	executor, diagnostics := executors.NewProviderInstallExecutor(&executors.ProviderInstallExecutorOptions{
+	executor, diagnostics := NewProviderInstallExecutor(&ProviderInstallExecutorOptions{
 		Plans:             providersInstallPlan,
 		MessageChannel:    messageChannel,
 		DownloadWorkspace: x.options.DownloadWorkspace,
@@ -169,7 +168,7 @@ func (x *ApplyCommandExecutor) install(ctx context.Context) (planner.ProvidersIn
 // ------------------------------------------------- --------------------------------------------------------------------
 
 // Start pulling data
-func (x *ApplyCommandExecutor) fetch(ctx context.Context, providersInstallPlan planner.ProvidersInstallPlan) (*executors.ProviderFetchExecutor, planner.ProvidersFetchPlan, bool) {
+func (x *ApplyCommandExecutor) fetch(ctx context.Context, providersInstallPlan planner.ProvidersInstallPlan) (*ProviderFetchExecutor, planner.ProvidersFetchPlan, bool) {
 
 	// Develop a data pull plan
 	providerFetchPlans, d := planner.NewProviderFetchPlanner(&planner.ProviderFetchPlannerOptions{
@@ -192,7 +191,7 @@ func (x *ApplyCommandExecutor) fetch(ctx context.Context, providersInstallPlan p
 		}
 	})
 
-	fetchExecutor := executors.NewProviderFetchExecutor(&executors.ProviderFetchExecutorOptions{
+	fetchExecutor := NewProviderFetchExecutor(&ProviderFetchExecutorOptions{
 		LocalProviderManager: localProviderManager,
 		Plans:                providerFetchPlans,
 		MessageChannel:       messageChannel,
@@ -211,7 +210,7 @@ func (x *ApplyCommandExecutor) fetch(ctx context.Context, providersInstallPlan p
 // ------------------------------------------------- --------------------------------------------------------------------
 
 // Start querying the policy and output the query results to the console and upload them to the cloud
-func (x *ApplyCommandExecutor) query(ctx context.Context, fetchExecutor *executors.ProviderFetchExecutor, providerFetchPlans planner.ProvidersFetchPlan) bool {
+func (x *ApplyCommandExecutor) query(ctx context.Context, fetchExecutor *ProviderFetchExecutor, providerFetchPlans planner.ProvidersFetchPlan) bool {
 	plan, d := planner.MakeModuleQueryPlan(ctx, &planner.ModulePlannerOptions{
 		Module:             x.rootModule,
 		TableToProviderMap: fetchExecutor.GetTableToProviderMap(),
@@ -222,14 +221,14 @@ func (x *ApplyCommandExecutor) query(ctx context.Context, fetchExecutor *executo
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		_ = x.cloudApplyCommandExecutor.UploadLog(ctx, d)
 	})
-	resultQueryResultChannel := message.NewChannel[*executors.RuleQueryResult](func(index int, message *executors.RuleQueryResult) {
+	resultQueryResultChannel := message.NewChannel[*RuleQueryResult](func(index int, message *RuleQueryResult) {
 		x.cloudApplyCommandExecutor.UploadIssue(ctx, message)
 	})
 	contextMap, d := providerFetchPlans.BuildProviderContextMap(context.Background(), env.GetDatabaseDsn())
 	if err := x.cloudApplyCommandExecutor.UploadLog(ctx, d); err != nil {
 		return false
 	}
-	queryExecutor := executors.NewModuleQueryExecutor(&executors.ModuleQueryExecutorOptions{
+	queryExecutor := NewModuleQueryExecutor(&ModuleQueryExecutorOptions{
 		Plan:                   plan,
 		DownloadWorkspace:      x.options.DownloadWorkspace,
 		MessageChannel:         messageChannel,

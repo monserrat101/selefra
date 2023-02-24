@@ -24,8 +24,36 @@ import (
 	"time"
 )
 
+// ------------------------------------------------ ---------------------------------------------------------------------
+
+// FetchStep The pull is broken down into small steps, and you can control where to stop
+type FetchStep int
+
+const (
+
+	// FetchStepFetch Notice that the order is reversed
+	// The default level is the data after fetch
+	FetchStepFetch FetchStep = iota
+
+	// FetchStepCreateAllTable Go to create all tables
+	FetchStepCreateAllTable FetchStep = iota
+
+	// FetchStepDropAllTable Go to delete all tables
+	FetchStepDropAllTable FetchStep = iota
+
+	// FetchStepGetInformation Go to get the Provider information
+	FetchStepGetInformation FetchStep = iota
+
+	// FetchStepGetInit Perform Provider initialization
+	FetchStepGetInit FetchStep = iota
+
+	// FetchStepGetStart Just start the Provider up and quit
+	FetchStepGetStart FetchStep = iota
+)
+
 // ------------------------------------------------- --------------------------------------------------------------------
 
+// ProviderFetchExecutorOptions Various parameter options when pulling data
 type ProviderFetchExecutorOptions struct {
 
 	// Used to find the Provider and start the instance
@@ -45,16 +73,20 @@ type ProviderFetchExecutorOptions struct {
 
 	// Connect to database
 	DSN string
+
+	// At which stage to exit
+	FetchStepTo FetchStep
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-const FetchExecutorName = "fetch-executor"
+const FetchExecutorName = "provider-fetch-executor"
 
 // ProviderFetchExecutor An actuator for pulling data
 type ProviderFetchExecutor struct {
 	options *ProviderFetchExecutorOptions
 
+	// After the Provider is started, information about the Provider is collected
 	providerInformationMap map[string]*shard.GetProviderInformationResponse
 }
 
@@ -80,6 +112,7 @@ func (x *ProviderFetchExecutor) GetTableToProviderMap() map[string]string {
 	return tableToProviderMap
 }
 
+// Generate a mapping of a single table to the provider
 func flatTableToProviderMap(providerName string, table *schema.Table, m map[string]string) {
 	m[table.TableName] = providerName
 
@@ -89,7 +122,7 @@ func flatTableToProviderMap(providerName string, table *schema.Table, m map[stri
 }
 
 func (x *ProviderFetchExecutor) Name() string {
-	return "provider-fetch-executor"
+	return FetchExecutorName
 }
 
 func (x *ProviderFetchExecutor) Execute(ctx context.Context) *schema.Diagnostics {
@@ -98,6 +131,7 @@ func (x *ProviderFetchExecutor) Execute(ctx context.Context) *schema.Diagnostics
 		x.options.MessageChannel.SenderWaitAndClose()
 	}()
 
+	// TODO Scheduling algorithm
 	fetchPlanChannel := make(chan *planner.ProviderFetchPlan, len(x.options.Plans))
 	for _, plan := range x.options.Plans {
 		fetchPlanChannel <- plan
@@ -124,6 +158,8 @@ func (x *ProviderFetchExecutor) Execute(ctx context.Context) *schema.Diagnostics
 
 	return nil
 }
+
+//
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
@@ -201,9 +237,17 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		return
 	}
 	// Close the provider at the end of the method execution
-	defer plug.Close()
+	defer func() {
+		plug.Close()
+		x.sendMessage(schema.NewDiagnostics().AddInfo("stop provider %s at %s ", plan.String(), localProvider.ExecutableFilePath))
+	}()
 
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("start provider %s success", plan.String())))
+
+	// init
+	if x.executor.options.FetchStepTo > FetchStepGetInit {
+		return
+	}
 
 	// Database connection option
 	storageOpt := postgresql_storage.NewPostgresqlStorageOptions(x.executor.options.DSN)
@@ -281,6 +325,11 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	}
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s init success", plan.String())))
 
+	// get information
+	if x.executor.options.FetchStepTo > FetchStepGetInformation {
+		return
+	}
+
 	// Get information about the started provider
 	information, err := pluginProvider.GetProviderInformation(ctx, &shard.GetProviderInformationRequest{})
 	if err != nil {
@@ -290,6 +339,10 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	x.providerInformation <- information
 
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("get provider %s information success", plan.String())))
+
+	if x.executor.options.FetchStepTo > FetchStepDropAllTable {
+		return
+	}
 
 	// Delete the table before provider
 	dropRes, err := pluginProvider.DropTableAll(ctx, &shard.ProviderDropTableAllRequest{})
@@ -302,6 +355,10 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		return
 	}
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s drop database schema clean success", plan.String())))
+
+	if x.executor.options.FetchStepTo > FetchStepCreateAllTable {
+		return
+	}
 
 	// create all tables
 	createRes, err := pluginProvider.CreateAllTables(ctx, &shard.ProviderCreateAllTablesRequest{})
@@ -318,6 +375,11 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	}
 
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s create tables success", plan.String())))
+
+	if x.executor.options.FetchStepTo > FetchStepFetch {
+		return
+	}
+
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s begin fetch...", plan.String())))
 
 	// being pull data
