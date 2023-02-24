@@ -240,7 +240,7 @@ func ParseConnectionBlockFromDSN(dsn string) *ConnectionBlock {
 }
 
 func (x *ConnectionBlock) BuildDSN() string {
-	return fmt.Sprintf("host=%s user=%s password=%s port=%d dbname=%s sslmode=%s", x.Host, x.Username, x.Password, x.Port, x.Database, x.SSLMode)
+	return fmt.Sprintf("host=%s user=%s password=%s port=%d dbname=%s sslmode=%s", x.Host, x.Username, x.Password, *x.Port, x.Database, x.SSLMode)
 }
 
 func (x *ConnectionBlock) Check(module *Module, validatorContext *ValidatorContext) *schema.Diagnostics {
