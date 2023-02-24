@@ -128,6 +128,7 @@ func (x *RulePlanner) extractBinding(query string, tableToProviderMap map[string
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
+// The old scheme does implicit provider association, while the new scheme does whitelist association
 //// Extracting the provider name from the table name used by the policy is an implicit association
 //func (x *RulePlanner) extractImplicitProvider(tablesName []string) ([]string, *schema.Diagnostics) {
 //	diagnostics := schema.NewDiagnostics()
