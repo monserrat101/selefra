@@ -54,6 +54,7 @@ func NewProviderInstallExecutor(options *ProviderInstallExecutorOptions) (*Provi
 	}, diagnostics
 }
 
+// GetLocalProviderManager This way we can reuse the local provider manager
 func (x *ProviderInstallExecutor) GetLocalProviderManager() *local_providers_manager.LocalProvidersManager {
 	return x.localProviderManager
 }
@@ -88,7 +89,7 @@ func (x *ProviderInstallExecutor) executePlan(ctx context.Context, plan *planner
 		return nil
 	}
 
-	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("begin downloading %s ...", plan.String()))
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("begin downloading provider %s ...", plan.String()))
 
 	x.localProviderManager.InstallProvider(ctx, &local_providers_manager.InstallProvidersOptions{
 		RequiredProvider: requiredProvider,
@@ -98,7 +99,7 @@ func (x *ProviderInstallExecutor) executePlan(ctx context.Context, plan *planner
 
 	// TODO init
 
-	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("download & install %s success", plan.String()))
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("download & install provider %s success", plan.String()))
 
 	return nil
 }
