@@ -50,7 +50,7 @@ func ParseNameAndVersion(nameAndVersion string) *NameAndVersion {
 
 // IsLatestVersion Check whether the version number indicates the latest version
 func (x *NameAndVersion) IsLatestVersion() bool {
-	return x.Version == "" || strings.ToLower(x.Version) == VersionLatest
+	return IsLatestVersion(x.Version)
 }
 
 func (x *NameAndVersion) String() string {
@@ -97,7 +97,7 @@ func IsConstraintsAllow(constraints version.Constraints, version *version.Versio
 // ------------------------------------------------- --------------------------------------------------------------------
 
 func IsLatestVersion(versionString string) bool {
-	return VersionLatest == strings.ToLower(versionString)
+	return versionString == "" || VersionLatest == strings.ToLower(versionString)
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
