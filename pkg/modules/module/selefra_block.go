@@ -292,7 +292,7 @@ type RequireProvidersBlock []*RequireProviderBlock
 var _ MergableBlock[RequireProvidersBlock] = &RequireProvidersBlock{}
 var _ Block = &RequireProvidersBlock{}
 
-func (x RequireProvidersBlock) ToNameMap() map[string]*RequireProviderBlock {
+func (x RequireProvidersBlock) BuildNameToProviderBlockMap() map[string]*RequireProviderBlock {
 	m := make(map[string]*RequireProviderBlock)
 	for _, r := range x {
 		m[r.Name] = r

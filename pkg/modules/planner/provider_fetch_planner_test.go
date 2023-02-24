@@ -41,7 +41,10 @@ func TestProviderFetchPlanner_MakePlan(t *testing.T) {
 		"aws": "v0.0.1",
 		"gcp": "v0.0.1",
 	}
-	plan, diagnostics := NewProviderFetchPlanner(rootModule, versionWinnerMap).MakePlan(context.Background())
+	plan, diagnostics := NewProviderFetchPlanner(&ProviderFetchPlannerOptions{
+		Module:                       rootModule,
+		ProviderVersionVoteWinnerMap: versionWinnerMap,
+	}).MakePlan(context.Background())
 	assert.False(t, utils.HasError(diagnostics))
 	assert.Equal(t, 3, len(plan))
 }

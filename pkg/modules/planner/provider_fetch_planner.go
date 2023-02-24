@@ -161,21 +161,22 @@ func (x *ProviderFetchPlanner) expandByConfiguration() ([]*ProviderFetchPlan, *s
 		return nil, diagnostics.AddErrorMsg("module %s selefra block not have providers block", x.options.Module.BuildFullName())
 	}
 
-	// Start a task for those that have a task written
+	// Start a task for those that have a task written, some join by fetch start rule
 	providerNamePlanCountMap := make(map[string]int, 0)
-	providerNameMap := x.options.Module.SelefraBlock.RequireProvidersBlock.ToNameMap()
+	nameToProviderMap := x.options.Module.SelefraBlock.RequireProvidersBlock.BuildNameToProviderBlockMap()
 	for _, providerBlock := range x.options.Module.ProvidersBlock {
-		block, exists := providerNameMap[providerBlock.Provider]
+		requiredProviderBlock, exists := nameToProviderMap[providerBlock.Provider]
 		if !exists {
+			// selefra.providers block not found that name in providers[index] configuration
 			errorTips := fmt.Sprintf("provider name %s not found", providerBlock.Provider)
 			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, providerBlock.GetNodeLocation("")))
-		} else if providerWinnerVersion, exists := x.options.ProviderVersionVoteWinnerMap[block.Source]; exists {
+		} else if providerWinnerVersion, exists := x.options.ProviderVersionVoteWinnerMap[requiredProviderBlock.Source]; exists {
 			// Start a plan for the provider
-			providerNamePlanCountMap[block.Source]++
-			providerFetchPlanSlice = append(providerFetchPlanSlice, NewProviderFetchPlan(block.Source, providerWinnerVersion, providerBlock))
+			providerNamePlanCountMap[requiredProviderBlock.Source]++
+			providerFetchPlanSlice = append(providerFetchPlanSlice, NewProviderFetchPlan(requiredProviderBlock.Source, providerWinnerVersion, providerBlock))
 		} else {
-			// TODO  provider version not found
-			diagnostics.AddErrorMsg("provider version %s not found", block.Source)
+			errorTips := fmt.Sprintf("provider version %s not found", requiredProviderBlock.Source)
+			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, requiredProviderBlock.GetNodeLocation("version")))
 		}
 	}
 	if diagnostics.HasError() {
