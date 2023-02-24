@@ -144,8 +144,8 @@ func (x *Module) Check(module *Module, validatorContext *ValidatorContext) *sche
 	if x.SelefraBlock != nil {
 		diagnostics.AddDiagnostics(x.SelefraBlock.Check(x, validatorContext))
 	} else {
-		// TODO error message
-		diagnostics.AddErrorMsg("selefra block must can not lack")
+		errorTips := fmt.Sprintf("module %s selefra block must can not lack", x.BuildFullName())
+		diagnostics.AddErrorMsg(errorTips)
 	}
 
 	if x.RulesBlock != nil {
