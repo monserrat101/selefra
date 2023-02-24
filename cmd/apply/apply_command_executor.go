@@ -8,7 +8,6 @@ import (
 	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/pkg/cli_runtime"
 	"github.com/selefra/selefra/pkg/grpc/pb/log"
-	"github.com/selefra/selefra/pkg/logger"
 	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/executors"
 	"github.com/selefra/selefra/pkg/modules/module"
@@ -58,7 +57,11 @@ func (x *ApplyCommandExecutor) Run(ctx context.Context) {
 
 	// init cloud
 	ok := x.initCloudClient(ctx)
-	logger.InfoF("cloud init result: %v", ok)
+	if !ok {
+		_ = x.cloudApplyCommandExecutor.UploadLog(ctx, schema.NewDiagnostics().AddErrorMsg("Selefra Cloud init failed, exit."))
+		return
+	}
+	_ = x.cloudApplyCommandExecutor.UploadLog(ctx, schema.NewDiagnostics().AddInfo("Selefra Cloud init success"))
 
 	// validate module is ok
 	validatorContext := module.NewValidatorContext()
