@@ -165,12 +165,18 @@ func (x *ProviderFetchPlanner) expandByConfiguration() ([]*ProviderFetchPlan, *s
 	providerNamePlanCountMap := make(map[string]int, 0)
 	nameToProviderMap := x.options.Module.SelefraBlock.RequireProvidersBlock.BuildNameToProviderBlockMap()
 	for _, providerBlock := range x.options.Module.ProvidersBlock {
+
+		// find required provider block
 		requiredProviderBlock, exists := nameToProviderMap[providerBlock.Provider]
 		if !exists {
 			// selefra.providers block not found that name in providers[index] configuration
 			errorTips := fmt.Sprintf("provider name %s not found", providerBlock.Provider)
 			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, providerBlock.GetNodeLocation("")))
-		} else if providerWinnerVersion, exists := x.options.ProviderVersionVoteWinnerMap[requiredProviderBlock.Source]; exists {
+			continue
+		}
+
+		// find use provider version
+		if providerWinnerVersion, exists := x.options.ProviderVersionVoteWinnerMap[requiredProviderBlock.Source]; exists {
 			// Start a plan for the provider
 			providerNamePlanCountMap[requiredProviderBlock.Source]++
 			providerFetchPlanSlice = append(providerFetchPlanSlice, NewProviderFetchPlan(requiredProviderBlock.Source, providerWinnerVersion, providerBlock))
@@ -178,6 +184,7 @@ func (x *ProviderFetchPlanner) expandByConfiguration() ([]*ProviderFetchPlan, *s
 			errorTips := fmt.Sprintf("provider version %s not found", requiredProviderBlock.Source)
 			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, requiredProviderBlock.GetNodeLocation("version")))
 		}
+
 	}
 	if diagnostics.HasError() {
 		return nil, diagnostics
