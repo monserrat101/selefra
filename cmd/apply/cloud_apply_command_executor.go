@@ -1,12 +1,10 @@
 package apply
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
-	"github.com/selefra/selefra-utils/pkg/json_util"
 	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/pkg/cloud_sdk"
 	selefraGrpc "github.com/selefra/selefra/pkg/grpc"
@@ -169,14 +167,22 @@ func (x *CloudApplyCommandExecutor) initLogUploader(client *cloud_sdk.CloudClien
 // UploadIssue add issue to send cloud queue
 func (x *CloudApplyCommandExecutor) UploadIssue(ctx context.Context, r *executors.RuleQueryResult) {
 
-	// send to console & log file
-	var outByte bytes.Buffer
-	err := json.Indent(&outByte, json_util.ToJsonBytes(r.RuleBlock), "", "\t")
-	if err != nil {
-		logger.ErrorF("format issue error: %s", err.Error())
-	} else {
-		cli_ui.Successln(outByte.String())
+	// TODO Modified for unified display
+	//send to console & log file
+	//var outByte bytes.Buffer
+	//err := json.Indent(&outByte, json_util.ToJsonBytes(r.RuleBlock), "", "\t")
+	//if err != nil {
+	//	logger.ErrorF("format issue error: %s", err.Error())
+	//} else {
+	//	cli_ui.Successln(outByte.String())
+	//}
+	var consoleOutput strings.Builder
+	consoleOutput.WriteString(fmt.Sprintf("Rule name %s, ", r.RuleBlock.Name))
+	if r.RuleBlock.MetadataBlock != nil {
+		consoleOutput.WriteString(fmt.Sprintf("id %s, ", r.RuleBlock.MetadataBlock.Id))
 	}
+	consoleOutput.WriteString(fmt.Sprintf("output %s, ", r.RuleBlock.Output))
+	cli_ui.Successln(consoleOutput.String())
 
 	// send to cloud
 	if x.issueStreamUploader == nil {
