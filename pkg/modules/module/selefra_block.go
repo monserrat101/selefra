@@ -12,22 +12,22 @@ import (
 type SelefraBlock struct {
 
 	// Name of project
-	Name string `yaml:"name" mapstructure:"name"`
+	Name string `yaml:"name,omitempty" mapstructure:"name,omitempty"`
 
 	// selefra CloudBlock-related configuration
-	CloudBlock *CloudBlock `yaml:"cloud" mapstructure:"cloud"`
+	CloudBlock *CloudBlock `yaml:"cloud,omitempty" mapstructure:"cloud,omitempty"`
 
 	// The version of the cli used by the project
-	CliVersion string `yaml:"cli_version" mapstructure:"cli_version"`
+	CliVersion string `yaml:"cli_version,omitempty" mapstructure:"cli_version,omitempty"`
 
 	// Global log level. This level is used when the provider does not specify a log level
-	LogLevel string `yaml:"log_level" mapstructure:"log_level"`
+	LogLevel string `yaml:"log_level,omitempty" mapstructure:"log_level,omitempty"`
 
 	//What are the providers required for operation
-	RequireProvidersBlock RequireProvidersBlock `yaml:"providers" mapstructure:"providers"`
+	RequireProvidersBlock RequireProvidersBlock `yaml:"providers,omitempty" mapstructure:"providers,omitempty"`
 
 	// The configuration required to connect to the database
-	ConnectionBlock *ConnectionBlock `yaml:"connection" mapstructure:"connection"`
+	ConnectionBlock *ConnectionBlock `yaml:"connection,omitempty" mapstructure:"connection,omitempty"`
 
 	*LocatableImpl `yaml:"-"`
 }
@@ -162,13 +162,13 @@ func (x *SelefraBlock) IsEmpty() bool {
 type CloudBlock struct {
 
 	// Which project in the cloud is associated with
-	Project string `yaml:"project" mapstructure:"project"`
+	Project string `yaml:"project,omitempty" mapstructure:"project,omitempty"`
 
 	//
-	Organization string `yaml:"organization" mapstructure:"organization"`
+	Organization string `yaml:"organization,omitempty" mapstructure:"organization,omitempty"`
 
 	// Debug parameters, temporarily masked
-	HostName string `yaml:"hostname" mapstructure:"hostname"`
+	HostName string `yaml:"hostname,omitempty" mapstructure:"hostname,omitempty"`
 
 	*LocatableImpl `yaml:"-"`
 }
@@ -392,7 +392,7 @@ type RequireProviderBlock struct {
 	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 
 	// The debug parameter, if configured, uses the given path instead of downloading
-	Path string `yaml:"path" json:"path"`
+	Path string `yaml:"path,omitempty" json:"path,omitempty"`
 
 	//runtime *RequireProviderBlockRuntime
 	*LocatableImpl `yaml:"-"`

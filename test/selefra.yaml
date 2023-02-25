@@ -1,0 +1,10 @@
+selefra:
+    name: test
+    cloud:
+        project: test
+        organization: ""
+        hostname: ""
+    cli_version: '{{version}}'
+    log_level: info
+    providers: []
+    connection: null
