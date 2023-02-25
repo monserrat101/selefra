@@ -15,5 +15,5 @@ rm -rf ./test
 mkdir test
 mv selefra.exe ./test
 cd test
-./selefra.exe init --force
+./selefra.exe init
 
