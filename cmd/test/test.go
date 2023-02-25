@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"errors"
 	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
@@ -10,6 +11,7 @@ import (
 	"github.com/selefra/selefra/pkg/modules/executors"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/spf13/cobra"
+	"sync/atomic"
 )
 
 // TODO 2023-2-20 15:32:56 Returns a non-zero value if the test fails
@@ -35,9 +37,13 @@ func NewTestCmd() *cobra.Command {
 
 func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error {
 
+	hasError := atomic.Bool{}
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
 			_ = cli_ui.PrintDiagnostics(message)
+		}
+		if utils.HasError(message) {
+			hasError.Store(true)
 		}
 	})
 	d := executors.NewProjectLocalLifeCycleExecutor(&executors.ProjectLocalLifeCycleExecutorOptions{
@@ -52,6 +58,10 @@ func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error
 		QueryWorkerNum:                       1,
 	}).Execute(context.Background())
 	messageChannel.ReceiverWait()
+
+	cli_ui.Successf("RequireProvidersBlock verification completed\n\n")
+	cli_ui.Successf("Profile verification completed\n\n")
+
 	if utils.IsNotEmpty(d) {
 		_ = cli_ui.PrintDiagnostics(d)
 		cli_ui.Errorln("Apply failed")
@@ -59,11 +69,8 @@ func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error
 		cli_ui.Errorln("Apply Done")
 	}
 
-	//	cli_ui.Successf("RequireProvidersBlock verification completed\n\n")
-	//	cli_ui.Successf("Profile verification completed\n\n")
-	//	if hasError {
-	//		return errors.New("Need help? Know on Slack or open a Github Issue: https://github.com/selefra/selefra#community")
-	//	}
-
+	if hasError.Load() {
+		return errors.New("Need help? Known on Slack or open a Github Issue: https://github.com/selefra/selefra#community")
+	}
 	return nil
 }
