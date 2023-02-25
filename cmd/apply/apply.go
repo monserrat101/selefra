@@ -56,7 +56,7 @@ func Apply(ctx context.Context, projectWorkspace, downloadWorkspace string) erro
 		_ = cli_ui.PrintDiagnostics(d)
 		cli_ui.Errorln("Apply failed")
 	} else {
-		cli_ui.Errorln("Apply success")
+		cli_ui.Errorln("Apply Done")
 	}
 	return nil
 }
