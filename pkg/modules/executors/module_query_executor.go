@@ -125,6 +125,10 @@ func (x *ModuleQueryExecutor) Execute(ctx context.Context) *schema.Diagnostics {
 	}()
 
 	rulePlanSlice := x.makeRulePlanSlice(ctx, x.options.Plan)
+	if len(rulePlanSlice) == 0 {
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("module %s no rule need query", x.options.Plan.BuildFullName()))
+		return nil
+	}
 	channel := x.toRulePlanChannel(rulePlanSlice)
 	x.RunQueryWorker(ctx, channel)
 
