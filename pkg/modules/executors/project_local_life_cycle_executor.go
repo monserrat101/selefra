@@ -290,7 +290,7 @@ func (x *ProjectLocalLifeCycleExecutor) query(ctx context.Context, fetchExecutor
 		return false
 	}
 	queryMessageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
-		_ = x.cloudExecutor.UploadLog(ctx, d)
+		_ = x.cloudExecutor.UploadLog(ctx, message)
 	})
 	resultQueryResultChannel := message.NewChannel[*RuleQueryResult](func(index int, message *RuleQueryResult) {
 		x.cloudExecutor.UploadIssue(ctx, message)
