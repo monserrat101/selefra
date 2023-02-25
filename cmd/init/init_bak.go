@@ -70,7 +70,7 @@ package init
 //	}
 //
 //	// 3. check if workspace is already init
-//	if err := reInit(); err != nil {
+//	if err := reInitConfirm(); err != nil {
 //		return err
 //	}
 //
@@ -285,8 +285,8 @@ package init
 //	return nil
 //}
 //
-//// reInit check if current workspace is selefra workspace, then tell user to choose if rewrite selefra workspace
-//func reInit() error {
+//// reInitConfirm check if current workspace is selefra workspace, then tell user to choose if rewrite selefra workspace
+//func reInitConfirm() error {
 //	_, err := config.GetConfig()
 //	if err != nil && errors.Is(err, config.ErrNotSelefra) {
 //		return nil
