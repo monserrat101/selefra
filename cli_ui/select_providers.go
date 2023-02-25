@@ -122,7 +122,7 @@ func newList(title string, lines []string) *widgets.List {
 	l.BorderTop = false
 	l.BorderBottom = false
 	l.SelectedRowStyle = ui.NewStyle(ui.ColorRed)
-	l.SetRect(0, 0, 800, 10)
+	l.SetRect(0, 0, 800, 30)
 	return l
 }
 

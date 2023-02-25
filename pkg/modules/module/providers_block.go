@@ -156,15 +156,22 @@ func (x *ProviderBlock) MarshalYAML() (interface{}, error) {
 	}
 
 	if x.ProvidersConfigYamlString != "" {
+		//fmt.Println("is not empty! " + x.ProvidersConfigYamlString)
 		var customProviderConfiguration yaml.Node
 		err := yaml.Unmarshal([]byte(x.ProvidersConfigYamlString), &customProviderConfiguration)
 		if err != nil {
 			return nil, err
 		}
-		for _, node := range customProviderConfiguration.Content[0].Content {
-			configurationMappingNode.Content = append(configurationMappingNode.Content, node)
+		//fmt.Println(fmt.Sprintf("Content length: %d", len(customProviderConfiguration.Content)))
+		if len(customProviderConfiguration.Content) > 0 {
+			//fmt.Println(fmt.Sprintf("Content customProviderConfiguration.Content[0].Content length: %d", len(customProviderConfiguration.Content[0].Content)))
+			for _, node := range customProviderConfiguration.Content[0].Content {
+				configurationMappingNode.Content = append(configurationMappingNode.Content, node)
+			}
 		}
 	}
+
+	//fmt.Println(fmt.Sprintf("Content length: %d", len(configurationMappingNode.Content)))
 
 	return configurationMappingNode, nil
 }

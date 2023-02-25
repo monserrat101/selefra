@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/selefra/selefra-provider-sdk/grpc/shard"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
@@ -26,10 +25,8 @@ import (
 	"github.com/selefra/selefra/pkg/registry"
 	"github.com/selefra/selefra/pkg/storage/pgstorage"
 	"github.com/selefra/selefra/pkg/utils"
-	version2 "github.com/selefra/selefra/pkg/version"
 	"gopkg.in/yaml.v3"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,22 +59,79 @@ func NewInitCommandExecutor(options *InitCommandExecutorOptions) *InitCommandExe
 
 func (x *InitCommandExecutor) Run(ctx context.Context) error {
 
+	// 1. Check and verify that the working directory can be initialized
 	if !x.checkWorkspace() {
 		return nil
 	}
 
+	// 2. choose provider
+	providerSlice, err := x.chooseProvidersList(ctx)
+	if err != nil {
+		return err
+	}
+	if len(providerSlice) != 0 {
+		cli_ui.Infof("begin install provider...")
+	} else {
+		cli_ui.Infof("You not select provider")
+	}
+
 	// init files
-	selefraBlock := x.initSelefraYaml()
+	selefraBlock := x.initSelefraYaml(ctx, providerSlice)
 	if selefraBlock != nil {
 		x.initProvidersYaml(ctx, selefraBlock.RequireProvidersBlock)
 	}
+
 	x.initRulesYaml()
+
 	x.initModulesYaml()
 
 	cli_ui.Successf("Initializing workspace done.\n")
 
 	return nil
 }
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
+func (x *InitCommandExecutor) initHeaderOutput(providers []string) {
+	//for i := range providers {
+	//	cli_ui.Successln(" [✔]" + providers[i] + "\n")
+	//}
+	cli_ui.Successf(`Running with selefra-cli %s
+
+	This command will walk you through creating a new Selefra project
+
+	Enter a value or leave blank to accept the (default), and press <ENTER>.
+	Press ^C at any time to quit.\n\n`, version.Version)
+}
+
+func (x *InitCommandExecutor) chooseProvidersList(ctx context.Context) ([]*registry.Provider, error) {
+	providerSlice, err := x.requestProvidersList(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(providerSlice) == 0 {
+		return nil, fmt.Errorf("can not get provider list from registry")
+	}
+
+	providerNameSlice := make([]string, 0)
+	for _, provider := range providerSlice {
+		providerNameSlice = append(providerNameSlice, provider.Name)
+	}
+
+	x.initHeaderOutput(providerNameSlice)
+
+	providersSet := cli_ui.SelectProviders(providerNameSlice)
+	chooseProviderSlice := make([]*registry.Provider, 0)
+	for _, provider := range providerSlice {
+		if _, exists := providersSet[provider.Name]; exists {
+			chooseProviderSlice = append(chooseProviderSlice, provider)
+		}
+	}
+	return chooseProviderSlice, nil
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
 
 func (x *InitCommandExecutor) checkWorkspace() bool {
 
@@ -154,7 +208,7 @@ func (x *InitCommandExecutor) reInitConfirm() bool {
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-func (x *InitCommandExecutor) initSelefraYaml() *module.SelefraBlock {
+func (x *InitCommandExecutor) initSelefraYaml(ctx context.Context, providerSlice []*registry.Provider) *module.SelefraBlock {
 
 	selefraBlock := module.NewSelefraBlock()
 	projectName, b := x.getProjectName()
@@ -164,20 +218,19 @@ func (x *InitCommandExecutor) initSelefraYaml() *module.SelefraBlock {
 	selefraBlock.Name = projectName
 
 	// cloud block
-	selefraBlock.CloudBlock = x.getCloudBlock()
+	selefraBlock.CloudBlock = x.getCloudBlock(projectName)
 
 	// cli version
 	selefraBlock.CliVersion = version.Version
 	selefraBlock.LogLevel = "info"
 
-	list, _ := x.chooseProvidersList()
-	if len(list) > 0 {
-		requiredProviderSlice := make([]*module.RequireProviderBlock, len(list))
-		for index, providerName := range list {
+	if len(providerSlice) > 0 {
+		requiredProviderSlice := make([]*module.RequireProviderBlock, len(providerSlice))
+		for index, provider := range providerSlice {
 			requiredProviderBlock := module.NewRequireProviderBlock()
-			requiredProviderBlock.Name = providerName
-			requiredProviderBlock.Source = providerName
-			requiredProviderBlock.Version = version2.VersionLatest
+			requiredProviderBlock.Name = provider.Name
+			requiredProviderBlock.Source = provider.Name
+			requiredProviderBlock.Version = provider.Version
 			requiredProviderSlice[index] = requiredProviderBlock
 		}
 		selefraBlock.RequireProvidersBlock = requiredProviderSlice
@@ -219,16 +272,9 @@ func (x *InitCommandExecutor) initSelefraYaml() *module.SelefraBlock {
 	return selefraBlock
 }
 
-func (x *InitCommandExecutor) getCloudBlock() *module.CloudBlock {
+func (x *InitCommandExecutor) getCloudBlock(projectName string) *module.CloudBlock {
 
 	cloudBlock := module.NewCloudBlock()
-
-	// project name
-	projectName, b := x.getProjectName()
-
-	if !b {
-		return nil
-	}
 	cloudBlock.Project = projectName
 
 	if x.cloudClient != nil {
@@ -313,17 +359,20 @@ func (x *InitCommandExecutor) initProvidersYaml(ctx context.Context, requiredPro
 		cli_ui.Errorf("providers block yaml.Marshal error: %s", err.Error())
 		return
 	}
+	//fmt.Println("Yaml string: " + string(out))
+
 	var providersNode yaml.Node
 	err = yaml.Unmarshal(out, &providersNode)
 	if err != nil {
 		cli_ui.Errorf("providers yaml.Unmarshal error: %s", err.Error())
 		return
 	}
-	documentRoot := yaml.Node{
+	//fmt.Println(fmt.Sprintf("length: %d", len(providersNode.Content[0].Content[0].Content)))
+	documentRoot := &yaml.Node{
 		Kind: yaml.MappingNode,
 		Content: []*yaml.Node{
 			&yaml.Node{Kind: yaml.ScalarNode, Value: parser.ProvidersBlockName},
-			&yaml.Node{Kind: yaml.MappingNode, Content: providersNode.Content[0].Content},
+			&yaml.Node{Kind: yaml.MappingNode, Content: providersNode.Content[0].Content[0].Content},
 		},
 	}
 	marshal, err := yaml.Marshal(documentRoot)
@@ -331,6 +380,7 @@ func (x *InitCommandExecutor) initProvidersYaml(ctx context.Context, requiredPro
 		cli_ui.Errorf("providers yaml.Marshal error: %s", err.Error())
 		return
 	}
+	fmt.Println("Yaml string: " + string(marshal))
 	ruleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "providers.yaml")
 	err = os.WriteFile(ruleFullPath, marshal, 0644)
 	if err != nil {
@@ -377,14 +427,14 @@ func (x *InitCommandExecutor) getProjectName() (string, bool) {
 		return x.options.RelevanceProject, true
 	}
 
-	defaultProjectName := filepath.Base(x.options.ProjectWorkspace)
+	defaultProjectName := filepath.Base(utils.AbsPath(x.options.ProjectWorkspace))
 
 	// 2. Let the user specify from standard input, the default project name is the name of the current folder
 	var err error
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("project name:(%s)", defaultProjectName)
 	projectName, err := reader.ReadString('\n')
-	if err != nil && !errors.Is(err, io.EOF) {
+	if err != nil {
 		cli_ui.Errorf("read you project name error: %s", err.Error())
 		return "", false
 	}
@@ -395,40 +445,17 @@ func (x *InitCommandExecutor) getProjectName() (string, bool) {
 	return projectName, true
 }
 
-func (x *InitCommandExecutor) chooseProvidersList() ([]string, bool) {
-	providerNameSlice, ok := x.requestProvidersList()
-	if !ok {
-		return nil, false
-	}
-	providersSet := cli_ui.SelectProviders(providerNameSlice)
-	providerSlice := make([]string, 0)
-	for providerName := range providersSet {
-		providerSlice = append(providerSlice, providerName)
-	}
-	return providerNameSlice, true
-}
-
-func (x *InitCommandExecutor) requestProvidersList() ([]string, bool) {
-	var prov []string
-	cli_ui.Infoln("Getting provider list...")
-	req, _ := http.NewRequest("GET", "https://github.com/selefra/registry/file-list/main/provider", nil)
-	client := http.Client{}
-	res, err := client.Do(req)
+// Pull all providers from the remote repository
+func (x *InitCommandExecutor) requestProvidersList(ctx context.Context) ([]*registry.Provider, error) {
+	githubRegistry, err := registry.NewProviderGithubRegistry(registry.NewProviderGithubRegistryOptions(x.options.DownloadWorkspace))
 	if err != nil {
-		cli_ui.Errorf("Error: %s", err.Error())
-		return nil, false
+		return nil, err
 	}
-	d, err := goquery.NewDocumentFromReader(res.Body)
+	providerSlice, err := githubRegistry.List(ctx)
 	if err != nil {
-		cli_ui.Errorf("Error: %s", err.Error())
-		return nil, false
+		return nil, err
 	}
-	d.Find(".js-navigation-open.Link--primary").Each(func(i int, s *goquery.Selection) {
-		if s.Text() != "template" {
-			prov = append(prov, s.Text())
-		}
-	})
-	return prov, false
+	return providerSlice, nil
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -438,6 +465,8 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 	providersBlock := make(module.ProvidersBlock, 0)
 	// convert required provider block to
 	for _, requiredProvider := range requiredProvidersBlock {
+
+		cli_ui.Successf("begin install provider %s\n", requiredProvider.Source)
 
 		providerInstallPlan := &planner.ProviderInstallPlan{
 			Provider: registry.NewProvider(requiredProvider.Name, requiredProvider.Version),
@@ -453,8 +482,11 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 			},
 			MessageChannel:    messageChannel,
 			DownloadWorkspace: x.options.DownloadWorkspace,
+			// TODO
+			ProgressTracker: nil,
 		})
 		if err := cli_ui.PrintDiagnostics(d); err != nil {
+			messageChannel.SenderWaitAndClose()
 			return nil, false
 		}
 		d = executor.Execute(ctx)
@@ -462,8 +494,10 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 		if err := cli_ui.PrintDiagnostics(d); err != nil {
 			return nil, false
 		}
+		cli_ui.Successf("install provider %s success\n", requiredProvider.Source)
 
 		// init
+		cli_ui.Successf("begin init provider %s...\n", requiredProvider.Source)
 		configuration, b := x.getProviderInitConfiguration(ctx, executor.GetLocalProviderManager(), providerInstallPlan)
 		if !b {
 			return nil, false
@@ -475,6 +509,8 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 		providerBlock.MaxGoroutines = pointer.ToUInt64Pointer(50)
 		providerBlock.ProvidersConfigYamlString = configuration
 		providersBlock = append(providersBlock, providerBlock)
+
+		cli_ui.Successf("init provider %s done", requiredProvider.Source)
 	}
 	return providersBlock, true
 }
@@ -513,7 +549,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 	// Close the provider at the end of the method execution
 	defer plug.Close()
 
-	cli_ui.Errorf("start provider %s success", plan.String())
+	cli_ui.Successf("start provider %s success\n", plan.String())
 
 	// Database connection option
 	storageOpt := postgresql_storage.NewPostgresqlStorageOptions(x.options.DSN)
@@ -563,7 +599,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 
 	// Initialize the provider
 	pluginProvider := plug.Provider()
-	var providerYamlConfiguration string = module.GetDefaultProviderConfigYamlConfiguration(plan.Name, plan.Version)
+	//var providerYamlConfiguration string = module.GetDefaultProviderConfigYamlConfiguration(plan.Name, plan.Version)
 
 	providerInitResponse, err := pluginProvider.Init(ctx, &shard.ProviderInitRequest{
 		Workspace: pointer.ToStringPointer(utils.AbsPath(x.options.ProjectWorkspace)),
@@ -572,7 +608,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 			StorageOptions: opt,
 		},
 		IsInstallInit:  pointer.FalsePointer(),
-		ProviderConfig: pointer.ToStringPointerOrNilIfEmpty(providerYamlConfiguration),
+		ProviderConfig: nil,
 	})
 	if err != nil {
 		cli_ui.Errorf("start provider failed: %s", err.Error())
