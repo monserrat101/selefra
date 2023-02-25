@@ -36,6 +36,8 @@ import (
 	"time"
 )
 
+// ------------------------------------------------- --------------------------------------------------------------------
+
 type InitCommandExecutorOptions struct {
 	DownloadWorkspace string
 	ProjectWorkspace  string
@@ -43,6 +45,8 @@ type InitCommandExecutorOptions struct {
 	RelevanceProject  string
 	DSN               string
 }
+
+// ------------------------------------------------- --------------------------------------------------------------------
 
 type InitCommandExecutor struct {
 	cloudClient *cloud_sdk.CloudClient
@@ -56,10 +60,10 @@ func NewInitCommandExecutor(options *InitCommandExecutorOptions) *InitCommandExe
 	}
 }
 
-func (x *InitCommandExecutor) Run(ctx context.Context) {
+func (x *InitCommandExecutor) Run(ctx context.Context) error {
 
 	if !x.checkWorkspace() {
-		return
+		return nil
 	}
 
 	// init files
@@ -71,11 +75,13 @@ func (x *InitCommandExecutor) Run(ctx context.Context) {
 	x.initModulesYaml()
 
 	cli_ui.Successf("Initializing workspace done.\n")
+
+	return nil
 }
 
 func (x *InitCommandExecutor) checkWorkspace() bool {
 
-	// 1. check if workspace dir exist
+	// 1. check if workspace dir exist, create it
 	_, err := os.Stat(x.options.ProjectWorkspace)
 	if errors.Is(err, os.ErrNotExist) {
 		err = os.Mkdir(x.options.ProjectWorkspace, 0755)
@@ -83,21 +89,14 @@ func (x *InitCommandExecutor) checkWorkspace() bool {
 			cli_ui.Errorf("create workspace directory: %s failed: %s", x.options.ProjectWorkspace, err.Error())
 			return false
 		}
-	}
-	dir, _ := os.ReadDir(x.options.ProjectWorkspace)
-	for i, v := range dir { // ignore logs dir
-		if v.Name() == "logs" {
-			dir = append(dir[0:i], dir[i+1:]...)
-		}
+		cli_ui.Successf("create workspace directory: %s success", x.options.ProjectWorkspace)
 	}
 
-	// 2. workspace must be empty or set force flag
-	//force, _ := cmd.PersistentFlags().GetBool("force")
-	if len(dir) != 0 {
+	if x.isNeedForceInit() {
 		if !x.options.IsForceInit {
-			cli_ui.Errorf("%s is not empty; Rerun in an empty directory, or use -- force/-f to force overwriting in the current directory\n", x.options.ProjectWorkspace)
+			cli_ui.Errorf("%s is not empty; rerun in an empty directory, or use -- force/-f to force overwriting in the current directory\n", x.options.ProjectWorkspace)
 			return false
-		} else if !x.reInit() {
+		} else if !x.reInitConfirm() {
 			return false
 		}
 	}
@@ -105,17 +104,31 @@ func (x *InitCommandExecutor) checkWorkspace() bool {
 	return true
 }
 
+// ------------------------------------------------- --------------------------------------------------------------------
+
+// Determine whether mandatory initialization is required
+func (x *InitCommandExecutor) isNeedForceInit() bool {
+	dir, _ := os.ReadDir(x.options.ProjectWorkspace)
+	files := make([]string, 0)
+	for _, v := range dir {
+		// Ignore files that are used internally
+		if v.Name() == "logs" || v.Name() == "selefra" || v.Name() == "selefra.exe" {
+			continue
+		}
+		files = append(files, v.Name())
+	}
+	return len(files) != 0
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
 const (
 	SelefraInputInitForceConfirm     = "SELEFRA_INPUT_INIT_FORCE_CONFIRM"
 	SelefraInputInitRelevanceProject = "SELEFRA_INPUT_INIT_RELEVANCE_PROJECT"
 )
 
-// reInit check if current workspace is selefra workspace, then tell user to choose if rewrite selefra workspace
-func (x *InitCommandExecutor) reInit() bool {
-	//_, err := config.GetConfig()
-	//if err != nil && errors.Is(err, config.ErrNotSelefra) {
-	//	return nil
-	//}
+// reInitConfirm check if current workspace is selefra workspace, then tell user to choose if rewrite selefra workspace
+func (x *InitCommandExecutor) reInitConfirm() bool {
 
 	reader := bufio.NewReader(os.Stdin)
 	cli_ui.Warningf("Warning: %s is already init. Continue and overwrite it?[Y/N]", x.options.ProjectWorkspace)
