@@ -163,8 +163,8 @@ func NewUnmanagedPlugin(alias string, name string, version string, config *plugi
 		Plugins:          shard.PluginMap,
 		Reattach:         config,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		//SyncStderr:       os.Stderr,
-		//SyncStdout:       os.Stdout,
+		SyncStderr:       os.Stderr,
+		SyncStdout:       os.Stdout,
 	})
 	provider, err := getProvider(name, client)
 	if err != nil {

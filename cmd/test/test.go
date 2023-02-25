@@ -2,28 +2,32 @@ package test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"github.com/selefra/selefra-provider-sdk/grpc/shard"
-	"github.com/selefra/selefra-utils/pkg/pointer"
-	"github.com/selefra/selefra/cmd/tools"
-	"github.com/selefra/selefra/config"
+	"github.com/selefra/selefra-provider-sdk/env"
+	"github.com/selefra/selefra-provider-sdk/provider/schema"
+	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/global"
-	"github.com/selefra/selefra/pkg/pgstorage"
-	"github.com/selefra/selefra/pkg/plugin"
+	"github.com/selefra/selefra/pkg/message"
+	"github.com/selefra/selefra/pkg/modules/executors"
 	"github.com/selefra/selefra/pkg/utils"
-	"github.com/selefra/selefra/ui"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+	"sync/atomic"
 )
 
+// TODO 2023-2-20 15:32:56 Returns a non-zero value if the test fails
 func NewTestCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:              "test",
 		Short:            "Check whether the configuration is valid",
 		Long:             "Check whether the configuration is valid",
 		PersistentPreRun: global.DefaultWrappedInit(),
-		RunE:             testFunc,
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			projectWorkspace := "./test_data/test_query_module"
+			downloadWorkspace := "./test_download"
+
+			return Test(cmd.Context(), projectWorkspace, downloadWorkspace)
+		},
 	}
 
 	cmd.SetHelpFunc(cmd.HelpFunc())
@@ -31,109 +35,42 @@ func NewTestCmd() *cobra.Command {
 	return cmd
 }
 
-func TestFunc(ctx context.Context) error {
-	rootConfig, err := config.GetConfig()
-	if err != nil {
-		ui.Errorln("GetWDError:" + err.Error())
-	}
-	return CheckSelefraConfig(ctx, rootConfig)
-}
+func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error {
 
-func testFunc(cmd *cobra.Command, args []string) error {
-	ctx := cmd.Context()
-	return TestFunc(ctx)
-}
-
-// CheckSelefraConfig check if config valid
-func CheckSelefraConfig(ctx context.Context, s *config.RootConfig) error {
-	err := s.TestConfigByNode()
-	if err != nil {
-		return err
-	}
-
-	ui.Successf("Client verification completed\n\n")
-	hasError := false
-	for _, p := range s.Selefra.ProviderDecls {
-		if p.Path == "" {
-			p.Path = utils.GetPathBySource(*p.Source, p.Version)
+	hasError := atomic.Bool{}
+	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
+		if utils.IsNotEmpty(message) {
+			_ = cli_ui.PrintDiagnostics(message)
 		}
-		var providersName = *p.Source
-		plug, err := plugin.NewManagedPlugin(p.Path, providersName, p.Version, "", nil)
-		if err != nil {
-			hasError = true
-			ui.Errorf("%s@%s verification failed ：%s", providersName, p.Version, err.Error())
-			continue
+		if utils.HasError(message) {
+			hasError.Store(true)
 		}
-		confs, err := tools.ProviderConfigStrs(s, p.Name)
-		if err != nil {
-			hasError = true
-			ui.Errorln(err.Error())
-			continue
-		}
-		for _, conf := range confs {
-			var cp config.Provider
-			err := yaml.Unmarshal([]byte(conf), &cp)
-			if err != nil {
-				hasError = true
-				ui.Errorln(err.Error())
-				continue
-			}
+	})
+	d := executors.NewProjectLocalLifeCycleExecutor(&executors.ProjectLocalLifeCycleExecutorOptions{
+		ProjectWorkspace:                     projectWorkspace,
+		DownloadWorkspace:                    downloadWorkspace,
+		MessageChannel:                       messageChannel,
+		ProjectLifeCycleStep:                 executors.ProjectLifeCycleStepFetch,
+		FetchStep:                            executors.FetchStepGetInit,
+		ProjectCloudLifeCycleExecutorOptions: nil,
+		DSN:                                  env.GetDatabaseDsn(),
+		FetchWorkerNum:                       1,
+		QueryWorkerNum:                       1,
+	}).Execute(context.Background())
+	messageChannel.ReceiverWait()
 
-			storageOpt := pgstorage.DefaultPgStorageOpts()
-			opt, err := json.Marshal(storageOpt)
+	cli_ui.Successf("RequireProvidersBlock verification completed\n\n")
+	cli_ui.Successf("Profile verification completed\n\n")
 
-			provider := plug.Provider()
-			initRes, err := provider.Init(ctx, &shard.ProviderInitRequest{
-				Workspace: pointer.ToStringPointer(global.WorkSpace()),
-				Storage: &shard.Storage{
-					Type:           0,
-					StorageOptions: opt,
-				},
-				IsInstallInit:  pointer.FalsePointer(),
-				ProviderConfig: pointer.ToStringPointer(conf),
-			})
-			if err != nil {
-				hasError = true
-				ui.Errorf("%s@%s verification failed ：%s", providersName, p.Version, err.Error())
-				continue
-			} else {
-				if initRes.Diagnostics != nil {
-					err := ui.PrintDiagnostic(initRes.Diagnostics.GetDiagnosticSlice())
-					if err != nil {
-						hasError = true
-					}
-					continue
-				}
-			}
-
-			res, err := provider.SetProviderConfig(ctx, &shard.SetProviderConfigRequest{
-				Storage: &shard.Storage{
-					Type:           0,
-					StorageOptions: opt,
-				},
-				ProviderConfig: pointer.ToStringPointer(conf),
-			})
-			if err != nil {
-				ui.Errorln(err.Error())
-				hasError = true
-				continue
-			} else {
-				if res.Diagnostics != nil {
-					err := ui.PrintDiagnostic(res.Diagnostics.GetDiagnosticSlice())
-					if err != nil {
-						hasError = true
-					}
-					continue
-				}
-			}
-			ui.Successf("	%s %s@%s check successfully", cp.Name, providersName, p.Version)
-		}
+	if utils.IsNotEmpty(d) {
+		_ = cli_ui.PrintDiagnostics(d)
+		cli_ui.Errorln("Apply failed")
+	} else {
+		cli_ui.Errorln("Apply Done")
 	}
 
-	ui.Successf("ProviderDecls verification completed\n\n")
-	ui.Successf("Profile verification completed\n\n")
-	if hasError {
-		return errors.New("Need help? Know on Slack or open a Github Issue: https://github.com/selefra/selefra#community")
+	if hasError.Load() {
+		return errors.New("Need help? Known on Slack or open a Github Issue: https://github.com/selefra/selefra#community")
 	}
 	return nil
 }

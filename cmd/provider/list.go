@@ -2,21 +2,28 @@ package provider
 
 import (
 	"fmt"
+	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/config"
 	"github.com/selefra/selefra/global"
-	"github.com/selefra/selefra/ui"
+	"github.com/selefra/selefra/pkg/providers/local_providers_manager"
+	"github.com/selefra/selefra/pkg/version"
 	"github.com/spf13/cobra"
 )
 
 func newCmdProviderList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:              "list",
-		Short:            "List currently installed plugins",
-		Long:             "List currently installed plugins",
+		Short:            "ListProviders currently installed plugins",
+		Long:             "ListProviders currently installed plugins",
 		PersistentPreRun: global.DefaultWrappedInit(),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := list()
-			return err
+
+			downloadWorkspace, err := config.GetDefaultDownloadCacheDirectory()
+			if err != nil {
+				return err
+			}
+
+			return list(downloadWorkspace)
 		},
 	}
 
@@ -24,15 +31,26 @@ func newCmdProviderList() *cobra.Command {
 	return cmd
 }
 
-func list() error {
-	configYaml, err := config.GetConfig()
+func list(downloadWorkspace string) error {
+
+	manager, err := local_providers_manager.NewLocalProvidersManager(downloadWorkspace)
 	if err != nil {
-		ui.Errorln("Error:" + err.Error())
-		return nil
+		return err
 	}
-	fmt.Printf("  %-13s %-26s %s\n", "Name", "Source", "Version")
-	for _, provider := range configYaml.Selefra.ProviderDecls {
-		fmt.Printf("  %-13s %-26s %s\n", provider.Name, *provider.Source, provider.Version)
+	providers, diagnostics := manager.ListProviders()
+	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
+		return err
+	}
+	fmt.Printf("  %-13s %-26s %s\n", "Name", "Version", "Source")
+	for _, provider := range providers {
+		versions := make([]string, 0)
+		for versionString := range provider.ProviderVersionMap {
+			versions = append(versions, versionString)
+		}
+		version.Sort(versions)
+		for _, versionString := range versions {
+			fmt.Printf("  %-13s %-26s %s\n", provider.ProviderName, versionString, provider.ProviderVersionMap[versionString].ExecutableFilePath)
+		}
 	}
 	return nil
 }

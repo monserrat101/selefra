@@ -5,55 +5,59 @@ import (
 	"go.uber.org/zap"
 )
 
-// SchemaLoggerImpl is the implement of schema.ClientLogger
-type SchemaLoggerImpl struct {
-	l *Logger
+// SelefraSDKClientLogger is the implement of schema.ClientLogger
+type SelefraSDKClientLogger struct {
+	wrappedLog *Logger
 }
 
-var _ schema.ClientLogger = (*SchemaLoggerImpl)(nil)
+// To match the log system on the SDK, connect the logs of the two systems
+var _ schema.ClientLogger = (*SelefraSDKClientLogger)(nil)
 
-func NewSchemaLoggeer() *SchemaLoggerImpl {
-	return &SchemaLoggerImpl{
-		l: defaultLogger,
+func NewSchemaLogger(wrappedLog ...*Logger) *SelefraSDKClientLogger {
+	if len(wrappedLog) == 0 {
+		wrappedLog = append(wrappedLog, defaultLogger)
+	}
+	return &SelefraSDKClientLogger{
+		wrappedLog: wrappedLog[0],
 	}
 }
 
-func (s *SchemaLoggerImpl) Debug(msg string, fields ...zap.Field) {
-	s.l.Debug(msg, fields)
+func (s *SelefraSDKClientLogger) Debug(msg string, fields ...zap.Field) {
+	s.wrappedLog.Debug(msg, fields)
 }
 
-func (s *SchemaLoggerImpl) DebugF(msg string, args ...any) {
-	s.l.Debug(msg, args)
+func (s *SelefraSDKClientLogger) DebugF(msg string, args ...any) {
+	s.wrappedLog.Debug(msg, args)
 }
 
-func (s *SchemaLoggerImpl) Info(msg string, fields ...zap.Field) {
-	s.l.Info(msg, fields)
+func (s *SelefraSDKClientLogger) Info(msg string, fields ...zap.Field) {
+	s.wrappedLog.Info(msg, fields)
 }
 
-func (s *SchemaLoggerImpl) InfoF(msg string, args ...any) {
-	s.l.Info(msg, args)
+func (s *SelefraSDKClientLogger) InfoF(msg string, args ...any) {
+	s.wrappedLog.Info(msg, args)
 }
 
-func (s *SchemaLoggerImpl) Warn(msg string, fields ...zap.Field) {
-	s.l.Warn(msg, fields)
+func (s *SelefraSDKClientLogger) Warn(msg string, fields ...zap.Field) {
+	s.wrappedLog.Warn(msg, fields)
 }
 
-func (s *SchemaLoggerImpl) WarnF(msg string, args ...any) {
-	s.l.Warn(msg, args)
+func (s *SelefraSDKClientLogger) WarnF(msg string, args ...any) {
+	s.wrappedLog.Warn(msg, args)
 }
 
-func (s *SchemaLoggerImpl) Error(msg string, fields ...zap.Field) {
-	s.l.Error(msg, fields)
+func (s *SelefraSDKClientLogger) Error(msg string, fields ...zap.Field) {
+	s.wrappedLog.Error(msg, fields)
 }
 
-func (s *SchemaLoggerImpl) ErrorF(msg string, args ...any) {
-	s.l.Error(msg, args)
+func (s *SelefraSDKClientLogger) ErrorF(msg string, args ...any) {
+	s.wrappedLog.Error(msg, args)
 }
 
-func (s *SchemaLoggerImpl) Fatal(msg string, fields ...zap.Field) {
-	s.l.Fatal(msg, fields)
+func (s *SelefraSDKClientLogger) Fatal(msg string, fields ...zap.Field) {
+	s.wrappedLog.Fatal(msg, fields)
 }
 
-func (s *SchemaLoggerImpl) FatalF(msg string, args ...any) {
-	s.l.Fatal(msg, args)
+func (s *SelefraSDKClientLogger) FatalF(msg string, args ...any) {
+	s.wrappedLog.Fatal(msg, args)
 }

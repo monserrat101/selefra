@@ -2,15 +2,13 @@ package test
 
 import (
 	"context"
-	"github.com/selefra/selefra/global"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestTestFunc(t *testing.T) {
-	global.Init("TestTestFunc", global.WithWorkspace("../../tests/workspace/offline"))
-	ctx := context.Background()
-	err := TestFunc(ctx)
-	if err != nil {
-		t.Error(err)
-	}
+func Test_Test(t *testing.T) {
+	projectWorkspace := "./test_data/module_test"
+	downloadWorkspace := "./test_download"
+	err := Test(context.Background(), projectWorkspace, downloadWorkspace)
+	assert.Nil(t, err)
 }

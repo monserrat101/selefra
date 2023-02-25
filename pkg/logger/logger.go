@@ -1,13 +1,13 @@
 package logger
 
 import (
-	"github.com/selefra/selefra/global"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
 	"path/filepath"
 )
 
+// Logger Logs used in the CLI to save local logs
 type Logger struct {
 	logger *zap.Logger
 }
@@ -39,11 +39,13 @@ var defaultLogger, _ = NewLogger(Config{
 	ConsoleNoColor:    true,
 	Source:            "client",
 	Directory:         "logs",
-	Level:             "info",
+	// TODO Specifies the log level
+	Level: "info",
 })
 
 func NewLogger(c Config) (*Logger, error) {
-	logDir := filepath.Join(global.WorkSpace(), c.Directory)
+	// TODO The logs are stored in the current directory
+	logDir := filepath.Join("./", c.Directory)
 	_, err := os.Stat(logDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(logDir, 0755)

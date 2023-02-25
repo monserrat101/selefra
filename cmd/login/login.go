@@ -1,15 +1,14 @@
 package login
 
 import (
-	"bufio"
 	"errors"
+	"github.com/selefra/selefra-provider-sdk/provider/schema"
+	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/global"
-	"github.com/selefra/selefra/pkg/httpClient"
-	"github.com/selefra/selefra/pkg/utils"
-	"github.com/selefra/selefra/ui"
+	"github.com/selefra/selefra/pkg/cli_runtime"
+	"github.com/selefra/selefra/pkg/cloud_sdk"
+	"github.com/selefra/selefra/pkg/logger"
 	"github.com/spf13/cobra"
-	"os"
-	"strings"
 )
 
 var ErrLoginFailed = errors.New("login failed, please check your token")
@@ -28,103 +27,52 @@ func NewLoginCmd() *cobra.Command {
 }
 
 func RunFunc(cmd *cobra.Command, args []string) error {
-	var err error
-	if len(args) > 0 {
-		err = MustLogin(args[0])
+
+	cli_runtime.Init("./")
+
+	diagnostics := schema.NewDiagnostics()
+
+	host, d := cli_runtime.FindServerHost()
+	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
+		return err
+	}
+	logger.InfoF("use server address: %s", host)
+
+	client, d := cloud_sdk.NewCloudClient(host)
+	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
+		return err
+	}
+	logger.InfoF("create cloud client success")
+
+	// If you are already logged in, repeat login is not allowed and you must log out first
+	getCredentials, _ := client.GetCredentials()
+	if getCredentials != nil {
+		cli_ui.Errorf("You already logged in as %s, please logout first.\n", getCredentials.UserName)
+		return nil
 	}
 
-	err = MustLogin("")
-
-	return err
-}
-
-// ShouldLogin should login to selefra cloud
-// if login successfully, global token will be set, else return an error
-func ShouldLogin(tokens ...string) error {
-	var err error
+	// Read the token from standard input
 	var token string
-	if len(tokens) > 0 {
-		token = tokens[0]
-	}
-
-	if token == "" {
-		token, err = utils.GetCredentialsToken()
-		if err != nil {
-			ui.Errorln(err.Error())
+	if len(args) != 0 {
+		token = args[0]
+	} else {
+		token, d = cli_ui.InputCloudToken(host)
+		if err := cli_ui.PrintDiagnostics(d); err != nil {
 			return err
 		}
 	}
-
-	res, err := httpClient.Login(token)
-	if err != nil {
-		return ErrLoginFailed
+	if token == "" {
+		cli_ui.Errorf("token can not be empty")
+		return nil
 	}
-	displayLoginSuccess(res.Data.OrgName, res.Data.TokenName, token)
+
+	credentials, d := client.Login(token)
+	if err := cli_ui.PrintDiagnostics(d); err != nil {
+		cli_ui.ShowLoginFailed(token)
+		return nil
+	}
+
+	cli_ui.ShowLoginSuccess(host, credentials)
 
 	return nil
-}
-
-// MustLogin unless the user enters wrong token, login is guaranteed
-func MustLogin(token string) error {
-	var err error
-
-	if err := ShouldLogin(token); err == nil {
-		return nil
-	}
-
-	token, err = getInputToken()
-	if err != nil {
-		return errors.New("input token failed")
-	}
-	if err = ShouldLogin(token); err == nil {
-		return nil
-	}
-
-	return ErrLoginFailed
-}
-
-func getInputToken() (string, error) {
-	credentialPath, err := utils.GetCredentialsPath()
-	if err != nil {
-		return "", err
-	}
-	ui.Infof(`
-Selefra will login for login app.selefra.io  using your browser.
-If login is successful, Selefra will store the token in plain text in
-the following file for use by subsequent commands:
-	%s
-
-	Enter your access token from https://app.selefra.io/settings/access_tokens
-	or hit <ENTER> to log in using your browser:`, credentialPath)
-	reader := bufio.NewReader(os.Stdin)
-	rawToken, err := reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	token := strings.TrimSpace(strings.Replace(rawToken, "\n", "", -1))
-	if token == "" {
-		ui.Errorln("No token provided")
-		return "", errors.New("no token provided")
-	}
-
-	return token, nil
-}
-
-func displayLoginSuccess(orgName, tokenName, token string) {
-	err := utils.SetCredentials(token)
-	if global.Token() == "" {
-		global.SetToken(token)
-	}
-	global.SetOrgName(orgName)
-	if err != nil {
-		ui.Errorln(err.Error())
-		return
-	}
-	ui.Successf(`
-Retrieved token for user: %s. 
-
-Welcome to Selefra Cloud!
-
-Logged in to selefra as %s (https://app.selefra.io/%s)
-`, tokenName, orgName, orgName)
 }

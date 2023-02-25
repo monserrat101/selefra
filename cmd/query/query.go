@@ -1,14 +1,14 @@
 package query
 
 import (
-	"github.com/c-bata/go-prompt"
+	"context"
+	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
+	"github.com/selefra/selefra-provider-sdk/storage_factory"
+	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/global"
+	"github.com/selefra/selefra/pkg/cli_runtime"
 	"github.com/selefra/selefra/pkg/utils"
-	"github.com/selefra/selefra/ui"
-	"github.com/selefra/selefra/ui/table"
 	"github.com/spf13/cobra"
-	"os"
-	"strings"
 )
 
 func NewQueryCmd() *cobra.Command {
@@ -19,53 +19,25 @@ func NewQueryCmd() *cobra.Command {
 		PersistentPreRun: global.DefaultWrappedInit(),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := cmd.Context()
-			ui.Warningln("Please select table.")
 
-			queryClient, _ := NewQueryClient(ctx)
-			p := prompt.New(func(in string) {
-				strArr := strings.Split(in, "/")
-				s := strArr[0]
+			cli_runtime.Init("./")
 
-				res, err := queryClient.Storage.Query(ctx, s)
-				if err != nil {
-					ui.Errorln(err)
-				} else {
-					tables, e := res.ReadRows(-1)
-					if e != nil && e.HasError() {
-						return
-					}
-					header := tables.GetColumnNames()
-					body := tables.GetMatrix()
-					var tableBody [][]string
-					for i := range body {
-						var row []string
-						for j := range body[i] {
-							row = append(row, utils.Strava(body[i][j]))
-						}
-						tableBody = append(tableBody, row)
-					}
+			cli_ui.Warningln("Please select table.")
 
-					if len(strArr) > 1 && strArr[1] == "g" {
-						table.ShowRows(header, tableBody, []string{}, true)
-					} else {
-						table.ShowTable(header, tableBody, []string{}, true)
-					}
+			dsn, d := cli_runtime.GetDSN()
+			if utils.HasError(d) {
+				_ = cli_ui.PrintDiagnostics(d)
+				return
+			}
+			options := postgresql_storage.NewPostgresqlStorageOptions(dsn)
+			storage, diagnostics := storage_factory.NewStorage(context.Background(), storage_factory.StorageTypePostgresql, options)
+			if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
+				return
+			}
 
-				}
-				if s == "exit;" || s == ".exit" {
-					os.Exit(0)
-				}
-			}, queryClient.completer,
-				prompt.OptionTitle("Table"),
-				prompt.OptionPrefix("> "),
-				prompt.OptionAddKeyBind(prompt.KeyBind{
-					Key: prompt.ControlC,
-					Fn: func(buffer *prompt.Buffer) {
-						os.Exit(0)
-					},
-				}),
-			)
-			p.Run()
+			queryClient, _ := NewQueryClient(ctx, storage_factory.StorageTypePostgresql, storage)
+			queryClient.Run(ctx)
+
 		},
 	}
 	return cmd
