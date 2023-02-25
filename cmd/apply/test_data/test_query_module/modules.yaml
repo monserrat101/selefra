@@ -45,3 +45,10 @@ selefra:
 #      version: ">=0.0.9,<=0.0.10"
 
 
+providers:
+  - name: mock
+    cache: 1d
+    provider: mock
+    foo-count: 1
+    bar-count: 1
+    sleep-seconds: 0
