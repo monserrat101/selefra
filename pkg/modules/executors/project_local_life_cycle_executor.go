@@ -185,7 +185,7 @@ func (x *ProjectLocalLifeCycleExecutor) fixDsn(ctx context.Context) bool {
 	}
 
 	// 2. if is login, take from
-	if x.cloudExecutor != nil && x.cloudExecutor.cloudClient != nil || x.cloudExecutor.cloudClient.IsLoggedIn() {
+	if x.cloudExecutor != nil && x.cloudExecutor.cloudClient != nil && x.cloudExecutor.cloudClient.IsLoggedIn() {
 		dsn, diagnostics := x.cloudExecutor.cloudClient.FetchOrgDSN()
 		x.options.MessageChannel.Send(diagnostics)
 		if utils.HasError(diagnostics) {
