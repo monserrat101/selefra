@@ -161,7 +161,9 @@ func (x *ModuleQueryExecutor) makeRulePlanSlice(ctx context.Context, modulePlan 
 	rulePlanSlice := make([]*planner.RulePlan, 0)
 
 	// The rule execution plan for the current module
-	rulePlanSlice = append(rulePlanSlice, modulePlan.RulesPlan...)
+	if len(modulePlan.RulesPlan) != 0 {
+		rulePlanSlice = append(rulePlanSlice, modulePlan.RulesPlan...)
+	}
 
 	// The execution plan of the submodule
 	for _, subModule := range modulePlan.SubModulesPlan {

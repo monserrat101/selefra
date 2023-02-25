@@ -210,7 +210,7 @@ func (x *RuleMetadataBlock) Check(module *Module, validatorContext *ValidatorCon
 	if x.Id != "" {
 		if _, exists := validatorContext.GetRuleBlockById(x.Id); exists {
 			errorTips := fmt.Sprintf("Rule metadata id must not duplication: %s", x.Id)
-			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("id"))
+			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("id"+NodeLocationSelfValue))
 			diagnostics.AddErrorMsg(report)
 		} else {
 			validatorContext.AddRuleBlock(x.runtime.rule)
@@ -220,13 +220,13 @@ func (x *RuleMetadataBlock) Check(module *Module, validatorContext *ValidatorCon
 	if x.Remediation != "" {
 		if strings.Contains(x.Remediation, "..") {
 			errorTips := fmt.Sprintf("Rule %s metadata remediation file path can not contains ..", x.runtime.rule.Name)
-			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("remediation"))
+			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("remediation"+NodeLocationSelfValue))
 			diagnostics.AddErrorMsg(report)
 		} else {
 			remediationFileExists := filepath.Join(utils.AbsPath(module.ModuleLocalDirectory), x.Remediation)
 			if !utils.Exists(remediationFileExists) {
 				errorTips := fmt.Sprintf("Rule %s metadata remediation file do not exists or it is is not file", x.runtime.rule.Name)
-				report := RenderErrorTemplate(errorTips, x.GetNodeLocation("remediation"))
+				report := RenderErrorTemplate(errorTips, x.GetNodeLocation("remediation"+NodeLocationSelfValue))
 				diagnostics.AddErrorMsg(report)
 			}
 		}

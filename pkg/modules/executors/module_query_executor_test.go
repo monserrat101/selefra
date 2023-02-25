@@ -25,7 +25,7 @@ func TestModuleQueryExecutor_Execute(t *testing.T) {
 		DownloadWorkspace:                    downloadWorkspace,
 		MessageChannel:                       messageChannel,
 		ProjectLifeCycleStep:                 ProjectLifeCycleStepQuery,
-		FetchStep:                            FetchStepGetStart,
+		FetchStep:                            FetchStepGetInformation,
 		ProjectCloudLifeCycleExecutorOptions: nil,
 		DSN:                                  env.GetDatabaseDsn(),
 		FetchWorkerNum:                       1,

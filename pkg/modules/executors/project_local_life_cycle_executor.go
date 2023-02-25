@@ -130,7 +130,7 @@ func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Dia
 	}
 	validatorContext := module.NewValidatorContext()
 	d := x.rootModule.Check(x.rootModule, validatorContext)
-	if err := x.cloudExecutor.UploadLog(ctx, d); err != nil {
+	if x.cloudExecutor.UploadLog(ctx, d) {
 		return nil
 	}
 
@@ -209,7 +209,7 @@ func (x *ProjectLocalLifeCycleExecutor) install(ctx context.Context) (planner.Pr
 
 	// Make an installation plan
 	providersInstallPlan, diagnostics := planner.MakeProviderInstallPlan(ctx, x.rootModule)
-	if err := x.cloudExecutor.UploadLog(ctx, diagnostics); err != nil {
+	if x.cloudExecutor.UploadLog(ctx, diagnostics) {
 		return nil, nil, false
 	}
 	if len(providersInstallPlan) == 0 {
@@ -230,13 +230,13 @@ func (x *ProjectLocalLifeCycleExecutor) install(ctx context.Context) (planner.Pr
 		// TODO
 		ProgressTracker: nil,
 	})
-	if err := x.cloudExecutor.UploadLog(ctx, diagnostics); err != nil {
+	if x.cloudExecutor.UploadLog(ctx, diagnostics) {
 		installMessageChannel.SenderWaitAndClose()
 		return nil, nil, false
 	}
 	d := executor.Execute(context.Background())
 	installMessageChannel.ReceiverWait()
-	if err := x.cloudExecutor.UploadLog(ctx, d); err != nil {
+	if x.cloudExecutor.UploadLog(ctx, d) {
 		return nil, nil, false
 	}
 	return providersInstallPlan, executor.GetLocalProviderManager(), true
@@ -252,7 +252,7 @@ func (x *ProjectLocalLifeCycleExecutor) fetch(ctx context.Context, providersInst
 		Module:                       x.rootModule,
 		ProviderVersionVoteWinnerMap: providersInstallPlan.ToMap(),
 	}).MakePlan(ctx)
-	if err := x.cloudExecutor.UploadLog(ctx, d); err != nil {
+	if x.cloudExecutor.UploadLog(ctx, d) {
 		return nil, nil, false
 	}
 
@@ -272,7 +272,7 @@ func (x *ProjectLocalLifeCycleExecutor) fetch(ctx context.Context, providersInst
 	})
 	d = fetchExecutor.Execute(context.Background())
 	fetchMessageChannel.ReceiverWait()
-	if err := x.cloudExecutor.UploadLog(ctx, d); err != nil {
+	if x.cloudExecutor.UploadLog(ctx, d) {
 		return nil, nil, false
 	}
 	return fetchExecutor, providerFetchPlans, true
@@ -286,7 +286,7 @@ func (x *ProjectLocalLifeCycleExecutor) query(ctx context.Context, fetchExecutor
 		Module:             x.rootModule,
 		TableToProviderMap: fetchExecutor.GetTableToProviderMap(),
 	})
-	if err := x.cloudExecutor.UploadLog(ctx, d); err != nil {
+	if x.cloudExecutor.UploadLog(ctx, d) {
 		return false
 	}
 	queryMessageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
@@ -296,7 +296,7 @@ func (x *ProjectLocalLifeCycleExecutor) query(ctx context.Context, fetchExecutor
 		x.cloudExecutor.UploadIssue(ctx, message)
 	})
 	contextMap, d := providerFetchPlans.BuildProviderContextMap(ctx, x.options.DSN)
-	if err := x.cloudExecutor.UploadLog(ctx, d); err != nil {
+	if x.cloudExecutor.UploadLog(ctx, d) {
 		return false
 	}
 	queryExecutor := NewModuleQueryExecutor(&ModuleQueryExecutorOptions{
@@ -313,7 +313,7 @@ func (x *ProjectLocalLifeCycleExecutor) query(ctx context.Context, fetchExecutor
 	d = queryExecutor.Execute(ctx)
 	resultQueryResultChannel.ReceiverWait()
 	queryMessageChannel.ReceiverWait()
-	return x.cloudExecutor.UploadLog(ctx, d) == nil
+	return !x.cloudExecutor.UploadLog(ctx, d)
 }
 
 func (x *ProjectLocalLifeCycleExecutor) initCloudClient(ctx context.Context) bool {

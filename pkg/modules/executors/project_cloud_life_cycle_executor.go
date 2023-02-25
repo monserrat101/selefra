@@ -303,10 +303,10 @@ func (x *ProjectCloudLifeCycleExecutor) ruleSeverity(severity string) issue.Uplo
 // ------------------------------------------------ ---------------------------------------------------------------------
 
 // UploadLog add log to send cloud waitting queue
-func (x *ProjectCloudLifeCycleExecutor) UploadLog(ctx context.Context, diagnostics *schema.Diagnostics) error {
+func (x *ProjectCloudLifeCycleExecutor) UploadLog(ctx context.Context, diagnostics *schema.Diagnostics) bool {
 
 	if utils.IsEmpty(diagnostics) {
-		return nil
+		return false
 	}
 
 	// show in console & log file
@@ -315,7 +315,7 @@ func (x *ProjectCloudLifeCycleExecutor) UploadLog(ctx context.Context, diagnosti
 	// send to cloud
 	if x.logStreamUploader == nil {
 		logger.ErrorF("logStreamUploader is nil")
-		return nil
+		return utils.HasError(diagnostics)
 	}
 	for _, d := range diagnostics.GetDiagnosticSlice() {
 		id := x.logIdGenerator.Add(1)
@@ -331,7 +331,7 @@ func (x *ProjectCloudLifeCycleExecutor) UploadLog(ctx context.Context, diagnosti
 			logger.ErrorF("submit log index %d to uploader failed", id)
 		}
 	}
-	return nil
+	return utils.HasError(diagnostics)
 }
 
 func (x *ProjectCloudLifeCycleExecutor) toGrpcLevel(level schema.DiagnosticLevel) log.Level {
