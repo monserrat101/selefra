@@ -9,7 +9,8 @@ import (
 	"path/filepath"
 )
 
-//import (
+// import (
+//
 //	"bytes"
 //	"encoding/json"
 //	"errors"
@@ -26,239 +27,250 @@ import (
 //	"strings"
 //
 //	"github.com/selefra/selefra/global"
-//)
 //
-//// ------------------------------------------------- --------------------------------------------------------------------
+// )
 //
-//type sectionName string
+// // ------------------------------------------------- --------------------------------------------------------------------
 //
-//const (
+// type sectionName string
+//
+// const (
+//
 //	SELEFRA   sectionName = "selefra"
 //	MODULES   sectionName = "modules"
 //	PROVIDERS sectionName = "providers"
 //	VARIABLES sectionName = "variables"
 //	RULES     sectionName = "rules"
-//)
 //
-//var typeMap = map[sectionName]bool{
-//	SELEFRA:   true,
-//	MODULES:   true,
-//	PROVIDERS: true,
-//	RULES:     true,
-//	VARIABLES: true,
-//}
+// )
 //
-//// ------------------------------------------------- --------------------------------------------------------------------
-//
-//// ProviderBlock is provider config
-//type ProviderBlock struct {
-//	Name          string   `yaml:"name" json:"name"`
-//	Cache         string   `yaml:"cache" json:"cache"`
-//	Provider      string   `yaml:"provider" json:"provider"`
-//	MaxGoroutines uint64   `yaml:"max_goroutines" json:"max_goroutines"`
-//	Resources     []string `yaml:"resources" json:"resources"`
-//	LogLevel      string   `yaml:"log_level" json:"log_level"`
-//}
-//
-//type VariableBlock struct {
-//	Key         string `yaml:"key" json:"key"`
-//	Default     string `yaml:"default" json:"default"`
-//	Description string `yaml:"description" json:"description"`
-//	Author      string `yaml:"author" json:"author"`
-//}
-//
-//// RootConfig is root config for selefra project
-//type RootConfig struct {
-//	Selefra   SelefraBlock    `yaml:"selefra"`
-//	Providers yaml.Node       `yaml:"providers"`
-//	Variables []VariableBlock `yaml:"variables"`
-//}
-//
-//type RootConfigInit struct {
-//	Selefra   SelefraConfigInit `yaml:"selefra"`
-//	Providers yaml.Node         `yaml:"providers"`
-//}
-//
-//type RootConfigInitWithLogin struct {
-//	Selefra   SelefraConfigInitWithLogin `yaml:"selefra"`
-//	Providers yaml.Node                  `yaml:"providers"`
-//}
-//
-//type RuleSet struct {
-//	Rules []Rule `yaml:"rules"`
-//}
-//
-//type Rule struct {
-//	Path     string         `yaml:"path" json:"path"`
-//	Name     string         `yaml:"name" json:"name"`
-//	Query    string         `yaml:"query" json:"query"`
-//	Labels   map[string]any `yaml:"labels" json:"labels"`
-//	Metadata struct {
-//		Id          string   `yaml:"id" json:"id"`
-//		Severity    string   `yaml:"severity" json:"severity"`
-//		Provider    string   `yaml:"provider" json:"provider"`
-//		Tags        []string `yaml:"tags" json:"tags"`
-//		Author      string   `yaml:"author" json:"author"`
-//		Remediation string   `yaml:"remediation" json:"remediation"`
-//		Title       string   `yaml:"title" json:"title"`
-//		Description string   `yaml:"description" json:"description"`
-//	}
-//	Output string `yaml:"output" json:"-"`
-//}
-//
-//type ModuleConfig struct {
-//	Modules []Module `yaml:"modules" json:"modules"`
-//}
-//
-//type Module struct {
-//	Name     string          `yaml:"name" json:"name"`
-//	Uses     []string        `yaml:"uses" json:"uses"`
-//	Children []*ModuleConfig `yaml:"-" json:"children"`
-//}
-//
-//// CloudBlock is config for selefra cloud
-//// when user is login, cloud config exist, else not
-//type CloudBlock struct {
-//	Project      string `yaml:"project" mapstructure:"project"`
-//	Organization string `yaml:"organization" mapstructure:"organization"`
-//	HostName     string `yaml:"hostname" mapstructure:"hostname"`
-//}
-//
-//// SelefraBlock is the project config
-//type SelefraBlock struct {
-//	Cloud         *CloudBlock        `yaml:"cloud" mapstructure:"cloud"`
-//	Name          string             `yaml:"name" mapstructure:"name"`
-//	CliVersion    string             `yaml:"cli_version" mapstructure:"cli_version"`
-//	LogLevel      string             `yaml:"log_level" mapstructure:"log_level"`
-//	ProviderDecls []*RequireProvider `yaml:"providers" mapstructure:"providers"`
-//	//ConnectionBlock *DB                 `yaml:"connection" mapstructure:"connection"`
-//}
-//
-//// SelefraConfigInit is a subset for SelefraBlock without cloud config
-//type SelefraConfigInit struct {
-//	Name       string              `yaml:"name" mapstructure:"name"`
-//	CliVersion string              `yaml:"cli_version" mapstructure:"cli_version"`
-//	Providers  []*ProviderDeclInit `yaml:"providers" mapstructure:"providers"`
-//}
-//
-//// SelefraConfigInitWithLogin is a subset for SelefraBlock with a cloud config
-//type SelefraConfigInitWithLogin struct {
-//	Cloud      *CloudBlock         `yaml:"cloud" mapstructure:"cloud"`
-//	Name       string              `yaml:"name" mapstructure:"name"`
-//	CliVersion string              `yaml:"cli_version" mapstructure:"cli_version"`
-//	Providers  []*ProviderDeclInit `yaml:"providers" mapstructure:"providers"`
-//}
-//
-//// RequireProvider is a provider declaration
-//type RequireProvider struct {
-//	Name    string  `yaml:"name,omitempty" json:"name,omitempty"`
-//	Source  *string `yaml:"source,omitempty" json:"source,omitempty"`
-//	Version string  `yaml:"version,omitempty" json:"version,omitempty"`
-//	Path    string  `yaml:"path" json:"path"`
-//}
-//
-//// ProviderDeclInit is a RequireProvider without Path field
-//type ProviderDeclInit struct {
-//	Name    string  `yaml:"name,omitempty" json:"name,omitempty"`
-//	Source  *string `yaml:"source,omitempty" json:"source,omitempty"`
-//	Version string  `yaml:"version,omitempty" json:"version,omitempty"`
-//}
-//
-//type DB struct {
-//	Driver string `yaml:"driver,omitempty" json:"driver,omitempty"`
-//	// These params are mutually exclusive with DSN
-//	Type     string   `yaml:"type,omitempty" json:"type,omitempty"`
-//	Username string   `yaml:"username,omitempty" json:"username,omitempty"`
-//	Password string   `yaml:"password,omitempty" json:"password,omitempty"`
-//	Host     string   `yaml:"host,omitempty" json:"host,omitempty"`
-//	Port     string   `yaml:"port,omitempty" json:"port,omitempty"`
-//	Database string   `yaml:"database,omitempty" json:"database,omitempty"`
-//	SSLMode  string   `yaml:"sslmode,omitempty" json:"sslmode,omitempty"`
-//	Extras   []string `yaml:"extras,omitempty" json:"extras,omitempty"`
-//}
-//
-//type YamlKey int
-//
-//type section2File2Content map[sectionName]map[string]string
-//
-//func (c *SelefraBlock) GetHostName() string {
-//	if c.Cloud != nil && c.Cloud.HostName != "" {
-//		return c.Cloud.HostName
-//	}
-//	return global.SERVER
-//}
-//
-//// ------------------------------------------------- --------------------------------------------------------------------
-//
-//func GetConfig() (*RootConfig, error) {
-//	if err := IsSelefra(); err != nil {
-//		return nil, err
+//	var typeMap = map[sectionName]bool{
+//		SELEFRA:   true,
+//		MODULES:   true,
+//		PROVIDERS: true,
+//		RULES:     true,
+//		VARIABLES: true,
 //	}
 //
-//	return getConfig()
-//}
+// // ------------------------------------------------- --------------------------------------------------------------------
 //
-//func getConfig() (c *RootConfig, err error) {
-//	config := viper.New()
-//	config.SetConfigType("yaml")
-//	clientByte, err := GetClientStr()
-//	if err != nil {
-//		return nil, err
-//	}
-//	err = config.ReadConfig(bytes.NewBuffer(clientByte))
-//	if err != nil {
-//		return nil, err
-//	}
-//	err = yaml.Unmarshal(clientByte, &c)
-//	if err != nil {
-//		return nil, err
-//	}
-//	global.SetLogLevel(c.Selefra.LogLevel)
-//	global.SetProjectName(c.Selefra.Name)
+// // ProviderBlock is provider config
 //
-//	if c.Selefra.Cloud != nil {
-//		global.SetRelvPrjName(c.Selefra.Cloud.Project)
+//	type ProviderBlock struct {
+//		Name          string   `yaml:"name" json:"name"`
+//		Cache         string   `yaml:"cache" json:"cache"`
+//		Provider      string   `yaml:"provider" json:"provider"`
+//		MaxGoroutines uint64   `yaml:"max_goroutines" json:"max_goroutines"`
+//		Resources     []string `yaml:"resources" json:"resources"`
+//		LogLevel      string   `yaml:"log_level" json:"log_level"`
 //	}
 //
-//	global.SERVER = c.Selefra.GetHostName() // TODO: replace
+//	type VariableBlock struct {
+//		Key         string `yaml:"key" json:"key"`
+//		Default     string `yaml:"default" json:"default"`
+//		Description string `yaml:"description" json:"description"`
+//		Author      string `yaml:"author" json:"author"`
+//	}
 //
-//	return c, nil
-//}
+// // RootConfig is root config for selefra project
 //
-//// FileMap load all yaml config file in [dirname] and return a map filename => file_content
-//func FileMap(dirname string) (fm map[string]string, err error) {
+//	type RootConfig struct {
+//		Selefra   SelefraBlock    `yaml:"selefra"`
+//		Providers yaml.Node       `yaml:"providers"`
+//		Variables []VariableBlock `yaml:"variables"`
+//	}
 //
-//	var fn func(dirname string)
-//	fn = func(dirname string) {
-//		files, e := os.ReadDir(dirname)
-//		if e != nil {
-//			err = e
-//			return
+//	type RootConfigInit struct {
+//		Selefra   SelefraConfigInit `yaml:"selefra"`
+//		Providers yaml.Node         `yaml:"providers"`
+//	}
+//
+//	type RootConfigInitWithLogin struct {
+//		Selefra   SelefraConfigInitWithLogin `yaml:"selefra"`
+//		Providers yaml.Node                  `yaml:"providers"`
+//	}
+//
+//	type RuleSet struct {
+//		Rules []Rule `yaml:"rules"`
+//	}
+//
+//	type Rule struct {
+//		Path     string         `yaml:"path" json:"path"`
+//		Name     string         `yaml:"name" json:"name"`
+//		Query    string         `yaml:"query" json:"query"`
+//		Labels   map[string]any `yaml:"labels" json:"labels"`
+//		Metadata struct {
+//			Id          string   `yaml:"id" json:"id"`
+//			Severity    string   `yaml:"severity" json:"severity"`
+//			Provider    string   `yaml:"provider" json:"provider"`
+//			Tags        []string `yaml:"tags" json:"tags"`
+//			Author      string   `yaml:"author" json:"author"`
+//			Remediation string   `yaml:"remediation" json:"remediation"`
+//			Title       string   `yaml:"title" json:"title"`
+//			Description string   `yaml:"description" json:"description"`
 //		}
-//		for _, file := range files {
-//			if file.IsDir() {
-//				fn(filepath.Join(dirname, file.Name()))
-//			} else {
-//				if path.Ext(file.Name()) == ".yaml" {
-//					b, e := os.ReadFile(filepath.Join(dirname, file.Name()))
-//					if e != nil {
-//						err = e
-//						return
+//		Output string `yaml:"output" json:"-"`
+//	}
+//
+//	type ModuleConfig struct {
+//		Modules []Module `yaml:"modules" json:"modules"`
+//	}
+//
+//	type Module struct {
+//		Name     string          `yaml:"name" json:"name"`
+//		Uses     []string        `yaml:"uses" json:"uses"`
+//		Children []*ModuleConfig `yaml:"-" json:"children"`
+//	}
+//
+// // CloudBlock is config for selefra cloud
+// // when user is login, cloud config exist, else not
+//
+//	type CloudBlock struct {
+//		Project      string `yaml:"project" mapstructure:"project"`
+//		Organization string `yaml:"organization" mapstructure:"organization"`
+//		HostName     string `yaml:"hostname" mapstructure:"hostname"`
+//	}
+//
+// // SelefraBlock is the project config
+//
+//	type SelefraBlock struct {
+//		Cloud         *CloudBlock        `yaml:"cloud" mapstructure:"cloud"`
+//		Name          string             `yaml:"name" mapstructure:"name"`
+//		CliVersion    string             `yaml:"cli_version" mapstructure:"cli_version"`
+//		LogLevel      string             `yaml:"log_level" mapstructure:"log_level"`
+//		ProviderDecls []*RequireProvider `yaml:"providers" mapstructure:"providers"`
+//		//ConnectionBlock *DB                 `yaml:"connection" mapstructure:"connection"`
+//	}
+//
+// // SelefraConfigInit is a subset for SelefraBlock without cloud config
+//
+//	type SelefraConfigInit struct {
+//		Name       string              `yaml:"name" mapstructure:"name"`
+//		CliVersion string              `yaml:"cli_version" mapstructure:"cli_version"`
+//		Providers  []*ProviderDeclInit `yaml:"providers" mapstructure:"providers"`
+//	}
+//
+// // SelefraConfigInitWithLogin is a subset for SelefraBlock with a cloud config
+//
+//	type SelefraConfigInitWithLogin struct {
+//		Cloud      *CloudBlock         `yaml:"cloud" mapstructure:"cloud"`
+//		Name       string              `yaml:"name" mapstructure:"name"`
+//		CliVersion string              `yaml:"cli_version" mapstructure:"cli_version"`
+//		Providers  []*ProviderDeclInit `yaml:"providers" mapstructure:"providers"`
+//	}
+//
+// // RequireProvider is a provider declaration
+//
+//	type RequireProvider struct {
+//		Name    string  `yaml:"name,omitempty" json:"name,omitempty"`
+//		Source  *string `yaml:"source,omitempty" json:"source,omitempty"`
+//		Version string  `yaml:"version,omitempty" json:"version,omitempty"`
+//		Path    string  `yaml:"path" json:"path"`
+//	}
+//
+// // ProviderDeclInit is a RequireProvider without Path field
+//
+//	type ProviderDeclInit struct {
+//		Name    string  `yaml:"name,omitempty" json:"name,omitempty"`
+//		Source  *string `yaml:"source,omitempty" json:"source,omitempty"`
+//		Version string  `yaml:"version,omitempty" json:"version,omitempty"`
+//	}
+//
+//	type DB struct {
+//		Driver string `yaml:"driver,omitempty" json:"driver,omitempty"`
+//		// These params are mutually exclusive with DSN
+//		Type     string   `yaml:"type,omitempty" json:"type,omitempty"`
+//		Username string   `yaml:"username,omitempty" json:"username,omitempty"`
+//		Password string   `yaml:"password,omitempty" json:"password,omitempty"`
+//		Host     string   `yaml:"host,omitempty" json:"host,omitempty"`
+//		Port     string   `yaml:"port,omitempty" json:"port,omitempty"`
+//		Database string   `yaml:"database,omitempty" json:"database,omitempty"`
+//		SSLMode  string   `yaml:"sslmode,omitempty" json:"sslmode,omitempty"`
+//		Extras   []string `yaml:"extras,omitempty" json:"extras,omitempty"`
+//	}
+//
+// type YamlKey int
+//
+// type section2File2Content map[sectionName]map[string]string
+//
+//	func (c *SelefraBlock) GetHostName() string {
+//		if c.Cloud != nil && c.Cloud.HostName != "" {
+//			return c.Cloud.HostName
+//		}
+//		return global.SERVER
+//	}
+//
+// // ------------------------------------------------- --------------------------------------------------------------------
+//
+//	func GetConfig() (*RootConfig, error) {
+//		if err := IsSelefra(); err != nil {
+//			return nil, err
+//		}
+//
+//		return getConfig()
+//	}
+//
+//	func getConfig() (c *RootConfig, err error) {
+//		config := viper.New()
+//		config.SetConfigType("yaml")
+//		clientByte, err := GetClientStr()
+//		if err != nil {
+//			return nil, err
+//		}
+//		err = config.ReadConfig(bytes.NewBuffer(clientByte))
+//		if err != nil {
+//			return nil, err
+//		}
+//		err = yaml.Unmarshal(clientByte, &c)
+//		if err != nil {
+//			return nil, err
+//		}
+//		global.SetLogLevel(c.Selefra.LogLevel)
+//		global.SetProjectName(c.Selefra.Name)
+//
+//		if c.Selefra.Cloud != nil {
+//			global.SetRelvPrjName(c.Selefra.Cloud.Project)
+//		}
+//
+//		global.SERVER = c.Selefra.GetHostName() // TODO: replace
+//
+//		return c, nil
+//	}
+//
+// // FileMap load all yaml config file in [dirname] and return a map filename => file_content
+// func FileMap(dirname string) (fm map[string]string, err error) {
+//
+//		var fn func(dirname string)
+//		fn = func(dirname string) {
+//			files, e := os.ReadDir(dirname)
+//			if e != nil {
+//				err = e
+//				return
+//			}
+//			for _, file := range files {
+//				if file.IsDir() {
+//					fn(filepath.Join(dirname, file.Name()))
+//				} else {
+//					if path.Ext(file.Name()) == ".yaml" {
+//						b, e := os.ReadFile(filepath.Join(dirname, file.Name()))
+//						if e != nil {
+//							err = e
+//							return
+//						}
+//						fm[filepath.Join(dirname, file.Name())] = string(b)
 //					}
-//					fm[filepath.Join(dirname, file.Name())] = string(b)
 //				}
 //			}
 //		}
+//
+//		fn(dirname)
+//
+//		return fm, err
 //	}
-//
-//	fn(dirname)
-//
-//	return fm, err
-//}
-//
 func GetCacheKey() string {
 	return "update_time"
 }
+
 //
 //// GetSchemaKey return provider schema named <required.name>_<required_version>_<provider_name>
 //func GetSchemaKey(required *RequireProvider, cp ProviderBlock) string {
@@ -1079,7 +1091,17 @@ func ReadHomeSelefraRCConfig() (*HomeSelefraRCConfig, error) {
 	}
 }
 
+// ------------------------------------------------- --------------------------------------------------------------------
+
 func GetDefaultDownloadCacheDirectory() (string, error) {
+
+	// 1. first read from selefra.rc
+	selefraConfig, _ := ReadHomeSelefraRCConfig()
+	if selefraConfig != nil && selefraConfig.DownloadCacheDirectory != "" {
+		return selefraConfig.DownloadCacheDirectory, nil
+	}
+
+	// 2. use default download path
 	workspacePath, err := GetSelefraHomeWorkspacePath()
 	if err != nil {
 		return "", err
