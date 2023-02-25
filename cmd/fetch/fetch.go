@@ -2,7 +2,6 @@ package fetch
 
 import (
 	"context"
-	"fmt"
 	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
@@ -11,10 +10,6 @@ import (
 	"github.com/selefra/selefra/pkg/cli_runtime"
 	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/executors"
-	"github.com/selefra/selefra/pkg/modules/module"
-	"github.com/selefra/selefra/pkg/modules/module_loader"
-	"github.com/selefra/selefra/pkg/modules/planner"
-	"github.com/selefra/selefra/pkg/providers/local_providers_manager"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -26,38 +21,6 @@ func NewFetchCmd() *cobra.Command {
 		Long:             "Fetch resources from configured providers",
 		PersistentPreRun: global.DefaultWrappedInit(),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			//errFlag := false
-			//ctx := cmd.Context()
-			//rootConfig, err := config.GetConfig()
-			//if err != nil {
-			//	return err
-			//}
-			//cli_ui.Successf("Selefra start fetch")
-			//for _, p := range rootConfig.Selefra.ProviderDecls {
-			//	prvds := tools.ProvidersByID(rootConfig, p.Name)
-			//	for _, prvd := range prvds {
-			//		err = Fetch(ctx, p, prvd)
-			//		if err != nil {
-			//			cli_ui.Errorln(err.Error())
-			//			errFlag = true
-			//			return err
-			//		}
-			//	}
-			//}
-			//if errFlag {
-			//	cli_ui.Errorf(`
-			//This may be exception, view detailed exception in %s.`,
-			//		filepath.Join(global.WorkSpace(), "logs"))
-			//
-			//}
-			//return nil
-			//
-			//// TODO It's pretty much the same as the first half of apply
-			//
-			//return nil
-
-			//projectWorkspace := "./test_data/test_fetch_module"
-			//downloadWorkspace := "./test_download"
 
 			projectWorkspace := "./"
 			downloadWorkspace, _ := config.GetDefaultDownloadCacheDirectory()
@@ -76,106 +39,28 @@ func NewFetchCmd() *cobra.Command {
 
 func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 
-	// Load the module used for the test
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
 			_ = cli_ui.PrintDiagnostics(message)
 		}
 	})
-	loader, err := module_loader.NewLocalDirectoryModuleLoader(&module_loader.LocalDirectoryModuleLoaderOptions{
-		ModuleLoaderOptions: &module_loader.ModuleLoaderOptions{
-			MessageChannel: messageChannel,
-		},
-		ModuleDirectory: projectWorkspace,
-	})
-	if err != nil {
-		cli_ui.Errorln(fmt.Sprintf("create local directory module loader from %s error: %s", projectWorkspace, err.Error()))
-		return nil
+	d := executors.NewProjectLocalLifeCycleExecutor(&executors.ProjectLocalLifeCycleExecutorOptions{
+		ProjectWorkspace:                     projectWorkspace,
+		DownloadWorkspace:                    downloadWorkspace,
+		MessageChannel:                       messageChannel,
+		ProjectLifeCycleStep:                 executors.ProjectLifeCycleStepFetch,
+		FetchStep:                            executors.FetchStepFetch,
+		ProjectCloudLifeCycleExecutorOptions: nil,
+		DSN:                                  env.GetDatabaseDsn(),
+		FetchWorkerNum:                       1,
+		QueryWorkerNum:                       1,
+	}).Execute(context.Background())
+	if utils.IsNotEmpty(d) {
+		_ = cli_ui.PrintDiagnostics(d)
+		cli_ui.Errorln("fetch failed!")
+	} else {
+		cli_ui.Infoln("fetch done!")
 	}
-	rootModule, b := loader.Load(context.Background())
-	messageChannel.ReceiverWait()
-	if !b {
-		cli_ui.Errorln(fmt.Sprintf("local directory module loader load  %s failed.", projectWorkspace))
-		return nil
-	}
-
-	// check module
-	validatorContext := module.NewValidatorContext()
-	d := rootModule.Check(rootModule, validatorContext)
-	if err := cli_ui.PrintDiagnostics(d); err != nil {
-		return nil
-	}
-
-	// Make an installation plan
-	providersInstallPlan, diagnostics := planner.MakeProviderInstallPlan(context.Background(), rootModule)
-	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
-		return nil
-	}
-	if len(providersInstallPlan) == 0 {
-		cli_ui.Errorln("not providers")
-		return nil
-	}
-
-	// Installation-dependent dependency
-	messageChannel = message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
-		if utils.IsNotEmpty(message) {
-			_ = cli_ui.PrintDiagnostics(message)
-		}
-	})
-	executor, diagnostics := executors.NewProviderInstallExecutor(&executors.ProviderInstallExecutorOptions{
-		Plans:             providersInstallPlan,
-		MessageChannel:    messageChannel,
-		DownloadWorkspace: downloadWorkspace,
-	})
-	_ = cli_ui.PrintDiagnostics(diagnostics)
-	if utils.HasError(diagnostics) {
-		return nil
-	}
-	d = executor.Execute(context.Background())
-	messageChannel.ReceiverWait()
-	_ = cli_ui.PrintDiagnostics(d)
-	if utils.HasError(d) {
-		return nil
-	}
-
-	// Develop a data pull plan
-	providerFetchPlans, d := planner.NewProviderFetchPlanner(&planner.ProviderFetchPlannerOptions{
-		Module:                       rootModule,
-		ProviderVersionVoteWinnerMap: providersInstallPlan.ToMap(),
-	}).MakePlan(context.Background())
-	_ = cli_ui.PrintDiagnostics(d)
-	if utils.HasError(d) {
-		return nil
-	}
-
-	// Ready to start pulling
-	localProviderManager, err := local_providers_manager.NewLocalProvidersManager(downloadWorkspace)
-	if err != nil {
-		cli_ui.Errorln("")
-		return nil
-	}
-	messageChannel = message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
-		if utils.IsNotEmpty(message) {
-			_ = cli_ui.PrintDiagnostics(message)
-		}
-	})
-	fetchExecutor := executors.NewProviderFetchExecutor(&executors.ProviderFetchExecutorOptions{
-		LocalProviderManager: localProviderManager,
-		Plans:                providerFetchPlans,
-		MessageChannel:       messageChannel,
-		WorkerNum:            3,
-		Workspace:            projectWorkspace,
-		// TODO
-		DSN: env.GetDatabaseDsn(),
-	})
-	d = fetchExecutor.Execute(context.Background())
-	messageChannel.ReceiverWait()
-	_ = cli_ui.PrintDiagnostics(d)
-	if utils.HasError(d) {
-		return nil
-	}
-
-	cli_ui.Infoln("fetch done!")
 
 	return nil
 }
