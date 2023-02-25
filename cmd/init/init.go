@@ -1,10 +1,8 @@
 package init
 
 import (
-	"context"
-	"github.com/selefra/selefra/cli_ui"
+	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra/config"
-	"github.com/selefra/selefra/pkg/cli_runtime"
 	"github.com/spf13/cobra"
 )
 
@@ -13,41 +11,29 @@ func NewInitCmd() *cobra.Command {
 		Use:   "init [project name]",
 		Short: "Prepare your working directory for other commands",
 		Long:  "Prepare your working directory for other commands",
-		RunE:  initFunc,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			relevance, _ := cmd.PersistentFlags().GetString("relevance")
+			force, _ := cmd.PersistentFlags().GetBool("force")
+
+			downloadDirectory, err := config.GetDefaultDownloadCacheDirectory()
+			if err != nil {
+				return err
+			}
+			return NewInitCommandExecutor(&InitCommandExecutorOptions{
+				IsForceInit:       force,
+				RelevanceProject:  relevance,
+				ProjectWorkspace:  "./",
+				DownloadWorkspace: downloadDirectory,
+				// TODO for test
+				DSN: env.GetDatabaseDsn(),
+			}).Run(cmd.Context())
+		},
 	}
 	cmd.PersistentFlags().BoolP("force", "f", false, "force overwriting the directory if it is not empty")
 	cmd.PersistentFlags().StringP("relevance", "r", "", "associate to selefra cloud project, use only after login")
 
 	cmd.SetHelpFunc(cmd.HelpFunc())
 	return cmd
-}
-
-func initFunc(cmd *cobra.Command, args []string) error {
-
-	cli_runtime.Init("./")
-
-	downloadDirectory, err := config.GetDefaultDownloadCacheDirectory()
-	if err != nil {
-		return err
-	}
-
-	relevance, _ := cmd.PersistentFlags().GetString("relevance")
-	force, _ := cmd.PersistentFlags().GetBool("force")
-
-	dsn, diagnostics := cli_runtime.GetDSN()
-	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
-		return err
-	}
-
-	NewInitCommandExecutor(&InitCommandExecutorOptions{
-		DownloadWorkspace: downloadDirectory,
-		ProjectWorkspace:  "./",
-		IsForceInit:       force,
-		RelevanceProject:  relevance,
-		DSN:               dsn,
-	}).Run(context.Background())
-
-	return nil
 }
 
 //func initFunc(cmd *cobra.Command, args []string) error {
@@ -77,7 +63,7 @@ func initFunc(cmd *cobra.Command, args []string) error {
 //	}
 //
 //	// 3. check if workspace is already init
-//	if err := reInit(); err != nil {
+//	if err := reInitConfirm(); err != nil {
 //		return err
 //	}
 //
@@ -292,8 +278,8 @@ func initFunc(cmd *cobra.Command, args []string) error {
 //	return nil
 //}
 //
-//// reInit check if current workspace is selefra workspace, then tell user to choose if rewrite selefra workspace
-//func reInit() error {
+//// reInitConfirm check if current workspace is selefra workspace, then tell user to choose if rewrite selefra workspace
+//func reInitConfirm() error {
 //	//_, err := config.GetConfig()
 //	//if err != nil && errors.Is(err, config.ErrNotSelefra) {
 //	//	return nil
