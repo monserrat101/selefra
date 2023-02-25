@@ -43,112 +43,13 @@ func testFunc(cmd *cobra.Command, args []string) error {
 		DSN:               dsn,
 	}).Run(context.Background())
 	messageChannel.ReceiverWait()
+
+
+	//	cli_ui.Successf("RequireProvidersBlock verification completed\n\n")
+	//	cli_ui.Successf("Profile verification completed\n\n")
+	//	if hasError {
+	//		return errors.New("Need help? Know on Slack or open a Github Issue: https://github.com/selefra/selefra#community")
+	//	}
+
 	return nil
 }
-
-//func TestFunc(ctx context.Context) error {
-//	rootConfig, err := config.GetConfig()
-//	if err != nil {
-//		cli_ui.Errorln("GetWDError:" + err.Error())
-//	}
-//	return CheckSelefraConfig(ctx, rootConfig)
-//}
-//
-//func testFunc(cmd *cobra.Command, args []string) error {
-//	ctx := cmd.Context()
-//	return TestFunc(ctx)
-//}
-//
-//// CheckSelefraConfig check if config valid
-//func CheckSelefraConfig(ctx context.Context, s *config.RootConfig) error {
-//	err := s.TestConfigByNode()
-//	if err != nil {
-//		return err
-//	}
-//
-//	cli_ui.Successf("Client verification completed\n\n")
-//	hasError := false
-//	for _, p := range s.Selefra.ProviderDecls {
-//		if p.Path == "" {
-//			p.Path = utils.GetPathBySource(*p.Source, p.Version)
-//		}
-//		var providersName = *p.Source
-//		plug, err := plugin.NewManagedPlugin(p.Path, providersName, p.Version, "", nil)
-//		if err != nil {
-//			hasError = true
-//			cli_ui.Errorf("%s@%s verification failed ：%s", providersName, p.Version, err.Error())
-//			continue
-//		}
-//		confs, err := tools.ProviderConfigStrs(s, p.Name)
-//		if err != nil {
-//			hasError = true
-//			cli_ui.Errorln(err.Error())
-//			continue
-//		}
-//		for _, conf := range confs {
-//			var cp config.ProviderBlock
-//			err := yaml.Unmarshal([]byte(conf), &cp)
-//			if err != nil {
-//				hasError = true
-//				cli_ui.Errorln(err.Error())
-//				continue
-//			}
-//
-//			storageOpt := pgstorage.DefaultPgStorageOpts()
-//			opt, err := json.Marshal(storageOpt)
-//
-//			provider := plug.Provider()
-//			initRes, err := provider.Init(ctx, &shard.ProviderInitRequest{
-//				ModuleLocalDirectory: pointer.ToStringPointer(global.WorkSpace()),
-//				Storage: &shard.Storage{
-//					Type:           0,
-//					StorageOptions: opt,
-//				},
-//				IsInstallInit:  pointer.FalsePointer(),
-//				ProviderConfig: pointer.ToStringPointer(conf),
-//			})
-//			if err != nil {
-//				hasError = true
-//				cli_ui.Errorf("%s@%s verification failed ：%s", providersName, p.Version, err.Error())
-//				continue
-//			} else {
-//				if initRes.Diagnostics != nil {
-//					err := cli_ui.PrintDiagnostic(initRes.Diagnostics.GetDiagnosticSlice())
-//					if err != nil {
-//						hasError = true
-//					}
-//					continue
-//				}
-//			}
-//
-//			res, err := provider.SetProviderConfig(ctx, &shard.SetProviderConfigRequest{
-//				Storage: &shard.Storage{
-//					Type:           0,
-//					StorageOptions: opt,
-//				},
-//				ProviderConfig: pointer.ToStringPointer(conf),
-//			})
-//			if err != nil {
-//				cli_ui.Errorln(err.Error())
-//				hasError = true
-//				continue
-//			} else {
-//				if res.Diagnostics != nil {
-//					err := cli_ui.PrintDiagnostic(res.Diagnostics.GetDiagnosticSlice())
-//					if err != nil {
-//						hasError = true
-//					}
-//					continue
-//				}
-//			}
-//			cli_ui.Successf("	%s %s@%s check successfully", cp.Name, providersName, p.Version)
-//		}
-//	}
-//
-//	cli_ui.Successf("RequireProvidersBlock verification completed\n\n")
-//	cli_ui.Successf("Profile verification completed\n\n")
-//	if hasError {
-//		return errors.New("Need help? Know on Slack or open a Github Issue: https://github.com/selefra/selefra#community")
-//	}
-//	return nil
-//}
