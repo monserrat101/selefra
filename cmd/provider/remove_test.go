@@ -25,6 +25,12 @@ import (
 //}
 
 func TestRemove(t *testing.T) {
-	err := Remove(context.Background(), "./test_download", "aws@v0.0.1")
+
+	provider := "mock@v0.0.3"
+
+	err := install(context.Background(), "./test_download", provider)
+	assert.Nil(t, err)
+
+	err = Remove(context.Background(), "./test_download", provider)
 	assert.Nil(t, err)
 }
