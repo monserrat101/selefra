@@ -38,5 +38,5 @@ providers:
     cache: 1d
     provider: mock
     foo-count: 1
-    bar-count: 1
+    bar-count: -2
     sleep-seconds: 1
