@@ -2,12 +2,12 @@ package test
 
 import (
 	"context"
+	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
-	"github.com/selefra/selefra/config"
 	"github.com/selefra/selefra/global"
-	"github.com/selefra/selefra/pkg/cli_runtime"
 	"github.com/selefra/selefra/pkg/message"
+	"github.com/selefra/selefra/pkg/modules/executors"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +19,13 @@ func NewTestCmd() *cobra.Command {
 		Short:            "Check whether the configuration is valid",
 		Long:             "Check whether the configuration is valid",
 		PersistentPreRun: global.DefaultWrappedInit(),
-		RunE:             testFunc,
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			projectWorkspace := "./test_data/test_query_module"
+			downloadWorkspace := "./test_download"
+
+			return Test(cmd.Context(), projectWorkspace, downloadWorkspace)
+		},
 	}
 
 	cmd.SetHelpFunc(cmd.HelpFunc())
@@ -27,23 +33,31 @@ func NewTestCmd() *cobra.Command {
 	return cmd
 }
 
-func testFunc(cmd *cobra.Command, args []string) error {
-	cli_runtime.Init("./")
-	dsn, _ := cli_runtime.GetDSN()
+func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error {
+
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
 			_ = cli_ui.PrintDiagnostics(message)
 		}
 	})
-	downloadDirectory, _ := config.GetDefaultDownloadCacheDirectory()
-	NewTestCommandExecutor(&TestCommandExecutorOptions{
-		ProjectWorkspace:  "./",
-		DownloadWorkspace: downloadDirectory,
-		MessageChannel:    messageChannel,
-		DSN:               dsn,
-	}).Run(context.Background())
+	d := executors.NewProjectLocalLifeCycleExecutor(&executors.ProjectLocalLifeCycleExecutorOptions{
+		ProjectWorkspace:                     projectWorkspace,
+		DownloadWorkspace:                    downloadWorkspace,
+		MessageChannel:                       messageChannel,
+		ProjectLifeCycleStep:                 executors.ProjectLifeCycleStepFetch,
+		FetchStep:                            executors.FetchStepGetInit,
+		ProjectCloudLifeCycleExecutorOptions: nil,
+		DSN:                                  env.GetDatabaseDsn(),
+		FetchWorkerNum:                       1,
+		QueryWorkerNum:                       1,
+	}).Execute(context.Background())
 	messageChannel.ReceiverWait()
-
+	if utils.IsNotEmpty(d) {
+		_ = cli_ui.PrintDiagnostics(d)
+		cli_ui.Errorln("Apply failed")
+	} else {
+		cli_ui.Errorln("Apply Done")
+	}
 
 	//	cli_ui.Successf("RequireProvidersBlock verification completed\n\n")
 	//	cli_ui.Successf("Profile verification completed\n\n")
