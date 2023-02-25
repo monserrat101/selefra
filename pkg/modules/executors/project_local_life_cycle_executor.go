@@ -2,6 +2,7 @@ package executors
 
 import (
 	"context"
+	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/grpc/pb/log"
 	"github.com/selefra/selefra/pkg/message"
@@ -10,6 +11,7 @@ import (
 	"github.com/selefra/selefra/pkg/modules/planner"
 	"github.com/selefra/selefra/pkg/providers/local_providers_manager"
 	"github.com/selefra/selefra/pkg/utils"
+	"os"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -124,6 +126,11 @@ func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Dia
 	}
 	_ = x.cloudExecutor.UploadLog(ctx, schema.NewDiagnostics().AddInfo("Selefra Cloud init success"))
 
+	// fix dsn
+	if !x.fixDsn(ctx) {
+		return nil
+	}
+
 	// validate module is ok
 	if x.options.ProjectLifeCycleStep > ProjectLifeCycleStepModuleCheck {
 		return nil
@@ -167,6 +174,44 @@ func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Dia
 	x.cloudExecutor.ChangeTaskLogStatus(log.StageType_STAGE_TYPE_INFRASTRUCTURE_ANALYSIS, log.Status_STATUS_SUCCESS)
 
 	return nil
+}
+
+func (x *ProjectLocalLifeCycleExecutor) fixDsn(ctx context.Context) bool {
+
+	// 1. first take from local module
+	if x.rootModule != nil && x.rootModule.SelefraBlock != nil && x.rootModule.SelefraBlock.ConnectionBlock != nil {
+		x.options.DSN = x.rootModule.SelefraBlock.ConnectionBlock.BuildDSN()
+		return true
+	}
+
+	// 2. if is login, take from
+	if x.cloudExecutor != nil && x.cloudExecutor.cloudClient != nil || x.cloudExecutor.cloudClient.IsLoggedIn() {
+		dsn, diagnostics := x.cloudExecutor.cloudClient.FetchOrgDSN()
+		x.options.MessageChannel.Send(diagnostics)
+		if utils.HasError(diagnostics) {
+			return false
+		}
+		if dsn != "" {
+			x.options.DSN = dsn
+			return true
+		}
+	}
+
+	// 3. from options
+	if x.options.DSN != "" {
+		return true
+	}
+
+	// 4. from env
+	if os.Getenv(env.DatabaseDsn) != "" {
+		x.options.DSN = os.Getenv(env.DatabaseDsn)
+		return true
+	}
+
+	// TODO
+	// 5. default local
+
+	return false
 }
 
 // Load the module to be apply
