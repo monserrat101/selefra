@@ -225,7 +225,7 @@ func (x *ModuleQueryExecutorWorker) execRulePlan(ctx context.Context, rulePlan *
 	}
 	// TODO log
 
-	x.sendMessage(schema.NewDiagnostics().AddInfo("rule %s begin exec done", rulePlan.String()))
+	x.sendMessage(schema.NewDiagnostics().AddInfo("rule %s exec done", rulePlan.String()))
 }
 
 func (x *ModuleQueryExecutorWorker) execStorageQuery(ctx context.Context, rulePlan *planner.RulePlan, providerContext *planner.ProviderContext) {
