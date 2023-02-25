@@ -66,7 +66,7 @@ type ProviderFetchExecutorOptions struct {
 	MessageChannel *message.Channel[*schema.Diagnostics]
 
 	// Number of providers that are concurrently pulled
-	WorkerNum int
+	WorkerNum uint64
 
 	// Working directory
 	Workspace string
@@ -142,7 +142,7 @@ func (x *ProviderFetchExecutor) Execute(ctx context.Context) *schema.Diagnostics
 
 	// The concurrent pull starts
 	wg := sync.WaitGroup{}
-	for i := 0; i < x.options.WorkerNum; i++ {
+	for i := uint64(0); i < x.options.WorkerNum; i++ {
 		wg.Add(1)
 		NewProviderFetchExecutorWorker(x, fetchPlanChannel, providerInformationChannel, &wg).Run()
 	}
@@ -233,13 +233,13 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	// Start provider
 	plug, err := plugin.NewManagedPlugin(localProviderMeta.ExecutableFilePath, plan.Name, plan.Version, "", nil)
 	if err != nil {
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("start provider %s at %s failed: %s", plan.String(), localProvider.ExecutableFilePath, err.Error())))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("start provider %s at %s failed: %s", plan.String(), localProviderMeta.ExecutableFilePath, err.Error())))
 		return
 	}
 	// Close the provider at the end of the method execution
 	defer func() {
 		plug.Close()
-		x.sendMessage(schema.NewDiagnostics().AddInfo("stop provider %s at %s ", plan.String(), localProvider.ExecutableFilePath))
+		x.sendMessage(schema.NewDiagnostics().AddInfo("stop provider %s at %s ", plan.String(), localProviderMeta.ExecutableFilePath))
 	}()
 
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("start provider %s success", plan.String())))

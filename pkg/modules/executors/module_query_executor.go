@@ -73,7 +73,7 @@ type ModuleQueryExecutorOptions struct {
 	ProviderExpandMap map[string][]*planner.ProviderContext
 
 	// The number of concurrent queries used
-	WorkerNum int
+	WorkerNum uint64
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -135,7 +135,7 @@ func (x *ModuleQueryExecutor) Execute(ctx context.Context) *schema.Diagnostics {
 
 func (x *ModuleQueryExecutor) RunQueryWorker(ctx context.Context, channel chan *planner.RulePlan) {
 	wg := sync.WaitGroup{}
-	for i := 0; i < x.options.WorkerNum; i++ {
+	for i := uint64(0); i < x.options.WorkerNum; i++ {
 		wg.Add(1)
 		NewModuleQueryExecutorWorker(x, channel, &wg).Run(ctx)
 	}

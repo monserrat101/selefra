@@ -171,7 +171,7 @@ func (x *ProviderFetchPlanner) expandByConfiguration() ([]*ProviderFetchPlan, *s
 		if !exists {
 			// selefra.providers block not found that name in providers[index] configuration
 			errorTips := fmt.Sprintf("provider name %s not found", providerBlock.Provider)
-			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, providerBlock.GetNodeLocation("")))
+			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, providerBlock.GetNodeLocation("provider"+module.NodeLocationSelfValue)))
 			continue
 		}
 

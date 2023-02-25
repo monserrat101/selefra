@@ -46,7 +46,7 @@ func NewCloudClient(serverUrl string) (*CloudClient, *schema.Diagnostics) {
 	if err != nil {
 		return nil, diagnostics.AddErrorMsg("connect to cloud server %s failed: %s", serverUrl, err.Error())
 	}
-	
+
 	cloudNoAuthClient := cloud.NewCloudNoAuthClient(conn)
 
 	return &CloudClient{
