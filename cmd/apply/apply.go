@@ -40,17 +40,19 @@ func Apply(ctx context.Context, projectWorkspace, downloadWorkspace string) erro
 		}
 	})
 	d := executors.NewProjectLocalLifeCycleExecutor(&executors.ProjectLocalLifeCycleExecutorOptions{
-		ProjectWorkspace:                     projectWorkspace,
-		DownloadWorkspace:                    downloadWorkspace,
-		MessageChannel:                       messageChannel,
-		ProjectLifeCycleStep:                 executors.ProjectLifeCycleStepQuery,
+		ProjectWorkspace:     projectWorkspace,
+		DownloadWorkspace:    downloadWorkspace,
+		MessageChannel:       messageChannel,
+		ProjectLifeCycleStep: executors.ProjectLifeCycleStepQuery,
 		//FetchStep:                            executors.FetchStepFetch,
-		// TODO for test
-		FetchStep:                            executors.FetchStepGetInformation,
-		ProjectCloudLifeCycleExecutorOptions: nil,
+		FetchStep: executors.FetchStepFetch,
+		ProjectCloudLifeCycleExecutorOptions: &executors.ProjectCloudLifeCycleExecutorOptions{
+			EnableConsoleTips: true,
+			IsNeedLogin:       true,
+		},
 		//DSN:                                  env.GetDatabaseDsn(),
-		FetchWorkerNum:                       1,
-		QueryWorkerNum:                       1,
+		FetchWorkerNum: 1,
+		QueryWorkerNum: 1,
 	}).Execute(context.Background())
 	messageChannel.ReceiverWait()
 	if utils.IsNotEmpty(d) {
