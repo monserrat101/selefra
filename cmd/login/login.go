@@ -28,21 +28,19 @@ func NewLoginCmd() *cobra.Command {
 
 func RunFunc(cmd *cobra.Command, args []string) error {
 
-	//cli_runtime.Init("./")
-
 	diagnostics := schema.NewDiagnostics()
 
 	host, d := cli_runtime.FindServerHost()
 	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
 		return err
 	}
-	logger.InfoF("use server address: %s", host)
+	logger.InfoF("Use server address: %s", host)
 
 	client, d := cloud_sdk.NewCloudClient(host)
 	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
 		return err
 	}
-	logger.InfoF("create cloud client success")
+	logger.InfoF("Create cloud client success")
 
 	// If you are already logged in, repeat login is not allowed and you must log out first
 	getCredentials, _ := client.GetCredentials()
@@ -62,7 +60,7 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if token == "" {
-		cli_ui.Errorf("token can not be empty")
+		cli_ui.Errorf("Token can not be empty")
 		return nil
 	}
 
