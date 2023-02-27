@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
+	"github.com/selefra/selefra/pkg/cli_env"
 	"github.com/selefra/selefra/pkg/cloud_sdk"
 	selefraGrpc "github.com/selefra/selefra/pkg/grpc"
 	"github.com/selefra/selefra/pkg/grpc/pb/issue"
@@ -67,10 +68,17 @@ func NewProjectCloudLifeCycleExecutor(options *ProjectCloudLifeCycleExecutorOpti
 	}
 }
 
+func (x *ProjectCloudLifeCycleExecutor) getServerHost() string {
+	if x.options.CloudServerHost != "" {
+		return x.options.CloudServerHost
+	}
+	return cli_env.GetServerHost()
+}
+
 func (x *ProjectCloudLifeCycleExecutor) InitCloudClient(ctx context.Context) bool {
 
 	// 1. create cloud client
-	cloudClient, d := cloud_sdk.NewCloudClient(x.options.CloudServerHost)
+	cloudClient, d := cloud_sdk.NewCloudClient(x.getServerHost())
 	x.options.MessageChannel.Send(d)
 	if utils.HasError(d) {
 		return false
@@ -197,16 +205,6 @@ func (x *ProjectCloudLifeCycleExecutor) initLogUploader(client *cloud_sdk.CloudC
 
 // UploadIssue add issue to send cloud queue
 func (x *ProjectCloudLifeCycleExecutor) UploadIssue(ctx context.Context, r *RuleQueryResult) {
-
-	// TODO Modified for unified display
-	//send to console & log file
-	//var outByte bytes.Buffer
-	//err := json.Indent(&outByte, json_util.ToJsonBytes(r.RuleBlock), "", "\t")
-	//if err != nil {
-	//	logger.ErrorF("format issue error: %s", err.Error())
-	//} else {
-	//	cli_ui.Successln(outByte.String())
-	//}
 	var consoleOutput strings.Builder
 	consoleOutput.WriteString(fmt.Sprintf("Rule name %s, ", r.RuleBlock.Name))
 	if r.RuleBlock.MetadataBlock != nil && r.RuleBlock.MetadataBlock.Id != "" {
@@ -217,7 +215,7 @@ func (x *ProjectCloudLifeCycleExecutor) UploadIssue(ctx context.Context, r *Rule
 
 	// send to cloud
 	if x.issueStreamUploader == nil {
-		logger.ErrorF("issueStreamUploader is nil")
+		logger.ErrorF("issueStreamUploader is nil, ignore issue upload")
 		return
 	}
 	request := x.convertRuleQueryResultToIssueUploadRequest(r)
@@ -271,8 +269,9 @@ func (x *ProjectCloudLifeCycleExecutor) convertRuleQueryResultToIssueUploadReque
 		Schema:        pgstorage.GetSchemaKey(ruleProvider.Provider, ruleProvider.Version, r.ProviderConfiguration),
 	}
 
+	index := x.issueIdGenerator.Add(1)
 	return &issue.UploadIssueStream_Request{
-		Index:    int32(r.Index),
+		Index:    int32(index),
 		Rule:     rule,
 		Provider: ruleProvider,
 		Module:   ruleModule,
@@ -314,7 +313,7 @@ func (x *ProjectCloudLifeCycleExecutor) UploadLog(ctx context.Context, diagnosti
 
 	// send to cloud
 	if x.logStreamUploader == nil {
-		logger.ErrorF("logStreamUploader is nil")
+		logger.ErrorF("logStreamUploader is nil, ignore upload log")
 		return utils.HasError(diagnostics)
 	}
 	for _, d := range diagnostics.GetDiagnosticSlice() {
@@ -329,6 +328,8 @@ func (x *ProjectCloudLifeCycleExecutor) UploadLog(ctx context.Context, diagnosti
 		x.options.MessageChannel.Send(d)
 		if !isSubmitSuccess {
 			logger.ErrorF("submit log index %d to uploader failed", id)
+		} else {
+			logger.InfoF("submit log index %d to uploader success", id)
 		}
 	}
 	return utils.HasError(diagnostics)
