@@ -106,7 +106,8 @@ const DefaultServerURL = "app.selefra.io"
 func FindServerHost() (string, *schema.Diagnostics) {
 
 	// Try to get it from the configuration file
-	if Runtime.RootModule != nil &&
+	if Runtime != nil &&
+		Runtime.RootModule != nil &&
 		Runtime.RootModule.SelefraBlock != nil &&
 		Runtime.RootModule.SelefraBlock.CloudBlock != nil &&
 		Runtime.RootModule.SelefraBlock.CloudBlock.HostName != "" {

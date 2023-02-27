@@ -19,7 +19,7 @@ func IsCloudEnv() bool {
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-const SelefraServerHost = "SELEFRA_SERVER_URL"
+const SelefraServerHost = "SELEFRA_CLOUD_HOST"
 
 // GetServerHost Gets the address of the server
 func GetServerHost() string {

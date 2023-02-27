@@ -22,8 +22,6 @@ func NewLogoutCmd() *cobra.Command {
 
 func RunFunc(cmd *cobra.Command, args []string) error {
 
-	cli_runtime.Init("./")
-
 	diagnostics := schema.NewDiagnostics()
 
 	// Server address
@@ -31,13 +29,13 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
 		return err
 	}
-	logger.InfoF("use server address: %s", host)
+	logger.InfoF("Use server address: %s", host)
 
 	client, d := cloud_sdk.NewCloudClient(host)
 	if diagnostics.AddDiagnostics(d).HasError() {
 		return cli_ui.PrintDiagnostics(diagnostics)
 	}
-	logger.InfoF("create cloud client success")
+	logger.InfoF("Create cloud client success")
 
 	// If you are not logged in, you are not allowed to log out
 	credentials, _ := client.GetCredentials()
@@ -45,7 +43,7 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 		cli_ui.Errorln("You are not login, please login first.")
 		return nil
 	}
-	logger.InfoF("get credentials success")
+	logger.InfoF("Get credentials success")
 
 	// Destroy the local token
 	client.SetToken(credentials.Token)

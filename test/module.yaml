@@ -1,5 +1,0 @@
-
-modules:
-  - name: AWS_Security_Demo
-    uses:
-    - ./rules/
