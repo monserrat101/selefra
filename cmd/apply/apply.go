@@ -44,7 +44,9 @@ func Apply(ctx context.Context, projectWorkspace, downloadWorkspace string) erro
 		DownloadWorkspace:                    downloadWorkspace,
 		MessageChannel:                       messageChannel,
 		ProjectLifeCycleStep:                 executors.ProjectLifeCycleStepQuery,
-		FetchStep:                            executors.FetchStepFetch,
+		//FetchStep:                            executors.FetchStepFetch,
+		// TODO for test
+		FetchStep:                            executors.FetchStepGetInformation,
 		ProjectCloudLifeCycleExecutorOptions: nil,
 		//DSN:                                  env.GetDatabaseDsn(),
 		FetchWorkerNum:                       1,

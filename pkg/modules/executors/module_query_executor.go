@@ -243,8 +243,8 @@ func (x *ModuleQueryExecutorWorker) execStorageQuery(ctx context.Context, rulePl
 	//cli_ui.Successln(schema + "\n")
 	//cli_ui.Successln("Description:")
 
-	for resultSet.Next() {
-		rows, d := resultSet.ReadRows(10)
+	for {
+		rows, d := resultSet.ReadRows(100)
 		if rows != nil {
 			for _, row := range rows.SplitRowByRow() {
 				x.processRuleRow(ctx, rulePlan, providerContext, row)
@@ -252,6 +252,9 @@ func (x *ModuleQueryExecutorWorker) execStorageQuery(ctx context.Context, rulePl
 		}
 		if utils.HasError(d) {
 			x.sendMessage(d)
+		}
+		if rows == nil || rows.RowCount() == 0 {
+			break
 		}
 	}
 }
