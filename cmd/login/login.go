@@ -28,7 +28,7 @@ func NewLoginCmd() *cobra.Command {
 
 func RunFunc(cmd *cobra.Command, args []string) error {
 
-	cli_runtime.Init("./")
+	//cli_runtime.Init("./")
 
 	diagnostics := schema.NewDiagnostics()
 

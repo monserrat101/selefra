@@ -2,7 +2,6 @@ package fetch
 
 import (
 	"context"
-	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/config"
@@ -51,7 +50,7 @@ func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 		ProjectLifeCycleStep:                 executors.ProjectLifeCycleStepFetch,
 		FetchStep:                            executors.FetchStepFetch,
 		ProjectCloudLifeCycleExecutorOptions: nil,
-		DSN:                                  env.GetDatabaseDsn(),
+		//DSN:                                  env.GetDatabaseDsn(),
 		FetchWorkerNum:                       1,
 		QueryWorkerNum:                       1,
 	}).Execute(context.Background())
