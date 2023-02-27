@@ -1,7 +1,6 @@
 package init
 
 import (
-	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra/config"
 	"github.com/spf13/cobra"
 )
@@ -25,7 +24,7 @@ func NewInitCmd() *cobra.Command {
 				ProjectWorkspace:  "./",
 				DownloadWorkspace: downloadDirectory,
 				// TODO for test
-				DSN: env.GetDatabaseDsn(),
+				//DSN: env.GetDatabaseDsn(),
 			}).Run(cmd.Context())
 		},
 	}

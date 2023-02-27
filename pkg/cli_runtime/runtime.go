@@ -2,7 +2,6 @@ package cli_runtime
 
 import (
 	"context"
-	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/pkg/cli_env"
@@ -137,10 +136,10 @@ func GetDSN() (string, *schema.Diagnostics) {
 		return Runtime.CloudClient.FetchOrgDSN()
 	}
 
-	// Environment variable
-	if env.GetDatabaseDsn() != "" {
-		return env.GetDatabaseDsn(), nil
-	}
+	//// Environment variable
+	//if env.GetDatabaseDsn() != "" {
+	//	return env.GetDatabaseDsn(), nil
+	//}
 
 	// TODO Built-in PG database
 	return "", nil
