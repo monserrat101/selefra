@@ -166,7 +166,6 @@ func (x *ProjectCloudLifeCycleExecutor) loginByCredentials(ctx context.Context, 
 
 	// change task status to begin
 	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("change task status to INITIALIZING"))
-	x.ChangeTaskLogStatus(log.StageType_STAGE_TYPE_INITIALIZING, log.Status_STATUS_SUCCESS)
 
 	_ = x.UploadLog(ctx, schema.NewDiagnostics().AddInfo("begin run task %s INITIALIZING stage", task.TaskId))
 	return true
@@ -373,11 +372,13 @@ func (x *ProjectCloudLifeCycleExecutor) ShutdownAndWait(ctx context.Context) {
 
 }
 
-// ChangeTaskLogStatus Modify the current state of the task
-func (x *ProjectCloudLifeCycleExecutor) ChangeTaskLogStatus(stage log.StageType, status log.Status) {
-
+func (x *ProjectCloudLifeCycleExecutor) ChangeLogStage(stage log.StageType) {
 	// change self first
 	x.stage = stage
+}
+
+// ReportTaskStatus Modify the current state of the task
+func (x *ProjectCloudLifeCycleExecutor) ReportTaskStatus(stage log.StageType, status log.Status) {
 
 	if x.logClient == nil {
 		logger.ErrorF("can not change task log status, not login")
