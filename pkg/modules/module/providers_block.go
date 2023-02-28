@@ -194,12 +194,14 @@ func (x *ProviderBlock) Check(module *Module, validatorContext *ValidatorContext
 
 	if x.Name == "" {
 		errorTips := fmt.Sprintf("Provider configuration name must not be empty")
+		// TODO maybe nil
 		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
 		diagnostics.AddErrorMsg(report)
 	}
 
 	if x.Provider == "" && !module.HasRequiredProviderName(x.Provider) {
 		errorTips := fmt.Sprintf("Provider name %s not found in selefra.providers", x.Provider)
+		// TODO maybe nil
 		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("provider"))
 		diagnostics.AddErrorMsg(report)
 	}
@@ -207,10 +209,12 @@ func (x *ProviderBlock) Check(module *Module, validatorContext *ValidatorContext
 	if x.MaxGoroutines != nil {
 		if *x.MaxGoroutines > 3000 {
 			errorTips := fmt.Sprintf("Provider %s max_goroutines is too big", x.Name)
+			// TODO maybe nil
 			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("max_goroutines"))
 			diagnostics.AddWarn(report)
 		} else if *x.MaxGoroutines < 0 {
 			errorTips := fmt.Sprintf("Provider %s max_goroutines must greater than 0 ", x.Name)
+			// TODO maybe nil
 			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("max_goroutines"))
 			diagnostics.AddErrorMsg(report)
 		}
