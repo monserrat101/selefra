@@ -5,7 +5,6 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/selefra/selefra-provider-sdk/grpc/shard"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
-	"github.com/selefra/selefra-utils/pkg/json_util"
 	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/module"
 	"github.com/selefra/selefra/pkg/modules/planner"
@@ -287,7 +286,7 @@ func (x *ModuleQueryExecutorWorker) processRuleRow(ctx context.Context, rulePlan
 	}
 	x.moduleQueryExecutor.options.RuleQueryResultChannel.Send(result)
 
-	x.sendMessage(schema.NewDiagnostics().AddInfo(json_util.ToJsonString(ruleBlockResult)))
+	//x.sendMessage(schema.NewDiagnostics().AddInfo(json_util.ToJsonString(ruleBlockResult)))
 
 }
 
