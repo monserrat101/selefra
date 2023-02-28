@@ -5,6 +5,7 @@ import (
 	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/grpc/pb/log"
+	"github.com/selefra/selefra/pkg/logger"
 	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/module"
 	"github.com/selefra/selefra/pkg/modules/module_loader"
@@ -162,6 +163,7 @@ func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Dia
 		x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_FAILED)
 		return nil
 	}
+	// A value of 0 indicates that none of the providers has been successfully pulled, so there is no need to start subsequent pull tasks
 	if len(fetchExecutor.GetProviderInformationMap()) == 0 {
 		x.cloudExecutor.UploadLog(ctx, schema.NewDiagnostics().AddErrorMsg("Fetch Failed!"))
 		x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_FAILED)
@@ -187,6 +189,7 @@ func (x *ProjectLocalLifeCycleExecutor) fixDsn(ctx context.Context) bool {
 
 	// 1. first take from local module
 	if x.rootModule != nil && x.rootModule.SelefraBlock != nil && x.rootModule.SelefraBlock.ConnectionBlock != nil {
+		logger.InfoF("fix dsn from selefra block")
 		x.options.DSN = x.rootModule.SelefraBlock.ConnectionBlock.BuildDSN()
 		return true
 	}
@@ -199,6 +202,7 @@ func (x *ProjectLocalLifeCycleExecutor) fixDsn(ctx context.Context) bool {
 			return false
 		}
 		if dsn != "" {
+			logger.InfoF("fix dsn from cloud")
 			x.options.DSN = dsn
 			return true
 		}
@@ -206,11 +210,13 @@ func (x *ProjectLocalLifeCycleExecutor) fixDsn(ctx context.Context) bool {
 
 	// 3. from options
 	if x.options.DSN != "" {
+		logger.InfoF("fix dsn from options")
 		return true
 	}
 
 	// 4. from env
 	if os.Getenv(env.DatabaseDsn) != "" {
+		logger.InfoF("fix dsn from env")
 		x.options.DSN = os.Getenv(env.DatabaseDsn)
 		return true
 	}
