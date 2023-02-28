@@ -32,10 +32,10 @@ const (
 
 	ProjectLifeCycleStepModuleCheck
 
-	ProjectLifeCycleStepCloudInit
-
 	// ProjectLifeCycleStepLoadModule Just load the module of the project and do nothing else
 	ProjectLifeCycleStepLoadModule
+
+	ProjectLifeCycleStepCloudInit
 )
 
 // ------------------------------------------------ ---------------------------------------------------------------------
@@ -110,21 +110,21 @@ func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Dia
 
 	}()
 
-	// load module & check
-	if !x.loadModule(ctx) {
-		return nil
-	}
-
-	// init cloud
-	if x.options.ProjectLifeCycleStep > ProjectLifeCycleStepCloudInit {
-		return nil
-	}
 	ok := x.initCloudClient(ctx)
 	if !ok {
 		_ = x.cloudExecutor.UploadLog(ctx, schema.NewDiagnostics().AddErrorMsg("Selefra Cloud init failed, exit."))
 		return nil
 	}
 	_ = x.cloudExecutor.UploadLog(ctx, schema.NewDiagnostics().AddInfo("Selefra Cloud init success"))
+
+	// init cloud
+	if x.options.ProjectLifeCycleStep > ProjectLifeCycleStepCloudInit {
+		return nil
+	}
+	// load module & check
+	if !x.loadModule(ctx) {
+		return nil
+	}
 
 	// fix dsn
 	if !x.fixDsn(ctx) {

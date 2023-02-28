@@ -20,7 +20,6 @@ const (
 
 type CloudClient struct {
 	serverUrl string
-	conn      grpc.ClientConnInterface
 
 	cloudNoAuthClient cloud.CloudNoAuthClient
 	cloudClient       cloud.CloudClient
@@ -46,14 +45,12 @@ func NewCloudClient(serverUrl string) (*CloudClient, *schema.Diagnostics) {
 	if err != nil {
 		return nil, diagnostics.AddErrorMsg("connect to cloud server %s failed: %s", serverUrl, err.Error())
 	}
-
 	cloudNoAuthClient := cloud.NewCloudNoAuthClient(conn)
 
 	return &CloudClient{
-		serverUrl:           serverUrl,
-		conn:                conn,
-		cloudNoAuthClient:   cloudNoAuthClient,
-		cloudClient:         cloud.NewCloudClient(conn),
+		serverUrl:         serverUrl,
+		cloudNoAuthClient: cloudNoAuthClient,
+		cloudClient:       cloud.NewCloudClient(conn),
 		//IssueStreamUploader: nil,
 		//LogStreamUploader:   nil,
 	}, nil
@@ -85,7 +82,15 @@ func NewCloudClient(serverUrl string) (*CloudClient, *schema.Diagnostics) {
 
 // NewIssueStreamUploader Create a component that uploads Issues
 func (x *CloudClient) NewIssueStreamUploader(messageChannel *message.Channel[*schema.Diagnostics]) (*selefraGrpc.StreamUploader[issue.Issue_UploadIssueStreamClient, int, *issue.UploadIssueStream_Request, *issue.UploadIssueStream_Response], *schema.Diagnostics) {
-	stream, err := issue.NewIssueClient(x.conn).UploadIssueStream(x.BuildMetaContext())
+
+	// new connection
+	conn, err := grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, schema.NewDiagnostics().AddErrorMsg("connect to cloud server %s failed: %s", x.serverUrl, err.Error())
+	}
+
+	// create upload issue stream client
+	stream, err := issue.NewIssueClient(conn).UploadIssueStream(x.BuildMetaContext())
 	if err != nil {
 		return nil, schema.NewDiagnostics().AddErrorMsg("")
 	}
@@ -101,8 +106,16 @@ func (x *CloudClient) NewIssueStreamUploader(messageChannel *message.Channel[*sc
 
 // NewLogStreamUploader Create a component that uploads logs
 func (x *CloudClient) NewLogStreamUploader(messageChannel *message.Channel[*schema.Diagnostics]) (log.LogClient, *selefraGrpc.StreamUploader[log.Log_UploadLogStreamClient, int, *log.UploadLogStream_Request, *log.UploadLogStream_Response], *schema.Diagnostics) {
+
+	// new connection
+	conn, err := grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, nil, schema.NewDiagnostics().AddErrorMsg("connect to cloud server %s failed: %s", x.serverUrl, err.Error())
+	}
+
+	// create upload
 	diagnostics := schema.NewDiagnostics()
-	client := log.NewLogClient(x.conn)
+	client := log.NewLogClient(conn)
 	stream, err := client.UploadLogStream(x.BuildMetaContext())
 	if err != nil {
 		return nil, nil, diagnostics.AddErrorMsg("create cloud log stream error: %s", err.Error())
@@ -116,6 +129,8 @@ func (x *CloudClient) NewLogStreamUploader(messageChannel *message.Channel[*sche
 	uploader := selefraGrpc.NewStreamUploader[log.Log_UploadLogStreamClient, int, *log.UploadLogStream_Request, *log.UploadLogStream_Response](uploaderOptions)
 	return client, uploader, nil
 }
+
+// ------------------------------------------------- --------------------------------------------------------------------
 
 func (x *CloudClient) BuildMetaContext() context.Context {
 	return metadata.AppendToOutgoingContext(context.Background(), "taskUUID", x.taskId, "token", x.token)

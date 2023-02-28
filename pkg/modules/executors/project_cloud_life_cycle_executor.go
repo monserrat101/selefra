@@ -123,7 +123,8 @@ func (x *ProjectCloudLifeCycleExecutor) loginByCredentials(ctx context.Context, 
 	}
 
 	// check relative project
-	if x.options.Module.SelefraBlock == nil ||
+	if x.options.Module != nil &&
+		x.options.Module.SelefraBlock == nil ||
 		x.options.Module.SelefraBlock.CloudBlock == nil ||
 		x.options.Module.SelefraBlock.CloudBlock.Project == "" {
 		errorMsg := fmt.Sprintf("Failed to connect to the cloud, you must specify the project name %s in module", x.options.Module.BuildFullName())
