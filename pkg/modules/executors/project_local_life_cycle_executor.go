@@ -147,10 +147,11 @@ func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Dia
 	}
 	providersInstallPlan, providerLocalManager, b := x.install(ctx)
 	if !b {
-		x.cloudExecutor.ChangeTaskLogStatus(log.StageType_STAGE_TYPE_INITIALIZING, log.Status_STATUS_FAILED)
+		x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_INITIALIZING, log.Status_STATUS_FAILED)
 		return nil
 	}
-	x.cloudExecutor.ChangeTaskLogStatus(log.StageType_STAGE_TYPE_INITIALIZING, log.Status_STATUS_SUCCESS)
+	x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_INITIALIZING, log.Status_STATUS_SUCCESS)
+	x.cloudExecutor.ChangeLogStage(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE)
 
 	// fetch data
 	if x.options.ProjectLifeCycleStep > ProjectLifeCycleStepFetch {
@@ -158,20 +159,21 @@ func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Dia
 	}
 	fetchExecutor, fetchPlans, b := x.fetch(ctx, providersInstallPlan, providerLocalManager)
 	if !b {
-		x.cloudExecutor.ChangeTaskLogStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_FAILED)
+		x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_FAILED)
 		return nil
 	}
-	x.cloudExecutor.ChangeTaskLogStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_SUCCESS)
+	x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_SUCCESS)
+	x.cloudExecutor.ChangeLogStage(log.StageType_STAGE_TYPE_INFRASTRUCTURE_ANALYSIS)
 
 	// exec query
 	if x.options.ProjectLifeCycleStep > ProjectLifeCycleStepQuery {
 		return nil
 	}
 	if !x.query(ctx, fetchExecutor, fetchPlans) {
-		x.cloudExecutor.ChangeTaskLogStatus(log.StageType_STAGE_TYPE_INFRASTRUCTURE_ANALYSIS, log.Status_STATUS_FAILED)
+		x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_INFRASTRUCTURE_ANALYSIS, log.Status_STATUS_FAILED)
 		return nil
 	}
-	x.cloudExecutor.ChangeTaskLogStatus(log.StageType_STAGE_TYPE_INFRASTRUCTURE_ANALYSIS, log.Status_STATUS_SUCCESS)
+	x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_INFRASTRUCTURE_ANALYSIS, log.Status_STATUS_SUCCESS)
 
 	return nil
 }
