@@ -317,6 +317,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("start provider failed: %s", err.Error())))
 		return
 	}
+	// TODO There is a problem with process interruption here
 	if utils.IsNotEmpty(providerInitResponse.Diagnostics) {
 		x.sendMessage(x.addProviderNameForMessage(plan, providerInitResponse.Diagnostics))
 		if utils.HasError(providerInitResponse.Diagnostics) {

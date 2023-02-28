@@ -375,6 +375,10 @@ func (x *ProjectCloudLifeCycleExecutor) ShutdownAndWait(ctx context.Context) {
 
 // ChangeTaskLogStatus Modify the current state of the task
 func (x *ProjectCloudLifeCycleExecutor) ChangeTaskLogStatus(stage log.StageType, status log.Status) {
+
+	// change self first
+	x.stage = stage
+
 	if x.logClient == nil {
 		logger.ErrorF("can not change task log status, not login")
 		return
