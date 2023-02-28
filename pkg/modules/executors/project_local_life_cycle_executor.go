@@ -162,6 +162,11 @@ func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Dia
 		x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_FAILED)
 		return nil
 	}
+	if len(fetchExecutor.GetProviderInformationMap()) == 0 {
+		x.cloudExecutor.UploadLog(ctx, schema.NewDiagnostics().AddErrorMsg("Fetch Failed!"))
+		x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_FAILED)
+		return nil
+	}
 	x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_SUCCESS)
 	x.cloudExecutor.ChangeLogStage(log.StageType_STAGE_TYPE_INFRASTRUCTURE_ANALYSIS)
 
