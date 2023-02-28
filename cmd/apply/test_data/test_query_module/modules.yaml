@@ -25,7 +25,7 @@ selefra:
   cloud:
     project: example_project
     organization: example_org
-#    hostname: app.selefra.io
+  #    hostname: app.selefra.io
   #  connection:
   #    type: postgres
   #    username: postgres
@@ -49,6 +49,7 @@ providers:
   - name: mock
     cache: 1d
     provider: mock
-    foo-count: 1
-    bar-count: 1
-    sleep-seconds: 0
+    foo-count: 10
+    bar-count: 10
+    sleep-seconds: 1
+    max_goroutines: 1

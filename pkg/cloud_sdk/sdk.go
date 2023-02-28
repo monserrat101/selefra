@@ -41,19 +41,28 @@ func NewCloudClient(serverUrl string) (*CloudClient, *schema.Diagnostics) {
 
 	diagnostics := schema.NewDiagnostics()
 
-	conn, err := grpc.Dial(serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	x := &CloudClient{
+		serverUrl: serverUrl,
+		//cloudNoAuthClient: cloudNoAuthClient,
+		//cloudClient:       cloud.NewCloudClient(conn),
+		//IssueStreamUploader: nil,
+		//LogStreamUploader:   nil,
+	}
+
+	conn, err := x.DialCloudHost()
 	if err != nil {
 		return nil, diagnostics.AddErrorMsg("connect to cloud server %s failed: %s", serverUrl, err.Error())
 	}
 	cloudNoAuthClient := cloud.NewCloudNoAuthClient(conn)
+	x.cloudNoAuthClient = cloudNoAuthClient
 
-	return &CloudClient{
-		serverUrl:         serverUrl,
-		cloudNoAuthClient: cloudNoAuthClient,
-		cloudClient:       cloud.NewCloudClient(conn),
-		//IssueStreamUploader: nil,
-		//LogStreamUploader:   nil,
-	}, nil
+	conn, err = x.DialCloudHost()
+	if err != nil {
+		return nil, diagnostics.AddErrorMsg("connect to cloud server %s failed: %s", serverUrl, err.Error())
+	}
+	x.cloudClient = cloud.NewCloudClient(conn)
+
+	return x, nil
 }
 
 //// InitTaskClientContext Initialize the task client context, for after report data to selefra cloud
@@ -84,7 +93,7 @@ func NewCloudClient(serverUrl string) (*CloudClient, *schema.Diagnostics) {
 func (x *CloudClient) NewIssueStreamUploader(messageChannel *message.Channel[*schema.Diagnostics]) (*selefraGrpc.StreamUploader[issue.Issue_UploadIssueStreamClient, int, *issue.UploadIssueStream_Request, *issue.UploadIssueStream_Response], *schema.Diagnostics) {
 
 	// new connection
-	conn, err := grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := x.DialCloudHost()
 	if err != nil {
 		return nil, schema.NewDiagnostics().AddErrorMsg("connect to cloud server %s failed: %s", x.serverUrl, err.Error())
 	}
@@ -108,7 +117,7 @@ func (x *CloudClient) NewIssueStreamUploader(messageChannel *message.Channel[*sc
 func (x *CloudClient) NewLogStreamUploader(messageChannel *message.Channel[*schema.Diagnostics]) (log.LogClient, *selefraGrpc.StreamUploader[log.Log_UploadLogStreamClient, int, *log.UploadLogStream_Request, *log.UploadLogStream_Response], *schema.Diagnostics) {
 
 	// new connection
-	conn, err := grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := x.DialCloudHost()
 	if err != nil {
 		return nil, nil, schema.NewDiagnostics().AddErrorMsg("connect to cloud server %s failed: %s", x.serverUrl, err.Error())
 	}
@@ -128,6 +137,15 @@ func (x *CloudClient) NewLogStreamUploader(messageChannel *message.Channel[*sche
 	}
 	uploader := selefraGrpc.NewStreamUploader[log.Log_UploadLogStreamClient, int, *log.UploadLogStream_Request, *log.UploadLogStream_Response](uploaderOptions)
 	return client, uploader, nil
+}
+
+func (x *CloudClient) DialCloudHost() (*grpc.ClientConn, error) {
+	//return grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()),
+	//	grpc.WithKeepaliveParams(keepalive.ClientParameters{
+	//		Time:                10 * time.Second,
+	//		Timeout:             100 * time.Millisecond,
+	//		PermitWithoutStream: true}))
+	return grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
