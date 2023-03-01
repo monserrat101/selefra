@@ -101,7 +101,7 @@ func (x *CLIRuntime) LoadWorkspaceModule() *CLIRuntime {
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-const DefaultServerURL = "app.selefra.io"
+const DefaultCloudHost = "main-grpc.selefra.io"
 
 func FindServerHost() (string, *schema.Diagnostics) {
 
@@ -120,7 +120,7 @@ func FindServerHost() (string, *schema.Diagnostics) {
 	}
 
 	// You can't get either, so use the default
-	return DefaultServerURL, nil
+	return DefaultCloudHost, nil
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
