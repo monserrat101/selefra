@@ -210,7 +210,8 @@ func (x *ProjectCloudLifeCycleExecutor) UploadIssue(ctx context.Context, r *Rule
 		consoleOutput.WriteString(fmt.Sprintf("id %s, ", r.RuleBlock.MetadataBlock.Id))
 	}
 	consoleOutput.WriteString(fmt.Sprintf("output %s", r.RuleBlock.Output))
-	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo(consoleOutput.String()))
+	//x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo(consoleOutput.String()))
+	x.UploadLog(ctx, schema.NewDiagnostics().AddInfo(consoleOutput.String()))
 
 	// send to cloud
 	if x.issueStreamUploader == nil {
@@ -358,14 +359,14 @@ func (x *ProjectCloudLifeCycleExecutor) toGrpcLevel(level schema.DiagnosticLevel
 // ShutdownAndWait close send queue and wait uploader done
 func (x *ProjectCloudLifeCycleExecutor) ShutdownAndWait(ctx context.Context) {
 
-	if x.logStreamUploader != nil {
-		x.logStreamUploader.ShutdownAndWait(ctx)
-		x.logStreamUploader.GetOptions().MessageChannel.ReceiverWait()
-	}
-
 	if x.issueStreamUploader != nil {
 		x.issueStreamUploader.ShutdownAndWait(ctx)
 		x.issueStreamUploader.GetOptions().MessageChannel.ReceiverWait()
+	}
+
+	if x.logStreamUploader != nil {
+		x.logStreamUploader.ShutdownAndWait(ctx)
+		x.logStreamUploader.GetOptions().MessageChannel.ReceiverWait()
 	}
 
 	x.options.MessageChannel.SenderWaitAndClose()
