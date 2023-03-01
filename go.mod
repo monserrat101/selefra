@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/aws/aws-sdk-go v1.44.149 // indirect
 	github.com/c-bata/go-prompt v0.2.6
-	github.com/containerd/containerd v1.6.12
+	github.com/containerd/containerd v1.6.18
 	github.com/fatih/color v1.14.1
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/google/uuid v1.3.0
