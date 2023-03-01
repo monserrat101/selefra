@@ -10,7 +10,9 @@ import (
 	"github.com/selefra/selefra/pkg/message"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
+	"time"
 )
 
 const (
@@ -140,12 +142,12 @@ func (x *CloudClient) NewLogStreamUploader(messageChannel *message.Channel[*sche
 }
 
 func (x *CloudClient) DialCloudHost() (*grpc.ClientConn, error) {
-	//return grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()),
-	//	grpc.WithKeepaliveParams(keepalive.ClientParameters{
-	//		Time:                10 * time.Second,
-	//		Timeout:             100 * time.Millisecond,
-	//		PermitWithoutStream: true}))
-	return grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	return grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                3 * time.Second,
+			Timeout:             3 * time.Minute,
+			PermitWithoutStream: true}))
+	//return grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
