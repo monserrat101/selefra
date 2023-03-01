@@ -3,14 +3,13 @@ module github.com/selefra/selefra
 go 1.19
 
 require (
-	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/aws/aws-sdk-go v1.44.149 // indirect
 	github.com/c-bata/go-prompt v0.2.6
 	github.com/containerd/containerd v1.6.12
 	github.com/fatih/color v1.14.1
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/google/uuid v1.3.0
-	github.com/hashicorp/go-getter v1.6.2
+	github.com/hashicorp/go-getter v1.7.0
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/hashicorp/go-plugin v1.4.6
 	github.com/mitchellh/go-homedir v1.1.0
@@ -41,7 +40,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
-	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
