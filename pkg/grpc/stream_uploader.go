@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
+	"github.com/selefra/selefra/pkg/logger"
 	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/utils"
 	"google.golang.org/grpc"
@@ -63,29 +64,44 @@ func (x *StreamUploader[Client, ID, Request, Response]) GetOptions() *StreamUplo
 
 // Submit the message to the send queue
 func (x *StreamUploader[Client, ID, Request, Response]) Submit(ctx context.Context, id ID, request Request) (bool, *schema.Diagnostics) {
+
 	task := &UploadTask[ID, Request]{
 		TaskId:  id,
 		Request: request,
 	}
+
 	for submitTryTimes := 0; submitTryTimes < 10000; submitTryTimes++ {
+		logger.InfoF("stream uploader name %s, id = %s, submit begin, try times = %d", x.options.Name, utils.Strava(id), submitTryTimes)
 		select {
 		case x.waitSendTaskQueue <- task:
+			logger.InfoF("stream uploader name %s, id = %s, submit success, try times = %d", x.options.Name, utils.Strava(id), submitTryTimes)
 			return true, nil
 		case <-ctx.Done():
+			logger.InfoF("stream uploader name %s, id = %s, submit timeout, try times = %d", x.options.Name, utils.Strava(id), submitTryTimes)
 			x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("stream uploader name %s, id = %s, submit request timeout, try times = %d", x.options.Name, utils.Strava(id), submitTryTimes))
 		}
 	}
+
+	logger.InfoF("stream uploader name %s, id = %s, submit final failed", x.options.Name, utils.Strava(id))
 	return false, schema.NewDiagnostics().AddErrorMsg("stream uploader name %s, id = %s, submit request timeout", x.options.Name, utils.Strava(id))
 }
 
 // ShutdownAndWait Close the task queue while waiting for the remaining messages in the queue to finish sending
 func (x *StreamUploader[Client, ID, Request, Response]) ShutdownAndWait(ctx context.Context) *schema.Diagnostics {
+
 	defer func() {
+		logger.InfoF("stream uploader %s message channel SenderWaitAndClose begin", x.options.Name)
 		x.options.MessageChannel.SenderWaitAndClose()
+		logger.InfoF("stream uploader %s message channel SenderWaitAndClose end", x.options.Name)
 	}()
 
 	close(x.waitSendTaskQueue)
+	logger.InfoF("stream uploader %s close waitSendTaskQueue", x.options.Name)
+
+	logger.InfoF("stream uploader %s wait group begin", x.options.Name)
 	x.workerWg.Wait()
+	logger.InfoF("stream uploader %s wait group done", x.options.Name)
+
 	return nil
 }
 
@@ -160,10 +176,13 @@ func (x *StreamUploader[Client, ID, Request, Response]) RunUploaderWorker() {
 
 		// Set the exit flag when exiting
 		defer func() {
+			logger.InfoF("stream uploader %s, begin close stream client", x.options.Name)
 			err := x.options.Client.CloseSend()
 			if err != nil {
+				logger.ErrorF("stream uploader %s, close stream client error", x.options.Name)
 				x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("stream uploader name %s, close send stream error: %s", x.options.Name, err.Error()))
 			}
+			logger.InfoF("stream uploader %s, close stream client success", x.options.Name)
 			x.workerWg.Done()
 		}()
 

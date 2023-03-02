@@ -36,6 +36,7 @@ func NewApplyCmd() *cobra.Command {
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
+// Apply a project
 func Apply(ctx context.Context, projectWorkspace, downloadWorkspace string) error {
 
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
@@ -48,24 +49,23 @@ func Apply(ctx context.Context, projectWorkspace, downloadWorkspace string) erro
 		DownloadWorkspace:    downloadWorkspace,
 		MessageChannel:       messageChannel,
 		ProjectLifeCycleStep: executors.ProjectLifeCycleStepQuery,
-		//FetchStep:                            executors.FetchStepFetch,
-		FetchStep: executors.FetchStepFetch,
+		FetchStep:            executors.FetchStepFetch,
 		ProjectCloudLifeCycleExecutorOptions: &executors.ProjectCloudLifeCycleExecutorOptions{
 			EnableConsoleTips: true,
 			IsNeedLogin:       true,
 		},
 		//DSN:                                  env.GetDatabaseDsn(),
 		FetchWorkerNum: 1,
-		QueryWorkerNum: 1,
-	}).Execute(context.Background())
+		QueryWorkerNum: 10,
+	}).Execute(ctx)
 	messageChannel.ReceiverWait()
-	if utils.IsNotEmpty(d) {
-		_ = cli_ui.PrintDiagnostics(d)
+	if err := cli_ui.PrintDiagnostics(d); err != nil {
 		cli_ui.Errorln("Apply failed")
+		return err
 	} else {
-		cli_ui.Successln("Apply Done")
+		cli_ui.Successln("Apply done")
+		return nil
 	}
-	return nil
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------

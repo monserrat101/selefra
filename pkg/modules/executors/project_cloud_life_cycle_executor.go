@@ -359,17 +359,34 @@ func (x *ProjectCloudLifeCycleExecutor) toGrpcLevel(level schema.DiagnosticLevel
 // ShutdownAndWait close send queue and wait uploader done
 func (x *ProjectCloudLifeCycleExecutor) ShutdownAndWait(ctx context.Context) {
 
+	// close issue first
 	if x.issueStreamUploader != nil {
+
+		logger.InfoF("issueStreamUploader ShutdownAndWait begin...")
 		x.issueStreamUploader.ShutdownAndWait(ctx)
+		logger.InfoF("issueStreamUploader ShutdownAndWait done")
+
+		logger.InfoF("issueStreamUploader MessageChannel ReceiverWait begin")
 		x.issueStreamUploader.GetOptions().MessageChannel.ReceiverWait()
+		logger.InfoF("issueStreamUploader MessageChannel ReceiverWait done")
 	}
 
+	// close log second
 	if x.logStreamUploader != nil {
+
+		logger.InfoF("logStreamUploader ShutdownAndWait begin...")
 		x.logStreamUploader.ShutdownAndWait(ctx)
+		logger.InfoF("logStreamUploader ShutdownAndWait end")
+
+		logger.InfoF("logStreamUploader MessageChannel ReceiverWait begin")
 		x.logStreamUploader.GetOptions().MessageChannel.ReceiverWait()
+		logger.InfoF("logStreamUploader MessageChannel ReceiverWait done")
 	}
 
+	// close message
+	logger.InfoF("ProjectCloudLifeCycleExecutor MessageChannel SenderWaitAndClose begin")
 	x.options.MessageChannel.SenderWaitAndClose()
+	logger.InfoF("ProjectCloudLifeCycleExecutor MessageChannel SenderWaitAndClose end")
 
 }
 
