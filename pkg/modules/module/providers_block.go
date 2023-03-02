@@ -197,6 +197,11 @@ func (x *ProviderBlock) Check(module *Module, validatorContext *ValidatorContext
 		// TODO maybe nil
 		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
 		diagnostics.AddErrorMsg(report)
+	} else if !checkIdentity(x.Name) {
+		errorTips := fmt.Sprintf("Provider configuration name " + CheckIdentityErrorMsg)
+		// TODO maybe nil
+		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
+		diagnostics.AddErrorMsg(report)
 	}
 
 	if x.Provider == "" && !module.HasRequiredProviderName(x.Provider) {
