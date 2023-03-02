@@ -17,6 +17,7 @@ import (
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
+// ProjectLifeCycleStep You can control the execution of a project until it ends at a certain point in the lifecycle
 type ProjectLifeCycleStep int
 
 const (
@@ -31,8 +32,10 @@ const (
 	// ProjectLifeCycleStepInstall Proceed to the installation step
 	ProjectLifeCycleStepInstall
 
+	// ProjectLifeCycleStepModuleCheck Module validity check
 	ProjectLifeCycleStepModuleCheck
 
+	// ProjectLifeCycleStepCloudInit Initialization phase
 	ProjectLifeCycleStepCloudInit
 
 	// ProjectLifeCycleStepLoadModule Just load the module of the project and do nothing else
@@ -53,23 +56,28 @@ type ProjectLocalLifeCycleExecutorOptions struct {
 	// The channel through which messages are received externally
 	MessageChannel *message.Channel[*schema.Diagnostics]
 
+	// Used to control where the project goes
 	ProjectLifeCycleStep ProjectLifeCycleStep
 
+	// Used to control which step is executed when pulling, the pull has its own separate lifecycle step partition
 	FetchStep FetchStep
 
 	// if set this options, then enable cloud project
 	ProjectCloudLifeCycleExecutorOptions *ProjectCloudLifeCycleExecutorOptions
 
+	// The database to which data is to be written, May be copied by a higher priority setting
 	DSN string
 
 	// The number of concurrences during the fetch phase
 	FetchWorkerNum uint64
+
 	// The number of concurrent queries executed
 	QueryWorkerNum uint64
 }
 
 // ------------------------------------------------ ---------------------------------------------------------------------
 
+// ProjectLifeCycleExecutorName The life cycle of the project
 const ProjectLifeCycleExecutorName = "project-local-life-cycle-executor"
 
 // ProjectLocalLifeCycleExecutor Used to fully run the entire project lifecycle
@@ -81,22 +89,25 @@ type ProjectLocalLifeCycleExecutor struct {
 	// project module path
 	rootModule *module.Module
 
-	// for sync to cloud
+	// for sync to cloud, If you log in, it has a real effect. If you do not log in, it has no real effect
 	cloudExecutor *ProjectCloudLifeCycleExecutor
 }
 
 var _ Executor = &ProjectLocalLifeCycleExecutor{}
 
+// NewProjectLocalLifeCycleExecutor Create a project executor
 func NewProjectLocalLifeCycleExecutor(options *ProjectLocalLifeCycleExecutorOptions) *ProjectLocalLifeCycleExecutor {
 	return &ProjectLocalLifeCycleExecutor{
 		options: options,
 	}
 }
 
+// Name of project
 func (x *ProjectLocalLifeCycleExecutor) Name() string {
 	return ProjectLifeCycleExecutorName
 }
 
+// Execute Actually execute the project
 func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Diagnostics {
 
 	defer func() {

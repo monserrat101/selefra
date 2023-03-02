@@ -45,3 +45,28 @@ func (x *ValidatorContext) GetModuleByName(moduleName string) (*ModuleBlock, boo
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
+
+const CheckIdentityErrorMsg = "only allow \"a-z,A-Z,0-9,_\" and can't start with a number"
+
+func checkIdentity(s string) bool {
+
+	if len(s) == 0 {
+		return false
+	}
+
+	// And you can't start with a number
+	if s[0] >= '0' && s[0] <= '9' {
+		return false
+	}
+
+	// Only the given character can be used
+	for _, c := range s {
+		isOk := (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || (c == '_')
+		if !isOk {
+			return false
+		}
+	}
+	return true
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
