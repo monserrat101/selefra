@@ -6,6 +6,7 @@ import (
 	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
+	"github.com/selefra/selefra/config"
 	"github.com/selefra/selefra/global"
 	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/executors"
@@ -23,8 +24,11 @@ func NewTestCmd() *cobra.Command {
 		PersistentPreRun: global.DefaultWrappedInit(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			projectWorkspace := "./test_data/test_query_module"
-			downloadWorkspace := "./test_download"
+			//projectWorkspace := "./test_data/test_query_module"
+			//downloadWorkspace := "./test_download"
+
+			projectWorkspace := "./"
+			downloadWorkspace, _ := config.GetDefaultDownloadCacheDirectory()
 
 			return Test(cmd.Context(), projectWorkspace, downloadWorkspace)
 		},
