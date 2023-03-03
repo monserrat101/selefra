@@ -354,7 +354,7 @@ func (x *InitCommandExecutor) initRulesYaml() {
       WHERE 
         encrypted = FALSE;
     output: 'EBS volume are unencrypted, EBS id: {{.id}}'`
-	ruleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "rule.yaml")
+	ruleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "rules.yaml")
 	err := os.WriteFile(ruleFullPath, []byte(ruleComment), 0644)
 	if err != nil {
 		cli_ui.Errorf("Write %s error: %s\n", ruleFullPath, err.Error())
