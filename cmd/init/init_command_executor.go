@@ -83,7 +83,7 @@ func (x *InitCommandExecutor) Run(ctx context.Context) error {
 
 	x.initRulesYaml()
 
-	x.initModulesYaml()
+	//x.initModulesYaml()
 
 	cli_ui.Successf("Initializing workspace done.\n")
 
@@ -289,54 +289,74 @@ func (x *InitCommandExecutor) getCloudBlock(projectName string) *module.CloudBlo
 	return cloudBlock
 }
 
-// init module.yaml
-func (x *InitCommandExecutor) initModulesYaml() {
-	const moduleComment = `
-modules:
-  - name: AWS_Security_Demo
-    uses:
-    - ./rules/
-`
-	moduleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "module.yaml")
-	err := os.WriteFile(moduleFullPath, []byte(moduleComment), 0644)
-	if err != nil {
-		cli_ui.Errorf("Write %s error: %s\n", moduleFullPath, err.Error())
-	} else {
-		cli_ui.Successf("Write %s success\n", moduleFullPath)
-	}
-}
+//// init module.yaml
+//func (x *InitCommandExecutor) initModulesYaml() {
+//	const moduleComment = `
+//modules:
+//  - name: AWS_Security_Demo
+//    uses:
+//    - ./rules/
+//`
+//	moduleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "module.yaml")
+//	err := os.WriteFile(moduleFullPath, []byte(moduleComment), 0644)
+//	if err != nil {
+//		cli_ui.Errorf("Write %s error: %s\n", moduleFullPath, err.Error())
+//	} else {
+//		cli_ui.Successf("Write %s success\n", moduleFullPath)
+//	}
+//}
 
 func (x *InitCommandExecutor) initRulesYaml() {
-	const ruleComment = `
-rules:
-  - name: example_rule_name
-    query: |
-      SELECT 
+	//	const ruleComment = `
+	//rules:
+	//  - name: example_rule_name
+	//    query: |
+	//      SELECT
+	//        *
+	//      FROM
+	//        aws_ec2_ebs_volumes
+	//      WHERE
+	//        encrypted = FALSE;
+	//    labels:
+	//      resource_type: EC2
+	//      resource_account_id : '{{.account_id}}'
+	//      resource_id: '{{.id}}'
+	//      resource_region: '{{.availability_zone}}'
+	//    metadata:
+	//      id: SF010302
+	//      severity: Low
+	//      provider: AWS
+	//      tags:
+	//        - Misconfigure
+	//      author: Selefra
+	//      remediation: remediation/ec2/ebs_volume_are_unencrypted.md
+	//      title: EBS volume are unencrypted
+	//      description: Ensure that EBS volumes are encrypted.
+	//    output: 'EBS volume are unencrypted, EBS id: {{.id}}, availability zone: {{.availability_zone}}'
+	//`
+	//	ruleDirectory := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "rules")
+	//	_ = utils.EnsureDirectoryExists(ruleDirectory)
+	//	ruleFullPath := filepath.Join(ruleDirectory, "rule.yaml")
+	//	err := os.WriteFile(ruleFullPath, []byte(ruleComment), 0644)
+	//	if err != nil {
+	//		cli_ui.Errorf("Write %s error: %s\n", ruleFullPath, err.Error())
+	//	} else {
+	//		cli_ui.Successf("Write %s success\n", ruleFullPath)
+	//	}
+
+	const ruleComment = `rules:
+  - name: bucket_versioning_is_disabled
+    query: |-
+      SELECT
         *
-      FROM 
-        aws_ec2_ebs_volumes 
-      WHERE 
-        encrypted = FALSE;
-    labels:  
-      resource_type: EC2 
-      resource_account_id : '{{.account_id}}'
-      resource_id: '{{.id}}'
-      resource_region: '{{.availability_zone}}'
-    metadata: 
-      id: SF010302
-      severity: Low
-      provider: AWS
-      tags:
-        - Misconfigure
-      author: Selefra
-      remediation: remediation/ec2/ebs_volume_are_unencrypted.md
-      title: EBS volume are unencrypted 
-      description: Ensure that EBS volumes are encrypted.
-    output: 'EBS volume are unencrypted, EBS id: {{.id}}, availability zone: {{.availability_zone}}'
-`
-	ruleDirectory := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "rules")
-	_ = utils.EnsureDirectoryExists(ruleDirectory)
-	ruleFullPath := filepath.Join(ruleDirectory, "rule.yaml")
+      FROM
+        aws_s3_buckets
+      WHERE
+        versioning_status IS DISTINCT
+      FROM
+        'Enabled';
+    output: "S3 bucket versioning is disabled, arn: {{.arn}}"`
+	ruleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "rules.yaml")
 	err := os.WriteFile(ruleFullPath, []byte(ruleComment), 0644)
 	if err != nil {
 		cli_ui.Errorf("Write %s error: %s\n", ruleFullPath, err.Error())
