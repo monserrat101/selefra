@@ -345,15 +345,17 @@ func (x *InitCommandExecutor) initRulesYaml() {
 	//	}
 
 	const ruleComment = `rules:
-  - name: example_rule
-    query: |
-      SELECT 
+  - name: bucket_versioning_is_disabled
+    query: |-
+      SELECT
         *
-      FROM 
-        aws_ec2_ebs_volumes 
-      WHERE 
-        encrypted = FALSE;
-    output: 'EBS volume are unencrypted, EBS id: {{.id}}'`
+      FROM
+        aws_s3_buckets
+      WHERE
+        versioning_status IS DISTINCT
+      FROM
+        'Enabled';
+    output: "S3 bucket versioning is disabled, arn: {{.arn}}"`
 	ruleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "rules.yaml")
 	err := os.WriteFile(ruleFullPath, []byte(ruleComment), 0644)
 	if err != nil {
