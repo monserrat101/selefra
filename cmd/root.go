@@ -51,7 +51,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringP("loglevel", "l", "debug", "log level")
+	rootCmd.PersistentFlags().StringP("loglevel", "l", "info", "log level")
 	//rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.test.yaml)")
 	group["main"] = []*cobra.Command{
 		initCmd.NewInitCmd(),
