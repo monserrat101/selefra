@@ -55,7 +55,7 @@ func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error
 		DownloadWorkspace:                    downloadWorkspace,
 		MessageChannel:                       messageChannel,
 		ProjectLifeCycleStep:                 executors.ProjectLifeCycleStepFetch,
-		FetchStep:                            executors.FetchStepGetInit,
+		FetchStep:                            executors.FetchStepGetInformation,
 		ProjectCloudLifeCycleExecutorOptions: nil,
 		DSN:                                  env.GetDatabaseDsn(),
 		FetchWorkerNum:                       1,
@@ -70,7 +70,7 @@ func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error
 		_ = cli_ui.PrintDiagnostics(d)
 		cli_ui.Errorln("Apply failed")
 	} else {
-		cli_ui.Errorln("Apply Done")
+		cli_ui.Successln("Apply Done")
 	}
 
 	if hasError.Load() {

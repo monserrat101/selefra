@@ -176,7 +176,7 @@ func (x *ProjectLocalLifeCycleExecutor) Execute(ctx context.Context) *schema.Dia
 	}
 	// A value of 0 indicates that none of the providers has been successfully pulled, so there is no need to start subsequent pull tasks
 	if len(fetchExecutor.GetProviderInformationMap()) == 0 {
-		x.cloudExecutor.UploadLog(ctx, schema.NewDiagnostics().AddErrorMsg("Fetch Failed!"))
+		x.cloudExecutor.UploadLog(ctx, schema.NewDiagnostics().AddErrorMsg("Fetch failed, can not get provider information"))
 		x.cloudExecutor.ReportTaskStatus(log.StageType_STAGE_TYPE_PULL_INFRASTRUCTURE, log.Status_STATUS_FAILED)
 		return nil
 	}

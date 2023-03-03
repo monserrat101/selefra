@@ -51,11 +51,11 @@ func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 		FetchStep:                            executors.FetchStepFetch,
 		ProjectCloudLifeCycleExecutorOptions: nil,
 		//DSN:                                  env.GetDatabaseDsn(),
-		FetchWorkerNum:                       1,
-		QueryWorkerNum:                       1,
+		FetchWorkerNum: 1,
+		QueryWorkerNum: 1,
 	}).Execute(context.Background())
-	if utils.IsNotEmpty(d) {
-		_ = cli_ui.PrintDiagnostics(d)
+	_ = cli_ui.PrintDiagnostics(d)
+	if utils.HasError(d) {
 		cli_ui.Errorln("fetch failed!")
 	} else {
 		cli_ui.Infoln("fetch done!")
