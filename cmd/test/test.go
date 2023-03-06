@@ -58,8 +58,8 @@ func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error
 		FetchStep:                            executors.FetchStepGetInformation,
 		ProjectCloudLifeCycleExecutorOptions: nil,
 		DSN:                                  env.GetDatabaseDsn(),
-		FetchWorkerNum:                       1,
-		QueryWorkerNum:                       1,
+		FetchWorkerNum: 1,
+		QueryWorkerNum: 1,
 	}).Execute(context.Background())
 	messageChannel.ReceiverWait()
 

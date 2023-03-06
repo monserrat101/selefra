@@ -26,6 +26,8 @@ func GetServerHost() string {
 	return os.Getenv(SelefraServerHost)
 }
 
+// ------------------------------------------------- --------------------------------------------------------------------
+
 const SelefraCloudToken = "SELEFRA_CLOUD_TOKEN"
 
 func GetCloudToken() string {
