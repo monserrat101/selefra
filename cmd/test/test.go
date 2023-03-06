@@ -3,7 +3,6 @@ package test
 import (
 	"context"
 	"errors"
-	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/config"
@@ -57,9 +56,9 @@ func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error
 		ProjectLifeCycleStep:                 executors.ProjectLifeCycleStepFetch,
 		FetchStep:                            executors.FetchStepGetInformation,
 		ProjectCloudLifeCycleExecutorOptions: nil,
-		DSN:                                  env.GetDatabaseDsn(),
-		FetchWorkerNum:                       1,
-		QueryWorkerNum:                       1,
+		//DSN:                                  env.GetDatabaseDsn(),
+		FetchWorkerNum: 1,
+		QueryWorkerNum: 1,
 	}).Execute(context.Background())
 	messageChannel.ReceiverWait()
 

@@ -5,12 +5,13 @@ import (
 	"os"
 )
 
-// BuildOwnerId The current host name is placed in the owner of the lock so that it is easy to identify who is holding the lock
-func BuildOwnerId() string {
+// BuildLockOwnerId The current host name is placed in the owner of the lock so that it is easy to identify who is holding the lock
+// This place is mainly used for database locks
+func BuildLockOwnerId() string {
 	hostname, err := os.Hostname()
 	id := id_util.RandomId()
 	if err != nil {
-		return id
+		return "unknown-hostname-" + id
 	} else {
 		return hostname + "-" + id
 	}

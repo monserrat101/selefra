@@ -1,0 +1,12 @@
+rules:
+  - name: bucket_versioning_is_disabled
+    query: |-
+      SELECT
+        *
+      FROM
+        aws_s3_buckets
+      WHERE
+        versioning_status IS DISTINCT
+      FROM
+        'Enabled';
+    output: "S3 bucket versioning is disabled, arn: {{.arn}}"

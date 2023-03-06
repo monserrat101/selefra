@@ -8,23 +8,35 @@ import (
 	"github.com/selefra/selefra-provider-sdk/storage"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra-provider-sdk/storage_factory"
+	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/module"
 	"github.com/selefra/selefra/pkg/registry"
+	"github.com/selefra/selefra/pkg/selefra_workspace"
 	"github.com/selefra/selefra/pkg/storage/pgstorage"
+	"github.com/selefra/selefra/pkg/utils"
+	"os"
+	"time"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
+// ProvidersFetchPlan The installation plan of a batch of providers
 type ProvidersFetchPlan []*ProviderFetchPlan
 
+// BuildProviderContextMap Create an execution context for the provider installation plan
 func (x ProvidersFetchPlan) BuildProviderContextMap(ctx context.Context, DSN string) (map[string][]*ProviderContext, *schema.Diagnostics) {
+
 	diagnostics := schema.NewDiagnostics()
+
 	m := make(map[string][]*ProviderContext, 0)
 	for _, plan := range x {
 
-		databaseSchema := pgstorage.GetSchemaKey(plan.Name, plan.Version, plan.ProviderConfigurationBlock)
+		//databaseSchema := pgstorage.GetSchemaKey(plan.Name, plan.Version, plan.ProviderConfigurationBlock)
+		//options := postgresql_storage.NewPostgresqlStorageOptions(DSN)
+		//options.SearchPath = databaseSchema
+
 		options := postgresql_storage.NewPostgresqlStorageOptions(DSN)
-		options.SearchPath = databaseSchema
+		options.SearchPath = plan.FetchToDatabaseSchema
 
 		databaseStorage, d := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, options)
 		if diagnostics.AddDiagnostics(d).HasError() {
@@ -34,7 +46,8 @@ func (x ProvidersFetchPlan) BuildProviderContextMap(ctx context.Context, DSN str
 		providerContext := &ProviderContext{
 			ProviderName:          plan.Name,
 			ProviderVersion:       plan.Version,
-			Schema:                databaseSchema,
+			DSN:                   DSN,
+			Schema:                plan.FetchToDatabaseSchema,
 			Storage:               databaseStorage,
 			ProviderConfiguration: plan.ProviderConfigurationBlock,
 		}
@@ -52,6 +65,8 @@ type ProviderContext struct {
 
 	// Which version
 	ProviderVersion string
+
+	DSN string
 
 	// The database stored to
 	Schema string
@@ -75,6 +90,15 @@ type ProviderFetchPlan struct {
 
 	// provider Configuration information used for fetching
 	ProviderConfigurationBlock *module.ProviderBlock
+
+	// Which schema to write data to
+	FetchToDatabaseSchema string
+
+	// The name of the configuration block to be used, which is left blank if not configured using a configuration file
+	ProviderConfigurationName string
+
+	// What is the MD5 of the configuration block if the provider configuration is used
+	ProviderConfigurationMD5 string
 }
 
 func NewProviderFetchPlan(providerName, providerVersion string, providerBlock *module.ProviderBlock) *ProviderFetchPlan {
@@ -125,6 +149,12 @@ type ProviderFetchPlannerOptions struct {
 
 	// Provider version that wins the vote
 	ProviderVersionVoteWinnerMap map[string]string
+
+	// DSNS are used to connect to the database to determine which schema to use when using environment variables
+	DSN string
+
+	// A place to send messages to the outside world
+	MessageChannel *message.Channel[*schema.Diagnostics]
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -146,11 +176,16 @@ func (x *ProviderFetchPlanner) Name() string {
 }
 
 func (x *ProviderFetchPlanner) MakePlan(ctx context.Context) (ProvidersFetchPlan, *schema.Diagnostics) {
-	return x.expandByConfiguration()
+
+	defer func() {
+		x.options.MessageChannel.SenderWaitAndClose()
+	}()
+
+	return x.expandByConfiguration(ctx)
 }
 
 // Expand to multiple tasks based on the configuration
-func (x *ProviderFetchPlanner) expandByConfiguration() ([]*ProviderFetchPlan, *schema.Diagnostics) {
+func (x *ProviderFetchPlanner) expandByConfiguration(ctx context.Context) ([]*ProviderFetchPlan, *schema.Diagnostics) {
 
 	diagnostics := schema.NewDiagnostics()
 	providerFetchPlanSlice := make([]*ProviderFetchPlan, 0)
@@ -176,17 +211,28 @@ func (x *ProviderFetchPlanner) expandByConfiguration() ([]*ProviderFetchPlan, *s
 		}
 
 		// find use provider version
-		if providerWinnerVersion, exists := x.options.ProviderVersionVoteWinnerMap[requiredProviderBlock.Source]; exists {
-			// Start a plan for the provider
-			providerNamePlanCountMap[requiredProviderBlock.Source]++
-			providerFetchPlanSlice = append(providerFetchPlanSlice, NewProviderFetchPlan(requiredProviderBlock.Source, providerWinnerVersion, providerBlock))
-		} else {
+		providerWinnerVersion, exists := x.options.ProviderVersionVoteWinnerMap[requiredProviderBlock.Source]
+		if !exists {
 			errorTips := fmt.Sprintf("provider version %s not found", requiredProviderBlock.Source)
 			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, requiredProviderBlock.GetNodeLocation("version")))
+			continue
 		}
+
+		// Start a plan for the provider
+		providerNamePlanCountMap[requiredProviderBlock.Source]++
+		providerFetchPlan := NewProviderFetchPlan(requiredProviderBlock.Source, providerWinnerVersion, providerBlock)
+
+		fetchToDatabaseSchema := pgstorage.GetSchemaKey(requiredProviderBlock.Source, providerWinnerVersion, providerBlock)
+		providerFetchPlan.FetchToDatabaseSchema = fetchToDatabaseSchema
+		providerFetchPlanSlice = append(providerFetchPlanSlice, providerFetchPlan)
 
 	}
 	if diagnostics.HasError() {
+		return nil, diagnostics
+	}
+
+	deviceID, d := selefra_workspace.GetDeviceID()
+	if diagnostics.AddDiagnostics(d).HasError() {
 		return nil, diagnostics
 	}
 
@@ -195,10 +241,103 @@ func (x *ProviderFetchPlanner) expandByConfiguration() ([]*ProviderFetchPlan, *s
 		if providerNamePlanCountMap[providerName] > 0 {
 			continue
 		}
-		providerFetchPlanSlice = append(providerFetchPlanSlice, NewProviderFetchPlan(providerName, providerVersion, nil))
+
+		providerFetchPlan := NewProviderFetchPlan(providerName, providerVersion, nil)
+		fetchToDatabaseSchema, d := x.decideDatabaseSchemaForNoProviderBlockPlan(ctx, providerFetchPlan, deviceID)
+		if diagnostics.AddDiagnostics(d).HasError() {
+			continue
+		}
+		providerFetchPlan.FetchToDatabaseSchema = fetchToDatabaseSchema
+		providerFetchPlanSlice = append(providerFetchPlanSlice, providerFetchPlan)
 	}
 
 	return providerFetchPlanSlice, diagnostics
+}
+
+// Generate schema names for pull plans that do not have provider blocks
+func (x *ProviderFetchPlanner) decideDatabaseSchemaForNoProviderBlockPlan(ctx context.Context, plan *ProviderFetchPlan, deviceID string) (string, *schema.Diagnostics) {
+
+	diagnostics := schema.NewDiagnostics()
+
+	// Verify that the database is available
+	fetchToDatabaseSchema := pgstorage.GetSchemaKey(plan.Name, plan.Version, nil)
+	pgstorage.WithSearchPath(fetchToDatabaseSchema)
+	postgresqlOptions := postgresql_storage.NewPostgresqlStorageOptions(x.options.DSN)
+	databaseStorage, d := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, postgresqlOptions)
+	if diagnostics.AddDiagnostics(d).HasError() {
+		return "", diagnostics
+	}
+	// storage created must remember to close
+	defer func() {
+		databaseStorage.Close()
+	}()
+	owner, d := pgstorage.GetSchemaOwner(ctx, databaseStorage)
+	if diagnostics.AddDiagnostics(d).HasError() {
+		return "", diagnostics
+	}
+	if owner == nil {
+		// This schema is still in unowned state. Try to get its attribution
+		d := x.grabDatabaseSchema(ctx, plan, deviceID, databaseStorage)
+		if diagnostics.AddDiagnostics(d).HasError() {
+			return "", diagnostics
+		}
+		return fetchToDatabaseSchema, diagnostics
+	}
+
+	// If the schema is already occupied by someone, check to see if that person is yourself
+	if owner.HolderID == deviceID {
+		// If that person is yourself, then you can continue to use it
+		return fetchToDatabaseSchema, diagnostics
+	}
+
+	// The previous schema is occupied, so you have to use your own separate schema
+	fetchToDatabaseSchema = fetchToDatabaseSchema + "_" + deviceID
+	return fetchToDatabaseSchema, diagnostics
+}
+
+// Use the database schema
+// When a schema is assigned to the provider in the execution plan, the ownership of the schema is also marked for the provider to avoid schema ownership disputes during the execution phase
+func (x *ProviderFetchPlanner) grabDatabaseSchema(ctx context.Context, plan *ProviderFetchPlan, deviceID string, storage storage.Storage) *schema.Diagnostics {
+
+	lockOwnerId := utils.BuildLockOwnerId()
+	tryTimes := 0
+
+	for {
+
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner %s, make execute plan, begin try get database schema lock...", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
+
+		tryTimes++
+		err := storage.Lock(ctx, pgstorage.LockId, lockOwnerId)
+		if err != nil {
+			x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, owner %s, make execute plan, get database schema lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId, err.Error(), tryTimes))
+		} else {
+			x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner %s, make execute plan, get database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
+			break
+		}
+		time.Sleep(time.Second * 10)
+	}
+	defer func() {
+		for tryTimes := 0; tryTimes < 10; tryTimes++ {
+			err := storage.UnLock(ctx, pgstorage.LockId, lockOwnerId)
+			if err != nil {
+				x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, owner = %s, release database schema lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId, err.Error(), tryTimes))
+			} else {
+				x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner = %s, release database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
+				break
+			}
+		}
+	}()
+
+	// You can hold this database, It's okay to hold the database, because you were the first one there
+	// First set a tag bit to occupy this schema
+	hostname, _ := os.Hostname()
+	return pgstorage.SaveSchemaOwner(ctx, storage, &pgstorage.SchemaOwnerInformation{
+		Hostname: hostname,
+		HolderID: deviceID,
+		// TODO If you are using a configuration file, put these two fields on the Settings
+		ConfigurationName: "",
+		ConfigurationMD5:  "",
+	})
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------

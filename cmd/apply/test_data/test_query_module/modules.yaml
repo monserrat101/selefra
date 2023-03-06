@@ -1,7 +1,7 @@
 rules:
   - name: bucket_is_not_configured_with_cors_rules
     query: |
-      select * from mock_foo
+      select * from mock_bar
     labels:
       resource_account_id: '{{.account_id}}'
       resource_id: '{{.arn}}'
@@ -46,7 +46,14 @@ selefra:
 
 
 providers:
-  - name: mock
+  - name: aws_001
+    cache: 1dasdasd
+    provider: mock
+    foo-count: 10
+    bar-count: 10
+    sleep-seconds: 1
+    max_goroutines: 1
+  - name: aws_002
     cache: 1d
     provider: mock
     foo-count: 10

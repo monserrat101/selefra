@@ -197,7 +197,7 @@ func (x *ProviderBlock) Check(module *Module, validatorContext *ValidatorContext
 		// TODO maybe nil
 		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
 		diagnostics.AddErrorMsg(report)
-	} else if !checkIdentity(x.Name) {
+	} else if !CheckIdentity(x.Name) {
 		errorTips := fmt.Sprintf("Provider configuration name " + CheckIdentityErrorMsg)
 		// TODO maybe nil
 		report := RenderErrorTemplate(errorTips, x.GetNodeLocation("name"))
@@ -221,6 +221,18 @@ func (x *ProviderBlock) Check(module *Module, validatorContext *ValidatorContext
 			errorTips := fmt.Sprintf("Provider %s max_goroutines must greater than 0 ", x.Name)
 			// TODO maybe nil
 			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("max_goroutines"))
+			diagnostics.AddErrorMsg(report)
+		}
+	}
+
+	// The cache may not be filled, but if it is, it must be valid and parsable
+	if x.Cache != "" {
+		// TODO
+		_, err := ParseDuration(x.Cache)
+		if err != nil {
+			errorTips := fmt.Sprintf("Provider %s cache parse failed: %s ", x.Name, err.Error())
+			// TODO maybe nil
+			report := RenderErrorTemplate(errorTips, x.GetNodeLocation("cache"))
 			diagnostics.AddErrorMsg(report)
 		}
 	}

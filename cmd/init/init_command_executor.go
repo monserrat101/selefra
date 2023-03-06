@@ -35,19 +35,33 @@ import (
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
+// InitCommandExecutorOptions The execution options of the executor that executes the initialization command
 type InitCommandExecutorOptions struct {
+
+	// Where to put the downloaded file
 	DownloadWorkspace string
-	ProjectWorkspace  string
-	IsForceInit       bool
-	RelevanceProject  string
-	DSN               string
+
+	// Which path to initialize as the working directory for your project
+	ProjectWorkspace string
+
+	// Whether to force the initialization of the working directory
+	IsForceInit bool
+
+	// Which project in the cloud you want to associate with
+	RelevanceProject string
+
+	// The database link to use
+	DSN string
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
 type InitCommandExecutor struct {
+
+	// Used to connect to the selefra cloud
 	cloudClient *cloud_sdk.CloudClient
 
+	// Some options when executing the command
 	options *InitCommandExecutorOptions
 }
 
@@ -589,7 +603,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 		return "", false
 	}
 	lockId := "selefra-fetch-lock"
-	ownerId := utils.BuildOwnerId()
+	ownerId := utils.BuildLockOwnerId()
 	tryTimes := 0
 	for {
 
