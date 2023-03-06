@@ -22,6 +22,7 @@ import (
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
+// ProjectCloudLifeCycleExecutorOptions Options required when creating a project
 type ProjectCloudLifeCycleExecutorOptions struct {
 
 	// The address of the Cloud cluster to which you are connecting
@@ -36,12 +37,15 @@ type ProjectCloudLifeCycleExecutorOptions struct {
 	// Whether to enable console prompts
 	EnableConsoleTips bool
 
+	// Whether to log in
 	IsNeedLogin bool
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
 type ProjectCloudLifeCycleExecutor struct {
+
+	// Options when creating the project
 	options *ProjectCloudLifeCycleExecutorOptions
 
 	// the client for connect to cloud
@@ -70,6 +74,7 @@ func NewProjectCloudLifeCycleExecutor(options *ProjectCloudLifeCycleExecutorOpti
 
 func (x *ProjectCloudLifeCycleExecutor) getServerHost() string {
 	if x.options.CloudServerHost != "" {
+		logger.InfoF("ProjectCloudLifeCycleExecutor get getServerHost from options")
 		return x.options.CloudServerHost
 	}
 	return cli_env.GetServerHost()
@@ -87,6 +92,7 @@ func (x *ProjectCloudLifeCycleExecutor) InitCloudClient(ctx context.Context) boo
 
 	// 2. find local cloud token & use it to login to the cloud
 	if !x.options.IsNeedLogin {
+		logger.InfoF("do not need to login")
 		return true
 	}
 	credentials, _ := cloudClient.GetCredentials()
@@ -101,6 +107,7 @@ func (x *ProjectCloudLifeCycleExecutor) InitCloudClient(ctx context.Context) boo
 func (x *ProjectCloudLifeCycleExecutor) loginByCredentials(ctx context.Context, credentials *cloud_sdk.CloudCredentials) bool {
 
 	if x.cloudClient == nil {
+		logger.ErrorF("cloudClient is nil, can not loginByCredentials")
 		return false
 	}
 
@@ -204,6 +211,7 @@ func (x *ProjectCloudLifeCycleExecutor) initLogUploader(client *cloud_sdk.CloudC
 
 // UploadIssue add issue to send cloud queue
 func (x *ProjectCloudLifeCycleExecutor) UploadIssue(ctx context.Context, r *RuleQueryResult) {
+
 	var consoleOutput strings.Builder
 	consoleOutput.WriteString(fmt.Sprintf("Rule name %s, ", r.RuleBlock.Name))
 	if r.RuleBlock.MetadataBlock != nil && r.RuleBlock.MetadataBlock.Id != "" {

@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"github.com/selefra/selefra-provider-sdk/grpc/shard"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
+	"github.com/selefra/selefra-provider-sdk/storage"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra-provider-sdk/storage_factory"
+	"github.com/selefra/selefra-utils/pkg/id_util"
 	"github.com/selefra/selefra-utils/pkg/pointer"
 	"github.com/selefra/selefra/cli_ui"
+	"github.com/selefra/selefra/pkg/logger"
 	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/module"
 	"github.com/selefra/selefra/pkg/modules/planner"
@@ -128,25 +131,31 @@ func (x *ProviderFetchExecutor) Name() string {
 func (x *ProviderFetchExecutor) Execute(ctx context.Context) *schema.Diagnostics {
 
 	defer func() {
+		logger.InfoF("fetch MessageChannel.SenderWaitAndClose begin")
 		x.options.MessageChannel.SenderWaitAndClose()
+		logger.InfoF("fetch MessageChannel.SenderWaitAndClose end")
 	}()
 
-	// TODO Scheduling algorithm
+	// TODO Scheduling algorithm, Minimize waiting
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Make fetch queue begin..."))
 	fetchPlanChannel := make(chan *planner.ProviderFetchPlan, len(x.options.Plans))
 	for _, plan := range x.options.Plans {
 		fetchPlanChannel <- plan
 	}
 	close(fetchPlanChannel)
-
-	providerInformationChannel := make(chan *shard.GetProviderInformationResponse, len(x.options.Plans))
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Make fetch queue done..."))
 
 	// The concurrent pull starts
+	providerInformationChannel := make(chan *shard.GetProviderInformationResponse, len(x.options.Plans))
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Run fetch worker, worker num %d...", x.options.WorkerNum))
 	wg := sync.WaitGroup{}
 	for i := uint64(0); i < x.options.WorkerNum; i++ {
 		wg.Add(1)
 		NewProviderFetchExecutorWorker(x, fetchPlanChannel, providerInformationChannel, &wg).Run()
 	}
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Start fetch worker done, wait queue consumer done."))
 	wg.Wait()
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Fetch queue done"))
 
 	// Sort the provider information
 	close(providerInformationChannel)
@@ -158,8 +167,6 @@ func (x *ProviderFetchExecutor) Execute(ctx context.Context) *schema.Diagnostics
 
 	return nil
 }
-
-//
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
@@ -176,15 +183,15 @@ type ProviderFetchExecutorWorker struct {
 	wg *sync.WaitGroup
 
 	// Collect information about the started providers
-	providerInformation chan *shard.GetProviderInformationResponse
+	providerInformationCollector chan *shard.GetProviderInformationResponse
 }
 
-func NewProviderFetchExecutorWorker(executor *ProviderFetchExecutor, planChannel chan *planner.ProviderFetchPlan, providerInformation chan *shard.GetProviderInformationResponse, wg *sync.WaitGroup) *ProviderFetchExecutorWorker {
+func NewProviderFetchExecutorWorker(executor *ProviderFetchExecutor, planChannel chan *planner.ProviderFetchPlan, providerInformationCollector chan *shard.GetProviderInformationResponse, wg *sync.WaitGroup) *ProviderFetchExecutorWorker {
 	return &ProviderFetchExecutorWorker{
-		executor:            executor,
-		planChannel:         planChannel,
-		wg:                  wg,
-		providerInformation: providerInformation,
+		executor:                     executor,
+		planChannel:                  planChannel,
+		wg:                           wg,
+		providerInformationCollector: providerInformationCollector,
 	}
 }
 
@@ -194,8 +201,8 @@ func (x *ProviderFetchExecutorWorker) Run() {
 			x.wg.Done()
 		}()
 		for plan := range x.planChannel {
-			// The drop-down time limit for a single Provider is 24 hours. If it is insufficient, adjust it again
-			ctx, cancelFunc := context.WithTimeout(context.Background(), time.Hour*24)
+			// The drop-down time limit for a single Provider is a month. If it is insufficient, adjust it again
+			ctx, cancelFunc := context.WithTimeout(context.Background(), time.Hour*24*30)
 			x.executePlan(ctx, plan)
 			cancelFunc()
 		}
@@ -207,7 +214,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 
 	diagnostics := schema.NewDiagnostics()
 
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("begin fetch provider %s", plan.String())))
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Begin fetch provider %s", plan.String())))
 
 	// Find the local path of the provider
 	localProvider := &local_providers_manager.LocalProvider{
@@ -219,7 +226,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		return
 	}
 	if !installed {
-		x.sendMessage(x.addProviderNameForMessage(plan, diagnostics.AddErrorMsg("provider %s not installed, can not exec fetch for it", plan.String())))
+		x.sendMessage(x.addProviderNameForMessage(plan, diagnostics.AddErrorMsg("Provider %s not installed, can not exec fetch for it", plan.String())))
 		return
 	}
 
@@ -233,67 +240,67 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	// Start provider
 	plug, err := plugin.NewManagedPlugin(localProviderMeta.ExecutableFilePath, plan.Name, plan.Version, "", nil)
 	if err != nil {
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("start provider %s at %s failed: %s", plan.String(), localProviderMeta.ExecutableFilePath, err.Error())))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Start provider %s at %s failed: %s", plan.String(), localProviderMeta.ExecutableFilePath, err.Error())))
 		return
 	}
 	// Close the provider at the end of the method execution
 	defer func() {
 		plug.Close()
-		x.sendMessage(schema.NewDiagnostics().AddInfo("stop provider %s at %s ", plan.String(), localProviderMeta.ExecutableFilePath))
+		x.sendMessage(schema.NewDiagnostics().AddInfo("Stop provider %s at %s ", plan.String(), localProviderMeta.ExecutableFilePath))
 	}()
 
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("start provider %s success", plan.String())))
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Start provider %s success", plan.String())))
 
 	// init
 	if x.executor.options.FetchStepTo > FetchStepGetInit {
+		// TODO log
 		return
 	}
 
 	// Database connection option
 	storageOpt := postgresql_storage.NewPostgresqlStorageOptions(x.executor.options.DSN)
-	dbSchema := pgstorage.GetSchemaKey(plan.Name, plan.Version, plan.ProviderConfigurationBlock)
-	pgstorage.WithSearchPath(dbSchema)(storageOpt)
+	pgstorage.WithSearchPath(plan.FetchToDatabaseSchema)(storageOpt)
 	opt, err := json.Marshal(storageOpt)
 	if err != nil {
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("json marshal postgresql options error: %s", err.Error())))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Json marshal postgresql options error: %s", err.Error())))
 		return
 	}
 
 	// Get the lock first
-	storage, d := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, storageOpt)
+	databaseStorage, d := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, storageOpt)
 	x.sendMessage(x.addProviderNameForMessage(plan, d))
 	if utils.HasError(d) {
 		return
 	}
-	lockId := "selefra-fetch-lock"
-	ownerId := utils.BuildOwnerId()
+	ownerId := utils.BuildLockOwnerId()
 	tryTimes := 0
 	for {
 
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner = %s, try get fetch lock...", plan.String(), dbSchema, ownerId)))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s, schema %s, owner %s, fetch data, try get fetch lock...", plan.String(), plan.FetchToDatabaseSchema, ownerId)))
 
 		tryTimes++
-		err := storage.Lock(ctx, lockId, ownerId)
+		err := databaseStorage.Lock(ctx, pgstorage.LockId, ownerId)
 		if err != nil {
-			x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, owner = %s, get fetch lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), dbSchema, ownerId, err.Error(), tryTimes)))
+			x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, owner %s, fetch data, get fetch lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, ownerId, err.Error(), tryTimes)))
 		} else {
-			x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner = %s, get fetch lock success", plan.String(), dbSchema, ownerId)))
+			x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s, schema %s, owner %s, fetch data, get fetch lock success", plan.String(), plan.FetchToDatabaseSchema, ownerId)))
 			break
 		}
 		time.Sleep(time.Second * 10)
 	}
 	defer func() {
 		for tryTimes := 0; tryTimes < 10; tryTimes++ {
-			err := storage.UnLock(ctx, lockId, ownerId)
+			err := databaseStorage.UnLock(ctx, pgstorage.LockId, ownerId)
 			if err != nil {
-				x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, owner = %s, release fetch lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), dbSchema, ownerId, err.Error(), tryTimes)))
+				x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, owner %s, fetch data, release fetch lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, ownerId, err.Error(), tryTimes)))
 			} else {
-				x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner = %s, release fetch lock success", plan.String(), dbSchema, ownerId)))
+				x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s, schema %s, owner %s, fetch data, release fetch lock success", plan.String(), plan.FetchToDatabaseSchema, ownerId)))
 				break
 			}
 		}
 	}()
 
+	// TODO Default values for processing parameters
 	// Initialize the provider
 	pluginProvider := plug.Provider()
 	var providerYamlConfiguration string
@@ -314,7 +321,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		ProviderConfig: pointer.ToStringPointerOrNilIfEmpty(providerYamlConfiguration),
 	})
 	if err != nil {
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("start provider failed: %s", err.Error())))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Start provider failed: %s", err.Error())))
 		return
 	}
 	// TODO There is a problem with process interruption here
@@ -324,7 +331,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 			return
 		}
 	}
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s init success", plan.String())))
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s init success", plan.String())))
 
 	// get information
 	if x.executor.options.FetchStepTo > FetchStepGetInformation {
@@ -334,28 +341,34 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	// Get information about the started provider
 	information, err := pluginProvider.GetProviderInformation(ctx, &shard.GetProviderInformationRequest{})
 	if err != nil {
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, get provider information failed: %s", plan.String(), dbSchema, err.Error())))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, get provider information failed: %s", plan.String(), plan.FetchToDatabaseSchema, err.Error())))
 		return
 	}
-	x.providerInformation <- information
-
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("get provider %s information success", plan.String())))
+	x.providerInformationCollector <- information
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Get provider %s information success", plan.String())))
 
 	if x.executor.options.FetchStepTo > FetchStepDropAllTable {
+		return
+	}
+
+	// Check whether the cache can be removed
+	cache, needFetchTableSet := x.tryHitCache(ctx, databaseStorage, plan, information)
+	if cache {
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s pull data hit cache", plan.String())))
 		return
 	}
 
 	// Delete the table before provider
 	dropRes, err := pluginProvider.DropTableAll(ctx, &shard.ProviderDropTableAllRequest{})
 	if err != nil {
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, drop all table failed: %s", plan.String(), dbSchema, err.Error())))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, drop all table failed: %s", plan.String(), plan.FetchToDatabaseSchema, err.Error())))
 		return
 	}
 	x.sendMessage(x.addProviderNameForMessage(plan, dropRes.Diagnostics))
 	if utils.HasError(dropRes.Diagnostics) {
 		return
 	}
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s drop database schema clean success", plan.String())))
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s drop database schema clean success", plan.String())))
 
 	if x.executor.options.FetchStepTo > FetchStepCreateAllTable {
 		return
@@ -365,7 +378,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	createRes, err := pluginProvider.CreateAllTables(ctx, &shard.ProviderCreateAllTablesRequest{})
 	if err != nil {
 		cli_ui.Errorln(err.Error())
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, create all table failed: %s", plan.String(), dbSchema, err.Error())))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, create all table failed: %s", plan.String(), plan.FetchToDatabaseSchema, err.Error())))
 		return
 	}
 	if createRes.Diagnostics != nil {
@@ -374,23 +387,25 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 			return
 		}
 	}
-
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s create tables success", plan.String())))
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s create tables success", plan.String())))
 
 	if x.executor.options.FetchStepTo > FetchStepFetch {
 		return
 	}
-
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s begin fetch...", plan.String())))
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s begin fetch...", plan.String())))
 
 	// being pull data
+	needFetchTableNameSlice := make([]string, 0)
+	for tableName := range needFetchTableSet {
+		needFetchTableNameSlice = append(needFetchTableNameSlice, tableName)
+	}
 	recv, err := pluginProvider.PullTables(ctx, &shard.PullTablesRequest{
-		Tables:        plan.GetNeedPullTablesName(),
+		Tables:        needFetchTableNameSlice,
 		MaxGoroutines: plan.GetMaxGoroutines(),
 		Timeout:       0,
 	})
 	if err != nil {
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, pull table failed: %s", plan.String(), dbSchema, err.Error())))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, pull table failed: %s", plan.String(), plan.FetchToDatabaseSchema, err.Error())))
 		return
 	}
 	//progbar := progress.DefaultProgress()
@@ -453,6 +468,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	}
 	_ = success
 	_ = total
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d ...", plan.String(), success, total)))
 	//progbar.ReceiverWait(decl.Name + "@" + decl.Version)
 	if errorsN > 0 {
 		//cli_ui.Errorf("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
@@ -461,7 +477,13 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	}
 	//cli_ui.Successf("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
 	//return nil
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("provider %s fetch done", plan.String())))
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch done", plan.String())))
+
+	// save table pull time
+	d = x.refreshPullTableTime(ctx, databaseStorage, plan, needFetchTableSet)
+	if utils.IsNotEmpty(d) {
+		x.executor.options.MessageChannel.Send(d)
+	}
 
 	return
 }
@@ -472,13 +494,140 @@ func (x *ProviderFetchExecutorWorker) addProviderNameForMessage(plan *planner.Pr
 	}
 	diagnostics := schema.NewDiagnostics()
 	for _, item := range d.GetDiagnosticSlice() {
-		diagnostics.AddDiagnostic(schema.NewDiagnostic(item.Level(), fmt.Sprintf("provider %s: %s", plan.String(), item.Content())))
+		diagnostics.AddDiagnostic(schema.NewDiagnostic(item.Level(), fmt.Sprintf("Provider %s say: %s", plan.String(), item.Content())))
 	}
 	return diagnostics
 }
 
 func (x *ProviderFetchExecutorWorker) sendMessage(message *schema.Diagnostics) {
 	x.executor.options.MessageChannel.Send(message)
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
+
+// An attempt is made to hit the cache of the data pull, and if the cache can be hit, the previous data is used instead of a repeat pull
+func (x *ProviderFetchExecutorWorker) tryHitCache(ctx context.Context, databaseStorage storage.Storage, plan *planner.ProviderFetchPlan, providerInformation *shard.GetProviderInformationResponse) (bool, map[string]struct{}) {
+
+	// Step 01. Calculate all the root tables that need to be pulled
+	tooRootTableMap := x.makeToRootTableMap(providerInformation)
+	needFetchTableNameSet := map[string]struct{}{}
+	//  If resource is specified, only the given resource is pulled
+	if plan.ProviderConfigurationBlock != nil && len(plan.ProviderConfigurationBlock.Resources) != 0 {
+		for _, tableName := range plan.ProviderConfigurationBlock.Resources {
+			needFetchTableNameSet[tooRootTableMap[tableName]] = struct{}{}
+		}
+	} else {
+		// Otherwise, all resources of this provider are pulled by default
+		for _, table := range providerInformation.Tables {
+			needFetchTableNameSet[table.TableName] = struct{}{}
+		}
+	}
+
+	//  If caching is not enabled, return directly
+	if !x.isEnableFetchCache(ctx, databaseStorage, plan) {
+		return false, needFetchTableNameSet
+	}
+
+	cache, diagnostics := x.computeAllNeedPullTableCanHitCache(ctx, databaseStorage, plan, needFetchTableNameSet)
+	x.executor.options.MessageChannel.Send(diagnostics)
+	return cache, needFetchTableNameSet
+}
+
+func (x *ProviderFetchExecutorWorker) isEnableFetchCache(ctx context.Context, storage storage.Storage, plan *planner.ProviderFetchPlan) bool {
+	if plan == nil || plan.ProviderConfigurationBlock == nil || plan.ProviderConfigurationBlock.Cache == "" {
+		return false
+	}
+	return true
+}
+
+// Calculate all the tables that need to be pulled
+func (x *ProviderFetchExecutorWorker) computeAllNeedPullTableCanHitCache(ctx context.Context, storage storage.Storage, plan *planner.ProviderFetchPlan, needFetchTableNameSet map[string]struct{}) (bool, *schema.Diagnostics) {
+
+	diagnostics := schema.NewDiagnostics()
+
+	// Step 02. Resolve whether it is expired
+	duration, err := module.ParseDuration(plan.ProviderConfigurationBlock.Cache)
+	if err != nil {
+		return false, schema.NewDiagnostics().AddErrorMsg("Parse cache duration failed: %s", err.Error())
+	}
+	databaseTime, err := storage.GetTime(ctx)
+	if err != nil {
+		return false, schema.NewDiagnostics().AddErrorMsg("Get database time failed: %s", err.Error())
+	}
+
+	// The expiration time of the cache in the table
+
+	// Step 03.
+	pullTaskId := ""
+	for tableName := range needFetchTableNameSet {
+		information, d := pgstorage.ReadTableCacheInformation(ctx, storage, tableName)
+		if utils.HasError(d) {
+			return false, d
+		}
+		if information == nil {
+			return false, diagnostics.AddInfo("Can not hit cache, still need pull table")
+		}
+
+		// It has to be from the same batch
+		if pullTaskId == "" {
+			pullTaskId = information.LastPullId
+		} else if pullTaskId != information.LastPullId {
+			return false, diagnostics.AddInfo("Can not hit cache, still need pull table")
+		}
+
+		if information.LastPullTime.Add(duration).After(databaseTime) {
+			return false, diagnostics.AddInfo("Can not hit cache, still need pull table")
+		}
+
+		// ok, this table can hit cache
+
+	}
+
+	// ok, all table can hit cache
+	return true, nil
+}
+
+// Expand the forest of all tables of the provider into a mapping table from the current table name to the root table name
+func (x *ProviderFetchExecutorWorker) makeToRootTableMap(providerInformation *shard.GetProviderInformationResponse) map[string]string {
+	tableRootMap := make(map[string]string, 0)
+	for rootTableName, rootTable := range providerInformation.Tables {
+		for _, tableName := range x.flatTable(rootTable) {
+			tableRootMap[tableName] = rootTableName
+		}
+	}
+	return tableRootMap
+}
+
+func (x *ProviderFetchExecutorWorker) flatTable(table *schema.Table) []string {
+	if table == nil {
+		return nil
+	}
+	tableNameSlice := []string{table.TableName}
+	for _, subTables := range table.SubTables {
+		tableNameSlice = append(tableNameSlice, x.flatTable(subTables)...)
+	}
+	return tableNameSlice
+}
+
+func (x *ProviderFetchExecutorWorker) refreshPullTableTime(ctx context.Context, databaseStorage storage.Storage, plan *planner.ProviderFetchPlan, needFetchTableNameSet map[string]struct{}) *schema.Diagnostics {
+	diagnostics := schema.NewDiagnostics()
+	pullId := id_util.RandomId()
+	storageTime, err := databaseStorage.GetTime(ctx)
+	if err != nil {
+		return diagnostics.AddErrorMsg("Get storage time error: %s", err.Error())
+	}
+	for tableName := range needFetchTableNameSet {
+		information := &pgstorage.TableCacheInformation{
+			TableName:    tableName,
+			LastPullId:   pullId,
+			LastPullTime: storageTime,
+		}
+		d := pgstorage.SaveTableCacheInformation(ctx, databaseStorage, information)
+		if diagnostics.AddDiagnostics(d).HasError() {
+			return diagnostics
+		}
+	}
+	return diagnostics
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------

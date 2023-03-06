@@ -1,5 +1,11 @@
 package module
 
+import (
+	"strconv"
+	"strings"
+	"time"
+)
+
 // ------------------------------------------------- --------------------------------------------------------------------
 
 // ValidatorContext Some global context information stored during validation
@@ -48,7 +54,7 @@ func (x *ValidatorContext) GetModuleByName(moduleName string) (*ModuleBlock, boo
 
 const CheckIdentityErrorMsg = "only allow \"a-z,A-Z,0-9,_\" and can't start with a number"
 
-func checkIdentity(s string) bool {
+func CheckIdentity(s string) bool {
 
 	if len(s) == 0 {
 		return false
@@ -69,4 +75,31 @@ func checkIdentity(s string) bool {
 	return true
 }
 
+// ------------------------------------------------- --------------------------------------------------------------------
+
+// ParseDuration TODO bug fix
+func ParseDuration(d string) (time.Duration, error) {
+	d = strings.TrimSpace(d)
+	dr, err := time.ParseDuration(d)
+	if err == nil {
+		return dr, nil
+	}
+	if strings.Contains(d, "d") {
+		index := strings.Index(d, "d")
+
+		hour, err := strconv.Atoi(d[:index])
+		if err != nil {
+			return dr, err
+		}
+		dr = time.Hour * 24 * time.Duration(hour)
+		ndr, err := time.ParseDuration(d[index+1:])
+		if err != nil {
+			return dr, err
+		}
+		return dr + ndr, nil
+	}
+
+	dv, err := strconv.ParseInt(d, 10, 64)
+	return time.Duration(dv), err
+}
 // ------------------------------------------------- --------------------------------------------------------------------

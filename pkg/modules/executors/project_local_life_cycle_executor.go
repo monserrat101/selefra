@@ -320,6 +320,7 @@ func (x *ProjectLocalLifeCycleExecutor) fetch(ctx context.Context, providersInst
 	providerFetchPlans, d := planner.NewProviderFetchPlanner(&planner.ProviderFetchPlannerOptions{
 		Module:                       x.rootModule,
 		ProviderVersionVoteWinnerMap: providersInstallPlan.ToMap(),
+		MessageChannel:               x.options.MessageChannel.MakeChildChannel(),
 	}).MakePlan(ctx)
 	if x.cloudExecutor.UploadLog(ctx, d) {
 		return nil, nil, false
