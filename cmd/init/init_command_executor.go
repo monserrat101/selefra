@@ -9,7 +9,6 @@ import (
 	"github.com/selefra/selefra-provider-sdk/grpc/shard"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
-	"github.com/selefra/selefra-provider-sdk/storage_factory"
 	"github.com/selefra/selefra-utils/pkg/pointer"
 	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/cmd/version"
@@ -30,7 +29,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -84,9 +82,9 @@ func (x *InitCommandExecutor) Run(ctx context.Context) error {
 		return err
 	}
 	if len(providerSlice) != 0 {
-		cli_ui.Infof("begin install provider...")
+		cli_ui.Infof("Begin install provider...\n")
 	} else {
-		cli_ui.Infof("You not select provider")
+		cli_ui.Infof("You not select provider\n")
 	}
 
 	// init files
@@ -154,15 +152,15 @@ func (x *InitCommandExecutor) checkWorkspace() bool {
 	if errors.Is(err, os.ErrNotExist) {
 		err = os.Mkdir(x.options.ProjectWorkspace, 0755)
 		if err != nil {
-			cli_ui.Errorf("create workspace directory: %s failed: %s", x.options.ProjectWorkspace, err.Error())
+			cli_ui.Errorf("Create workspace directory: %s failed: %s\n", x.options.ProjectWorkspace, err.Error())
 			return false
 		}
-		cli_ui.Successf("create workspace directory: %s success", x.options.ProjectWorkspace)
+		cli_ui.Successf("Create workspace directory: %s success\n", x.options.ProjectWorkspace)
 	}
 
 	if x.isNeedForceInit() {
 		if !x.options.IsForceInit {
-			cli_ui.Errorf("%s is not empty; rerun in an empty directory, or use -- force/-f to force overwriting in the current directory\n", x.options.ProjectWorkspace)
+			cli_ui.Errorf("Directory %s is not empty, rerun in an empty directory, or use -- force/-f to force overwriting in the current directory\n", x.options.ProjectWorkspace)
 			return false
 		} else if !x.reInitConfirm() {
 			return false
@@ -203,7 +201,7 @@ func (x *InitCommandExecutor) reInitConfirm() bool {
 	text, err := reader.ReadString('\n')
 	text = strings.TrimSpace(strings.ToLower(text))
 	if err != nil && !errors.Is(err, io.EOF) {
-		cli_ui.Errorf("read you input error: %s", err.Error())
+		cli_ui.Errorf("Read you input error: %s\n", err.Error())
 		return false
 	}
 
@@ -213,7 +211,7 @@ func (x *InitCommandExecutor) reInitConfirm() bool {
 	}
 
 	if text != "y" && text != "Y" {
-		cli_ui.Errorf("config file already exists")
+		cli_ui.Errorf("Config file already exists\n")
 		return false
 	}
 
@@ -254,13 +252,13 @@ func (x *InitCommandExecutor) initSelefraYaml(ctx context.Context, providerSlice
 
 	out, err := yaml.Marshal(selefraBlock)
 	if err != nil {
-		cli_ui.Errorf("selefra block yaml.Marshal error: %s", err.Error())
+		cli_ui.Errorf("Selefra block yaml.Marshal error: %s\n", err.Error())
 		return nil
 	}
 	var selefraNode yaml.Node
 	err = yaml.Unmarshal(out, &selefraNode)
 	if err != nil {
-		cli_ui.Errorf("selefra yaml.Unmarshal error: %s", err.Error())
+		cli_ui.Errorf("Selefra yaml.Unmarshal error: %s\n", err.Error())
 		return nil
 	}
 	documentRoot := yaml.Node{
@@ -272,7 +270,7 @@ func (x *InitCommandExecutor) initSelefraYaml(ctx context.Context, providerSlice
 	}
 	marshal, err := yaml.Marshal(&documentRoot)
 	if err != nil {
-		cli_ui.Errorf("selefra yaml.Marshal error: %s", err.Error())
+		cli_ui.Errorf("Selefra yaml.Marshal error: %s\n", err.Error())
 		return nil
 	}
 	selefraFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "selefra.yaml")
@@ -390,15 +388,15 @@ func (x *InitCommandExecutor) initProvidersYaml(ctx context.Context, requiredPro
 	}
 	out, err := yaml.Marshal(providers)
 	if err != nil {
-		cli_ui.Errorf("providers block yaml.Marshal error: %s", err.Error())
+		cli_ui.Errorf("Providers block yaml.Marshal error: %s\n", err.Error())
 		return
 	}
-	//fmt.Println("Yaml string: " + string(out))
+	//fmt.Println("Providers Yaml string: " + string(out))
 
 	var providersNode yaml.Node
 	err = yaml.Unmarshal(out, &providersNode)
 	if err != nil {
-		cli_ui.Errorf("providers yaml.Unmarshal error: %s", err.Error())
+		cli_ui.Errorf("Providers yaml.Unmarshal error: %s\n", err.Error())
 		return
 	}
 	//fmt.Println(fmt.Sprintf("length: %d", len(providersNode.Content[0].Content[0].Content)))
@@ -406,21 +404,21 @@ func (x *InitCommandExecutor) initProvidersYaml(ctx context.Context, requiredPro
 		Kind: yaml.MappingNode,
 		Content: []*yaml.Node{
 			&yaml.Node{Kind: yaml.ScalarNode, Value: parser.ProvidersBlockName},
-			&yaml.Node{Kind: yaml.MappingNode, Content: providersNode.Content[0].Content[0].Content},
+			&yaml.Node{Kind: providersNode.Content[0].Kind, Content: providersNode.Content[0].Content},
 		},
 	}
 	marshal, err := yaml.Marshal(documentRoot)
 	if err != nil {
-		cli_ui.Errorf("providers yaml.Marshal error: %s", err.Error())
+		cli_ui.Errorf("Providers yaml.Marshal error: %s\n", err.Error())
 		return
 	}
-	fmt.Println("Yaml string: " + string(marshal))
-	ruleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "providers.yaml")
-	err = os.WriteFile(ruleFullPath, marshal, 0644)
+	//fmt.Println("Yaml string: " + string(marshal))
+	providerFullName := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "providers.yaml")
+	err = os.WriteFile(providerFullName, marshal, 0644)
 	if err != nil {
-		cli_ui.Errorf("Write %s error: %s\n", ruleFullPath, err.Error())
+		cli_ui.Errorf("Write %s error: %s\n", providerFullName, err.Error())
 	} else {
-		cli_ui.Successf("Write %s success\n", ruleFullPath)
+		cli_ui.Successf("Write %s success\n", providerFullName)
 	}
 }
 
@@ -466,10 +464,10 @@ func (x *InitCommandExecutor) getProjectName() (string, bool) {
 	// 2. Let the user specify from standard input, the default project name is the name of the current folder
 	var err error
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("project name:(%s)", defaultProjectName)
+	fmt.Printf("Project name:(%s)", defaultProjectName)
 	projectName, err := reader.ReadString('\n')
 	if err != nil {
-		cli_ui.Errorf("read you project name error: %s", err.Error())
+		cli_ui.Errorf("Read you project name error: %s\n", err.Error())
 		return "", false
 	}
 	projectName = strings.TrimSpace(strings.Replace(projectName, "\n", "", -1))
@@ -500,7 +498,7 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 	// convert required provider block to
 	for _, requiredProvider := range requiredProvidersBlock {
 
-		cli_ui.Successf("begin install provider %s\n", requiredProvider.Source)
+		cli_ui.Successf("Begin install provider %s\n", requiredProvider.Source)
 
 		providerInstallPlan := &planner.ProviderInstallPlan{
 			Provider: registry.NewProvider(requiredProvider.Name, requiredProvider.Version),
@@ -528,10 +526,10 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 		if err := cli_ui.PrintDiagnostics(d); err != nil {
 			return nil, false
 		}
-		cli_ui.Successf("install provider %s success\n", requiredProvider.Source)
+		cli_ui.Successf("Install provider %s success\n", requiredProvider.Source)
 
 		// init
-		cli_ui.Successf("begin init provider %s...\n", requiredProvider.Source)
+		cli_ui.Successf("Begin init provider %s...\n", requiredProvider.Source)
 		configuration, b := x.getProviderInitConfiguration(ctx, executor.GetLocalProviderManager(), providerInstallPlan)
 		if !b {
 			return nil, false
@@ -544,7 +542,9 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 		providerBlock.ProvidersConfigYamlString = configuration
 		providersBlock = append(providersBlock, providerBlock)
 
-		cli_ui.Successf("init provider %s done", requiredProvider.Source)
+		//fmt.Println("Provider Block: " + json_util.ToJsonString(providerBlock))
+
+		cli_ui.Successf("Init provider %s done\n", requiredProvider.Source)
 	}
 	return providersBlock, true
 }
@@ -553,7 +553,7 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, localProviderManager *local_providers_manager.LocalProvidersManager, plan *planner.ProviderInstallPlan) (string, bool) {
 
 	// start & get information
-	cli_ui.Infof("begin init provider %s", plan.String())
+	cli_ui.Successf("Begin init provider %s \n", plan.String())
 
 	// Find the local path of the provider
 	localProvider := &local_providers_manager.LocalProvider{
@@ -564,7 +564,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 		return "", false
 	}
 	if !installed {
-		cli_ui.Errorf("provider %s not installed, can not exec fetch for it", plan.String())
+		cli_ui.Errorf("Provider %s not installed, can not exec init for it! \n", plan.String())
 		return "", false
 	}
 
@@ -577,59 +577,25 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 	// Start provider
 	plug, err := plugin.NewManagedPlugin(localProviderMeta.ExecutableFilePath, plan.Name, plan.Version, "", nil)
 	if err != nil {
-		cli_ui.Errorf("start provider %s at %s failed: %s", plan.String(), localProvider.ExecutableFilePath, err.Error())
+		cli_ui.Errorf("Start provider %s at %s failed: %s \n", plan.String(), localProvider.ExecutableFilePath, err.Error())
 		return "", false
 	}
 	// Close the provider at the end of the method execution
 	defer plug.Close()
 
-	cli_ui.Successf("start provider %s success\n", plan.String())
+	cli_ui.Successf("Start provider %s success\n", plan.String())
 
 	// Database connection option
 	storageOpt := postgresql_storage.NewPostgresqlStorageOptions(x.options.DSN)
 	providerBlock := module.NewProviderBlock()
 	providerBlock.Name = plan.Name
-	dbSchema := pgstorage.GetSchemaKey(plan.Name, plan.Version, providerBlock)
-	pgstorage.WithSearchPath(dbSchema)(storageOpt)
+	// Because you do not need to actually interact with the database, it is set to public
+	pgstorage.WithSearchPath("public")(storageOpt)
 	opt, err := json.Marshal(storageOpt)
 	if err != nil {
-		cli_ui.Errorf("json marshal postgresql options error: %s", err.Error())
+		cli_ui.Errorf("Json marshal postgresql options error: %s \n", err.Error())
 		return "", false
 	}
-
-	// Get the lock first
-	storage, d := storage_factory.NewStorage(ctx, storage_factory.StorageTypePostgresql, storageOpt)
-	if err := cli_ui.PrintDiagnostics(d); err != nil {
-		return "", false
-	}
-	lockId := "selefra-fetch-lock"
-	ownerId := utils.BuildLockOwnerId()
-	tryTimes := 0
-	for {
-
-		cli_ui.Infof("provider %s, schema %s, owner = %s, try get fetch lock...", plan.String(), dbSchema, ownerId)
-
-		tryTimes++
-		err := storage.Lock(ctx, lockId, ownerId)
-		if err != nil {
-			cli_ui.Errorf("provider %s, schema %s, owner = %s, get fetch lock error: %s, will sleep & retry, tryTimes = %d\n", plan.String(), dbSchema, ownerId, err.Error(), tryTimes)
-		} else {
-			cli_ui.Infof("provider %s, schema %s, owner = %s, get fetch lock success\n", plan.String(), dbSchema, ownerId)
-			break
-		}
-		time.Sleep(time.Second * 10)
-	}
-	defer func() {
-		for tryTimes := 0; tryTimes < 10; tryTimes++ {
-			err := storage.UnLock(ctx, lockId, ownerId)
-			if err != nil {
-				cli_ui.Errorf("provider %s, schema %s, owner = %s, release fetch lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), dbSchema, ownerId, err.Error(), tryTimes)
-			} else {
-				cli_ui.Infof("provider %s, schema %s, owner = %s, release fetch lock success", plan.String(), dbSchema, ownerId)
-				break
-			}
-		}
-	}()
 
 	// Initialize the provider
 	pluginProvider := plug.Provider()
@@ -641,25 +607,30 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 			Type:           0,
 			StorageOptions: opt,
 		},
-		IsInstallInit:  pointer.FalsePointer(),
+		IsInstallInit: pointer.FalsePointer(),
+		// Without passing in any configuration, there is no interaction with the database
 		ProviderConfig: nil,
 	})
 	if err != nil {
-		cli_ui.Errorf("start provider failed: %s", err.Error())
+		cli_ui.Errorf("Start provider failed: %s \n", err.Error())
 		return "", false
 	}
 	if err := cli_ui.PrintDiagnostics(providerInitResponse.Diagnostics); err != nil {
 		return "", false
 	}
-
-	cli_ui.Infof("provider %s init success", plan.String())
+	cli_ui.Successf("Provider %s init success \n", plan.String())
 
 	// Get information about the started provider
 	information, err := pluginProvider.GetProviderInformation(ctx, &shard.GetProviderInformationRequest{})
 	if err != nil {
-		cli_ui.Errorf("provider %s, schema %s, get provider information failed: %s", plan.String(), dbSchema, err.Error())
+		cli_ui.Errorf("Provider %s, get provider information failed: %s \n", plan.String(), err.Error())
 		return "", false
 	}
+
+	// just for debug
+	//fmt.Println("Provider Information Name: " + json_util.ToJsonString(information.Name))
+	//fmt.Println("Provider Information Version: " + json_util.ToJsonString(information.Version))
+	//fmt.Println("Provider Information DefaultConfiguration: " + json_util.ToJsonString(information.DefaultConfigTemplate))
 
 	return information.DefaultConfigTemplate, true
 }
