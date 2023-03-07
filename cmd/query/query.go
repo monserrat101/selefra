@@ -2,13 +2,20 @@ package query
 
 import (
 	"context"
+	"errors"
+	"github.com/selefra/selefra-provider-sdk/env"
+	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra-provider-sdk/storage_factory"
 	"github.com/selefra/selefra/cli_ui"
+	"github.com/selefra/selefra/config"
 	"github.com/selefra/selefra/global"
-	"github.com/selefra/selefra/pkg/cli_runtime"
-	"github.com/selefra/selefra/pkg/utils"
+	"github.com/selefra/selefra/pkg/cli_env"
+	"github.com/selefra/selefra/pkg/cloud_sdk"
+	"github.com/selefra/selefra/pkg/message"
+	"github.com/selefra/selefra/pkg/modules/module_loader"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 func NewQueryCmd() *cobra.Command {
@@ -18,27 +25,110 @@ func NewQueryCmd() *cobra.Command {
 		Long:             "Query infrastructure data from pgstorage",
 		PersistentPreRun: global.DefaultWrappedInit(),
 		Run: func(cmd *cobra.Command, args []string) {
+
 			ctx := cmd.Context()
 
-			cli_runtime.Init("./")
-
-			cli_ui.Warningln("Please select table.")
-
-			dsn, d := cli_runtime.GetDSN()
-			if utils.HasError(d) {
-				_ = cli_ui.PrintDiagnostics(d)
+			downloadDirectory, err := config.GetDefaultDownloadCacheDirectory()
+			if err != nil {
+				cli_ui.Errorln(err.Error() + " \n")
 				return
 			}
+
+			projectWorkspace := "./"
+
+			dsn, err := getDsn(ctx, projectWorkspace, downloadDirectory)
+			if err != nil {
+				cli_ui.Errorln(err.Error() + "\n")
+				return
+			}
+
+			cli_ui.Successf("Connection to you database... \n")
+
 			options := postgresql_storage.NewPostgresqlStorageOptions(dsn)
-			storage, diagnostics := storage_factory.NewStorage(context.Background(), storage_factory.StorageTypePostgresql, options)
+			storage, diagnostics := storage_factory.NewStorage(cmd.Context(), storage_factory.StorageTypePostgresql, options)
 			if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
 				return
 			}
 
+			cli_ui.Successf("Please enter your query statement: \n")
 			queryClient, _ := NewQueryClient(ctx, storage_factory.StorageTypePostgresql, storage)
 			queryClient.Run(ctx)
 
 		},
 	}
 	return cmd
+}
+
+func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (string, error) {
+
+	// 1. load from project workspace
+	dsn, _ := loadDSNFromProjectWorkspace(ctx, projectWorkspace, downloadWorkspace)
+	if dsn != "" {
+		cli_ui.Successf("Find database connection in workspace %s \n", projectWorkspace)
+		return dsn, nil
+	}
+
+	// 2. load from selefra cloud
+	client, diagnostics := cloud_sdk.NewCloudClient(cli_env.GetServerHost())
+	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
+		return "", err
+	}
+	if c, _ := client.GetCredentials(); c != nil {
+		c, d := client.Login(c.Token)
+		if err := cli_ui.PrintDiagnostics(d); err != nil {
+			return "", err
+		}
+		d = client.SaveCredentials(c)
+		if err := cli_ui.PrintDiagnostics(d); err != nil {
+			return "", err
+		}
+		orgDSN, d := client.FetchOrgDSN()
+		if err := cli_ui.PrintDiagnostics(d); err != nil {
+			return "", err
+		}
+		if orgDSN != "" {
+			cli_ui.Successf("Find database connection in you selefra cloud \n")
+			return orgDSN, nil
+		}
+	}
+
+	// 3. get dsn from env
+	dsn = os.Getenv(env.DatabaseDsn)
+	if dsn != "" {
+		cli_ui.Successf("Find database connection in you env \n")
+		return dsn, nil
+	}
+
+	return "", errors.New("Can not find database connection")
+}
+
+// Look for DSN in the configuration of the project's working directory
+func loadDSNFromProjectWorkspace(ctx context.Context, projectWorkspace, downloadWorkspace string) (string, error) {
+	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
+		// Any error while loading will not print
+		//if utils.IsNotEmpty(message) {
+		//	_ = cli_ui.PrintDiagnostics(message)
+		//}
+	})
+	loader, err := module_loader.NewLocalDirectoryModuleLoader(&module_loader.LocalDirectoryModuleLoaderOptions{
+		ModuleLoaderOptions: &module_loader.ModuleLoaderOptions{
+			Source:            projectWorkspace,
+			Version:           "",
+			DownloadDirectory: downloadWorkspace,
+			ProgressTracker:   nil,
+			MessageChannel:    messageChannel,
+			DependenciesTree:  []string{projectWorkspace},
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	rootModule, b := loader.Load(ctx)
+	if !b {
+		return "", nil
+	}
+	if rootModule.SelefraBlock != nil && rootModule.SelefraBlock.ConnectionBlock != nil && rootModule.SelefraBlock.ConnectionBlock.BuildDSN() != "" {
+		return rootModule.SelefraBlock.ConnectionBlock.BuildDSN(), nil
+	}
+	return "", nil
 }
