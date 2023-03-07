@@ -35,7 +35,12 @@ func (x *CloudClient) Login(token string) (*CloudCredentials, *schema.Diagnostic
 		return nil, diagnostics.AddErrorMsg("Login failed: %s", err.Error())
 	}
 	if response.Diagnosis != nil && response.Diagnosis.Code != 0 {
-		return nil, diagnostics.AddErrorMsg("Login response error, code = %d, message = %s", response.Diagnosis.Code, response.Diagnosis.Msg)
+		switch response.Diagnosis.Code {
+		case cloud.Diagnosis_IllegalToken:
+			return nil, diagnostics.AddErrorMsg("Login failed, The Selefra Cloud recognizes that the token you entered is not a valid Token")
+		default:
+			return nil, diagnostics.AddErrorMsg("Login response error, code = %d, message = %s", response.Diagnosis.Code, response.Diagnosis.Msg)
+		}
 	}
 	x.token = token
 	credentials := &CloudCredentials{
