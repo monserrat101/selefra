@@ -19,21 +19,14 @@ func InputCloudToken(serverUrl string) (string, *schema.Diagnostics) {
 
 	diagnostics := schema.NewDiagnostics()
 
-	if !strings.HasPrefix(strings.ToLower(serverUrl), "http") {
-		serverUrl = "https://" + serverUrl
-	}
+	tipsTemplate := `selefra will login https://app.selefra.io in your default browser.
+if login is successful, the token will be stored as a plain text file for future usage:
 
-	tipsTemplate := `
-selefra will login for login {{.ServerUrl}} using your browser.
-if login is successful, selefra will store the token in plain text in
-the following file for use by subsequent commands:
-
-	Enter your access token from {{.ServerUrl}}{{.CloudTokenRequestPath}}
-	or hit <ENTER> to log in using your browser:`
+   Enter your access token from https://app.selefra.io{{.CloudTokenRequestPath}}
+   or hit <ENTER> to complete login in browser:`
 
 	// Render display tips
 	data := make(map[string]string)
-	data["ServerUrl"] = serverUrl
 	data["CloudTokenRequestPath"] = CloudTokenRequestPath
 	inputCloudTokenTips, err := utils.RenderingTemplate("input-token-tips-template", tipsTemplate, data)
 	if err != nil {
@@ -42,7 +35,7 @@ the following file for use by subsequent commands:
 	fmt.Println(inputCloudTokenTips)
 
 	// Open a browser window to allow the user to log in
-	utils.OpenBrowser(serverUrl)
+	_, _, _ = utils.OpenBrowser("https://app.selefra.io" + CloudTokenRequestPath)
 
 	// Read the token entered by the user
 	var rawToken string
@@ -50,7 +43,7 @@ the following file for use by subsequent commands:
 	//reader := bufio.NewReader(os.Stdin)
 	//rawToken, err := reader.ReadString('\n')
 	if err != nil {
-		return "", diagnostics.AddErrorMsg("input cloud token error: %s", err.Error())
+		return "", diagnostics.AddErrorMsg("Input cloud token error: %s", err.Error())
 	}
 	cloudToken := strings.TrimSpace(strings.Replace(rawToken, "\n", "", -1))
 	if cloudToken == "" {
@@ -79,7 +72,7 @@ Logged in to selefra as {{.UserName}} (https://{{.ServerHost}}/{{.OrgName}})
 
 // ShowLoginFailed Displays a login failure message
 func ShowLoginFailed(cloudToken string) {
-	Errorf("You input token %s login failed\n", cloudToken)
+	Errorf("You input token %s login failed \n", cloudToken)
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -89,7 +82,7 @@ func ShowRetrievedCloudCredentials(cloudCredentials *cloud_sdk.CloudCredentials)
 	if cloudCredentials == nil {
 		return
 	}
-	Successf(fmt.Sprintf("Auto login with user %s\n", cloudCredentials.UserName))
+	Successf(fmt.Sprintf("Auto login with user %s \n", cloudCredentials.UserName))
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -99,7 +92,7 @@ func ShowLogout(cloudCredentials *cloud_sdk.CloudCredentials) {
 	if cloudCredentials == nil {
 		return
 	}
-	Successf(fmt.Sprintf("User %s logout success\n", cloudCredentials.UserName))
+	Successf(fmt.Sprintf("User %s logout success \n", cloudCredentials.UserName))
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
