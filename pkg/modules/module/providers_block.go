@@ -162,12 +162,21 @@ func (x *ProviderBlock) MarshalYAML() (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// for debug
 		//fmt.Println(fmt.Sprintf("Content length: %d", len(customProviderConfiguration.Content)))
+		//fmt.Println("HeadComment： " + customProviderConfiguration.HeadComment)
+		//fmt.Println("FootComment： " + customProviderConfiguration.FootComment)
+		//fmt.Println("LineComment： " + customProviderConfiguration.LineComment)
+
 		if len(customProviderConfiguration.Content) > 0 {
 			//fmt.Println(fmt.Sprintf("Content customProviderConfiguration.Content[0].Content length: %d", len(customProviderConfiguration.Content[0].Content)))
 			for _, node := range customProviderConfiguration.Content[0].Content {
 				configurationMappingNode.Content = append(configurationMappingNode.Content, node)
 			}
+		} else if len(configurationMappingNode.Content) != 0 {
+			// In the case of all comments, the default configuration item is added after the current item as a comment
+			configurationMappingNode.Content[len(configurationMappingNode.Content)-1].FootComment = x.ProvidersConfigYamlString
 		}
 	}
 
