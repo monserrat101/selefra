@@ -686,6 +686,8 @@ github.com/selefra/selefra-utils v0.0.2 h1:Z3cAmMoTr6XePiZJakRmLVi7CvMjZ4ypt8TO7
 github.com/selefra/selefra-utils v0.0.2/go.mod h1:LPY6RNU12IniRH3xz7yS7xF10YH3emQ6NWrn6UuBjEk=
 github.com/selefra/selefra-utils v0.0.3 h1:amqF092buuXTxncJghmQVi2OyuHqvF9S+C4DT8wkkOc=
 github.com/selefra/selefra-utils v0.0.3/go.mod h1:LPY6RNU12IniRH3xz7yS7xF10YH3emQ6NWrn6UuBjEk=
+github.com/selefra/selefra-utils v0.0.4 h1:NJ1d8qr0I4Gse9lxk2oll0QlTGtuNdBlqRPoViHXhBA=
+github.com/selefra/selefra-utils v0.0.4/go.mod h1:LPY6RNU12IniRH3xz7yS7xF10YH3emQ6NWrn6UuBjEk=
 github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24/go.mod h1:M+9NzErvs504Cn4c5DxATwIqPbtswREoFCre64PpcG4=
 github.com/shopspring/decimal v1.2.0 h1:abSATXmQEYyShuxI4/vyW3tV1MrKAJzCZ/0zLUXYbsQ=
 github.com/shopspring/decimal v1.2.0/go.mod h1:DKyhrW/HYNuLGql+MJL6WCR6knT2jwCFRcu2hWCYk4o=

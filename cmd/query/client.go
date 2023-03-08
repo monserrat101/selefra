@@ -27,6 +27,8 @@ func NewQueryClient(ctx context.Context, storageType storage_factory.StorageType
 		storageType: storageType,
 		Storage:     storage,
 	}
+
+	// TODO BUG: If you switch schema, the hints here will be outdated
 	client.initTablesSuggest(ctx)
 	client.initColumnsSuggest(ctx)
 
@@ -36,9 +38,20 @@ func NewQueryClient(ctx context.Context, storageType storage_factory.StorageType
 // ------------------------------------------------- --------------------------------------------------------------------
 
 func (x *SQLQueryClient) Run(ctx context.Context) {
+
+	cli_ui.Infof("You can end the session by typing `exit` and press enter, now enter your query statement: \n")
+
 	p := prompt.New(func(in string) {
+
+		in = strings.TrimSpace(in)
 		strArr := strings.Split(in, "\\")
 		s := strArr[0]
+
+		lowerSql := strings.ToLower(s)
+		if lowerSql == "exit" || lowerSql == "exit;" || lowerSql == ".exit" {
+			cli_ui.Successf("Bye.")
+			os.Exit(0)
+		}
 
 		res, err := x.Storage.Query(ctx, s)
 		if err != nil {
@@ -68,9 +81,7 @@ func (x *SQLQueryClient) Run(ctx context.Context) {
 			}
 
 		}
-		if s == "exit;" || s == ".exit" {
-			os.Exit(0)
-		}
+
 	}, x.completer,
 		prompt.OptionTitle("Table"),
 		prompt.OptionPrefix("> "),
