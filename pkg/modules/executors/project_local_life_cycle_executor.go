@@ -318,6 +318,7 @@ func (x *ProjectLocalLifeCycleExecutor) fetch(ctx context.Context, providersInst
 
 	// Develop a data pull plan
 	providerFetchPlans, d := planner.NewProviderFetchPlanner(&planner.ProviderFetchPlannerOptions{
+		DSN:                          x.options.DSN,
 		Module:                       x.rootModule,
 		ProviderVersionVoteWinnerMap: providersInstallPlan.ToMap(),
 		MessageChannel:               x.options.MessageChannel.MakeChildChannel(),
