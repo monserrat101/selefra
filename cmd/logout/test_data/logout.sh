@@ -8,13 +8,13 @@
 #                                                                                                                     #
 #######################################################################################################################
 
-# for command `selefra init`
+# for command `selefra logout`
 cd ../../../
 go build
 rm -rf ./test
 mkdir test
 mv selefra.exe ./test
 cd test
-echo "begin run command selefra login"
-./selefra.exe login $@
+echo "begin run command selefra logout"
+./selefra.exe logout $@
 
