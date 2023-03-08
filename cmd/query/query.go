@@ -7,6 +7,7 @@ import (
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra-provider-sdk/storage_factory"
+	"github.com/selefra/selefra-utils/pkg/dsn_util"
 	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/config"
 	"github.com/selefra/selefra/global"
@@ -42,7 +43,13 @@ func NewQueryCmd() *cobra.Command {
 				return
 			}
 
-			cli_ui.Successf("Connection to you database... \n")
+			// show tips
+			c, err := dsn_util.NewConfigByDSN(dsn)
+			if err != nil {
+				cli_ui.Errorln("Parse dsn %s error: %s", dsn, err.Error())
+				return
+			}
+			cli_ui.Successf("Connection to you database `%s` ... \n", c.ToDSN(true))
 
 			options := postgresql_storage.NewPostgresqlStorageOptions(dsn)
 			storage, diagnostics := storage_factory.NewStorage(cmd.Context(), storage_factory.StorageTypePostgresql, options)
@@ -50,7 +57,6 @@ func NewQueryCmd() *cobra.Command {
 				return
 			}
 
-			cli_ui.Successf("Please enter your query statement: \n")
 			queryClient, _ := NewQueryClient(ctx, storage_factory.StorageTypePostgresql, storage)
 			queryClient.Run(ctx)
 
@@ -64,7 +70,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	// 1. load from project workspace
 	dsn, _ := loadDSNFromProjectWorkspace(ctx, projectWorkspace, downloadWorkspace)
 	if dsn != "" {
-		cli_ui.Successf("Find database connection in workspace %s \n", projectWorkspace)
+		cli_ui.Successf("Find database connection in workspace. %s \n", projectWorkspace)
 		return dsn, nil
 	}
 
@@ -87,7 +93,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 			return "", err
 		}
 		if orgDSN != "" {
-			cli_ui.Successf("Find database connection in you selefra cloud \n")
+			cli_ui.Successf("Find database connection in you selefra cloud. \n")
 			return orgDSN, nil
 		}
 	}
@@ -95,7 +101,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	// 3. get dsn from env
 	dsn = os.Getenv(env.DatabaseDsn)
 	if dsn != "" {
-		cli_ui.Successf("Find database connection in you env \n")
+		cli_ui.Successf("Find database connection in your env. \n")
 		return dsn, nil
 	}
 

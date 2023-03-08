@@ -16,7 +16,7 @@ require (
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/selefra/selefra-provider-sdk v0.0.21-0.20230308065146-8bbf11ed4eef
-	github.com/selefra/selefra-utils v0.0.3
+	github.com/selefra/selefra-utils v0.0.4
 	github.com/songzhibin97/gkit v1.2.7
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0 // indirect
