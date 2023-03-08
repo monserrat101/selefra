@@ -1,6 +1,7 @@
 package local_providers_manager
 
 import (
+	"errors"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/utils"
 	"os"
@@ -14,7 +15,11 @@ func (x *LocalProvidersManager) ListProviders() ([]*LocalProviderVersions, *sche
 	path := x.buildLocalProvidersPath()
 	entrySlice, err := os.ReadDir(path)
 	if err != nil {
-		return nil, diagnostics.AddErrorMsg("open directory %s error: %s", path, err.Error())
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, diagnostics.AddInfo("You haven't installed any providers yet.")
+		} else {
+			return nil, diagnostics.AddErrorMsg("Can not exec list command, open directory %s error: %s", path, err.Error())
+		}
 	}
 
 	versionsSlice := make([]*LocalProviderVersions, 0)
@@ -41,7 +46,7 @@ func (x *LocalProvidersManager) ListProviderVersions(providerName string) (*Loca
 	providerDirectory := x.buildLocalProviderPath(providerName)
 	providerVersionEntrySlice, err := os.ReadDir(providerDirectory)
 	if err != nil {
-		return nil, diagnostics.AddErrorMsg("list provider versions read directory %s error: %s", utils.AbsPath(providerDirectory), err.Error())
+		return nil, diagnostics.AddErrorMsg("List provider versions read directory %s error: %s", utils.AbsPath(providerDirectory), err.Error())
 	}
 
 	versions := NewLocalProviderVersions(providerName)
