@@ -14,7 +14,7 @@ func (x *LocalProvidersManager) RemoveProviders(ctx context.Context, providerNam
 	diagnostics := schema.NewDiagnostics()
 
 	if len(providerNameVersionSlice) == 0 {
-		return diagnostics.AddErrorMsg("must specify at least one provider version for remove ")
+		return diagnostics.AddErrorMsg("Must specify at least one provider version for remove, for example: aws@v0.0.1")
 	}
 
 	// Analyze whether the providers to be deleted are valid and exist
@@ -23,25 +23,25 @@ func (x *LocalProvidersManager) RemoveProviders(ctx context.Context, providerNam
 		nameVersion := version.ParseNameAndVersion(providerNameVersion)
 
 		if nameVersion.Version == "" {
-			diagnostics.AddErrorMsg("The version number cannot be empty. Specify the version number in the format providerName@version, for example, aws@v0.0.1")
+			diagnostics.AddErrorMsg("The version number cannot be empty. Specify the version number in the format providerName@version, for example: aws@v0.0.1")
 			continue
 		} else if nameVersion.IsLatestVersion() {
-			diagnostics.AddErrorMsg("The version number cannot be latest. Specify a version number, for example, aws@v0.0.1")
+			diagnostics.AddErrorMsg("The version number cannot be latest. Specify a version number, for example: aws@v0.0.1")
 			continue
 		}
 
 		path := x.buildLocalProviderVersionPath(nameVersion.Name, nameVersion.Version)
 		if !utils.Exists(path) {
-			diagnostics.AddErrorMsg("provider version %s not found", providerNameVersion)
+			diagnostics.AddErrorMsg("Provider version %s not found in %s", providerNameVersion, x.buildLocalProvidersPath())
 			continue
 		}
 
 		deleteActionSlice = append(deleteActionSlice, func() *schema.Diagnostics {
 			err := os.RemoveAll(path)
 			if err != nil {
-				return schema.NewDiagnostics().AddErrorMsg("remove provider %s directory %s error: %s", nameVersion.String(), path, err.Error())
+				return schema.NewDiagnostics().AddErrorMsg("Remove provider %s at local directory %s failed: %s", nameVersion.String(), path, err.Error())
 			} else {
-				return schema.NewDiagnostics().AddInfo("remove provider %s directory %s success", nameVersion.String(), path)
+				return schema.NewDiagnostics().AddInfo("Remove provider %s at local directory %s success", nameVersion.String(), path)
 			}
 		})
 
