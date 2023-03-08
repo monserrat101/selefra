@@ -15,8 +15,8 @@ import (
 func newCmdProviderInstall() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:              "install",
-		Short:            "Install one or more plugins",
-		Long:             "Install one or more plugins",
+		Short:            "Install one or more providers, for example: selefra provider install aws",
+		Long:             "Install one or more providers, for example: selefra provider install aws",
 		PersistentPreRun: global.DefaultWrappedInit(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
@@ -24,7 +24,7 @@ func newCmdProviderInstall() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return install(ctx, downloadDirectory, args...)
+			return Install(ctx, downloadDirectory, args...)
 		},
 	}
 
@@ -32,15 +32,24 @@ func newCmdProviderInstall() *cobra.Command {
 	return cmd
 }
 
-func install(ctx context.Context, downloadWorkspace string, args ...string) error {
+func Install(ctx context.Context, downloadWorkspace string, requiredProviders ...string) (err error) {
+
+	if len(requiredProviders) == 0 {
+		cli_ui.Errorf("Please specify one or more providers to install, for example: selefra provider install aws \n")
+		return nil
+	}
+
 	manager, err := local_providers_manager.NewLocalProvidersManager(downloadWorkspace)
 	if err != nil {
 		return err
 	}
-	for _, nameAndVersionString := range args {
+	for _, nameAndVersionString := range requiredProviders {
 		nameAndVersion := version.ParseNameAndVersion(nameAndVersionString)
 		messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
-			_ = cli_ui.PrintDiagnostics(message)
+			e := cli_ui.PrintDiagnostics(message)
+			if err == nil {
+				err = e
+			}
 		})
 		manager.InstallProvider(ctx, &local_providers_manager.InstallProvidersOptions{
 			RequiredProvider: local_providers_manager.NewLocalProvider(nameAndVersion.Name, nameAndVersion.Version),
@@ -48,7 +57,7 @@ func install(ctx context.Context, downloadWorkspace string, args ...string) erro
 		})
 		messageChannel.ReceiverWait()
 	}
-	return nil
+	return err
 }
 
 //func install(ctx context.Context, args []string) error {
