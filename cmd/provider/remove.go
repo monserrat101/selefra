@@ -12,8 +12,8 @@ import (
 func newCmdProviderRemove() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:              "remove",
-		Short:            "RemoveProviders one or more plugins from the download cache",
-		Long:             "RemoveProviders one or more plugins from the download cache",
+		Short:            "Remove providers one or more from the download cache, for example: selefra provider remove aws@v0.0.1",
+		Long:             "Remove providers one or more from the download cache, for example: selefra provider remove aws@v0.0.1",
 		PersistentPreRun: global.DefaultWrappedInit(),
 		RunE: func(cmd *cobra.Command, names []string) error {
 			downloadDirectory, err := config.GetDefaultDownloadCacheDirectory()
