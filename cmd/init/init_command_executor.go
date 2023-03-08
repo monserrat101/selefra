@@ -80,9 +80,7 @@ func (x *InitCommandExecutor) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if len(providerSlice) != 0 {
-		cli_ui.Infof("Begin install provider...\n")
-	} else {
+	if len(providerSlice) == 0 {
 		cli_ui.Infof("You not select provider\n")
 	}
 
