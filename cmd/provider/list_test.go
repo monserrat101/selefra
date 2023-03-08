@@ -19,6 +19,6 @@ import (
 //}
 
 func Test_list(t *testing.T) {
-	err := list("./test_download")
+	err := List("./test_download")
 	assert.Nil(t, err)
 }
