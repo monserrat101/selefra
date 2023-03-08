@@ -36,6 +36,12 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 	}
 	logger.InfoF("Create cloud client success \n")
 
+	var token string
+	if len(args) != 0 {
+		token = args[0]
+		cli_ui.Warningf("Security warning: Entering a token directly on the command line will be recorded in the command line history and may cause your token to leak! \n")
+	}
+
 	// If you are already logged in, repeat login is not allowed and you must log out first
 	getCredentials, _ := client.GetCredentials()
 	if getCredentials != nil {
@@ -44,11 +50,7 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	// Read the token from standard input
-	var token string
-	if len(args) != 0 {
-		token = args[0]
-		cli_ui.Warningf("Security warning: Entering a token directly on the command line will be recorded in the command line history and may cause your token to leak! \n")
-	} else {
+	if token == "" {
 		token, d = cli_ui.InputCloudToken(cloudServerHost)
 		if err := cli_ui.PrintDiagnostics(d); err != nil {
 			return err
