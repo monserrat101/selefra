@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"go.uber.org/zap"
 )
@@ -60,4 +61,35 @@ func (s *SelefraSDKClientLogger) Fatal(msg string, fields ...zap.Field) {
 
 func (s *SelefraSDKClientLogger) FatalF(msg string, args ...any) {
 	s.wrappedLog.Fatal(msg, args)
+}
+
+func (s *SelefraSDKClientLogger) LogDiagnostics(prefix string, d *schema.Diagnostics) {
+	if d == nil {
+		return
+	}
+
+	for _, diagnostic := range d.GetDiagnosticSlice() {
+
+		var msg string
+		if prefix != "" {
+			msg = fmt.Sprintf("%s, %s", prefix, diagnostic.Content())
+		} else {
+			msg = diagnostic.Content()
+		}
+
+		switch diagnostic.Level() {
+		case schema.DiagnosisLevelTrace:
+			s.Debug(msg)
+		case schema.DiagnosisLevelDebug:
+			s.Debug(msg)
+		case schema.DiagnosisLevelInfo:
+			s.Info(msg)
+		case schema.DiagnosisLevelWarn:
+			s.Warn(msg)
+		case schema.DiagnosisLevelError:
+			s.Error(msg)
+		case schema.DiagnosisLevelFatal:
+			s.Fatal(msg)
+		}
+	}
 }
