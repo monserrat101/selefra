@@ -33,14 +33,14 @@ func (x *LocalProvidersManager) InstallProvider(ctx context.Context, options *In
 
 	path := x.buildLocalProviderVersionPath(options.RequiredProvider.Name, options.RequiredProvider.Version)
 	if utils.Exists(path) {
-		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s in directory %s already installed, remove it first", options.RequiredProvider.String(), path))
+		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("Provider %s in directory %s already installed, remove it first", options.RequiredProvider.String(), path))
 		return
 	}
 
 	// check require provider & version exist
 	metadata, err := x.providerRegistry.GetMetadata(ctx, registry.NewProvider(options.RequiredProvider.Name, options.RequiredProvider.Version))
 	if err != nil {
-		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("get provider %s metadata error: %s", options.RequiredProvider.String(), err.Error()))
+		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("Get provider %s metadata error: %s", options.RequiredProvider.String(), err.Error()))
 		return
 	}
 
@@ -48,7 +48,7 @@ func (x *LocalProvidersManager) InstallProvider(ctx context.Context, options *In
 	var version string
 	if !options.RequiredProvider.IsLatestVersion() {
 		if !metadata.HasVersion(options.RequiredProvider.Version) {
-			report := fmt.Sprintf("provider %s does not exist, can not install it, sorry", options.RequiredProvider.String())
+			report := fmt.Sprintf("Provider %s does not exist, can not install it, I'm very sorry.", options.RequiredProvider.String())
 			options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg(report))
 			return
 		}
@@ -57,7 +57,7 @@ func (x *LocalProvidersManager) InstallProvider(ctx context.Context, options *In
 		version = metadata.LatestVersion
 		path := x.buildLocalProviderVersionPath(options.RequiredProvider.Name, version)
 		if utils.Exists(path) {
-			options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s in directory %s already installed, remove it first", options.RequiredProvider.String(), path))
+			options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Provider %s latest version has been installed on %s", options.RequiredProvider.Name, path))
 			return
 		}
 	}
@@ -71,10 +71,10 @@ func (x *LocalProvidersManager) InstallProvider(ctx context.Context, options *In
 	}
 	providerExecuteFilePath, err := x.providerRegistry.Download(ctx, registry.NewProvider(options.RequiredProvider.Name, version), downloadOptions)
 	if err != nil {
-		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("install provider %s in directory %s failed: %s", options.RequiredProvider.String(), utils.AbsPath(providerVersionPath), err.Error()))
+		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("Install provider %s in directory %s failed: %s", options.RequiredProvider.String(), utils.AbsPath(providerVersionPath), err.Error()))
 		return
 	}
-	options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("install provider %s in directory %s success", options.RequiredProvider.String(), utils.AbsPath(providerVersionPath)))
+	options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Install provider %s in directory %s success", options.RequiredProvider.String(), utils.AbsPath(providerVersionPath)))
 
 	// Construct metadata
 	localProvider := LocalProvider{
@@ -86,13 +86,13 @@ func (x *LocalProvidersManager) InstallProvider(ctx context.Context, options *In
 	}
 	marshal, err := json.Marshal(localProvider)
 	if err != nil {
-		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("on install provider %s, json marshal local provider error: %s", options.RequiredProvider.String(), err.Error()))
+		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("On install provider %s, json marshal local provider error: %s", options.RequiredProvider.String(), err.Error()))
 		return
 	}
 	metaFilePath := x.buildLocalProviderVersionMetaFilePath(options.RequiredProvider.Name, version)
 	err = os.WriteFile(metaFilePath, marshal, os.ModePerm)
 	if err != nil {
-		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("on install provider %s, save provider version meta in file %s error: %s", options.RequiredProvider.String(), metaFilePath, err.Error()))
+		options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("On install provider %s, save provider version meta in file %s error: %s", options.RequiredProvider.String(), metaFilePath, err.Error()))
 		return
 	}
 	return
