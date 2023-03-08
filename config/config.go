@@ -1106,7 +1106,7 @@ func GetDefaultDownloadCacheDirectory() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(workspacePath, "download"), nil
+	return filepath.Join(workspacePath, "downloads"), nil
 }
 
 func initHomeSelefraRCConfig() error {
