@@ -28,7 +28,7 @@ func TestRemove(t *testing.T) {
 
 	provider := "mock@v0.0.3"
 
-	err := install(context.Background(), "./test_download", provider)
+	err := Install(context.Background(), "./test_download", provider)
 	assert.Nil(t, err)
 
 	err = Remove(context.Background(), "./test_download", provider)
