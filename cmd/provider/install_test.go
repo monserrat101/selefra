@@ -35,6 +35,6 @@ import (
 //}
 
 func Test_install(t *testing.T) {
-	err := install(context.Background(), "./test_download", "mock")
+	err := Install(context.Background(), "./test_download", "mock")
 	assert.Nil(t, err)
 }
