@@ -173,7 +173,7 @@ const (
 var (
 	ErrorColor   = color.New(color.FgRed, color.Bold)
 	WarningColor = color.New(color.FgYellow, color.Bold)
-	InfoColor    = color.New(color.FgWhite, color.Bold)
+	InfoColor    = color.New(color.FgGreen, color.Bold)
 	SuccessColor = color.New(color.FgGreen, color.Bold)
 )
 

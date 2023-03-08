@@ -1,17 +1,14 @@
 package login
 
 import (
-	"errors"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/global"
-	"github.com/selefra/selefra/pkg/cli_runtime"
+	"github.com/selefra/selefra/pkg/cli_env"
 	"github.com/selefra/selefra/pkg/cloud_sdk"
 	"github.com/selefra/selefra/pkg/logger"
 	"github.com/spf13/cobra"
 )
-
-var ErrLoginFailed = errors.New("login failed, please check your token")
 
 func NewLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -30,22 +27,19 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 
 	diagnostics := schema.NewDiagnostics()
 
-	host, d := cli_runtime.FindServerHost()
-	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
-		return err
-	}
-	logger.InfoF("Use server address: %s", host)
+	cloudServerHost := cli_env.GetServerHost()
+	logger.InfoF("Use server address: %s ", cloudServerHost)
 
-	client, d := cloud_sdk.NewCloudClient(host)
+	client, d := cloud_sdk.NewCloudClient(cloudServerHost)
 	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
 		return err
 	}
-	logger.InfoF("Create cloud client success")
+	logger.InfoF("Create cloud client success \n")
 
 	// If you are already logged in, repeat login is not allowed and you must log out first
 	getCredentials, _ := client.GetCredentials()
 	if getCredentials != nil {
-		cli_ui.Errorf("You already logged in as %s, please logout first.\n", getCredentials.UserName)
+		cli_ui.Errorf("You already logged in as %s, please logout first. \n", getCredentials.UserName)
 		return nil
 	}
 
@@ -53,14 +47,15 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 	var token string
 	if len(args) != 0 {
 		token = args[0]
+		cli_ui.Warningf("Security warning: Entering a token directly on the command line will be recorded in the command line history and may cause your token to leak! \n")
 	} else {
-		token, d = cli_ui.InputCloudToken(host)
+		token, d = cli_ui.InputCloudToken(cloudServerHost)
 		if err := cli_ui.PrintDiagnostics(d); err != nil {
 			return err
 		}
 	}
 	if token == "" {
-		cli_ui.Errorf("Token can not be empty")
+		cli_ui.Errorf("Token can not be empty! \n")
 		return nil
 	}
 
@@ -70,7 +65,7 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	cli_ui.ShowLoginSuccess(host, credentials)
+	cli_ui.ShowLoginSuccess(cloudServerHost, credentials)
 
 	return nil
 }

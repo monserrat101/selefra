@@ -77,7 +77,35 @@ func CheckIdentity(s string) bool {
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-// ParseDuration TODO bug fix
+// ParseDuration
+//
+//	func ParseDuration(d string) (time.Duration, error) {
+//		d = strings.TrimSpace(d)
+//		dr, err := time.ParseDuration(d)
+//		if err == nil {
+//			return dr, nil
+//		}
+//		if strings.Contains(d, "d") {
+//			index := strings.Index(d, "d")
+//			hour, err := strconv.Atoi(d[:index])
+//			if err != nil {
+//				return dr, err
+//			}
+//			dr = time.Hour * 24 * time.Duration(hour)
+//			s := d[index+1:]
+//			if s != "" {
+//				ndr, err := time.ParseDuration(d[index+1:])
+//				if err != nil {
+//					return dr, err
+//				}
+//				dr += ndr
+//			}
+//			return dr, nil
+//		}
+//
+//		dv, err := strconv.ParseInt(d, 10, 64)
+//		return time.Duration(dv), err
+//	}
 func ParseDuration(d string) (time.Duration, error) {
 	d = strings.TrimSpace(d)
 	dr, err := time.ParseDuration(d)
@@ -86,20 +114,26 @@ func ParseDuration(d string) (time.Duration, error) {
 	}
 	if strings.Contains(d, "d") {
 		index := strings.Index(d, "d")
-
 		hour, err := strconv.Atoi(d[:index])
 		if err != nil {
 			return dr, err
 		}
 		dr = time.Hour * 24 * time.Duration(hour)
-		ndr, err := time.ParseDuration(d[index+1:])
-		if err != nil {
-			return dr, err
+		s := d[index+1:]
+		if s != "" {
+			ndr, err := time.ParseDuration(d[index+1:])
+			if err != nil {
+				return dr, err
+			}
+			dr += ndr
 		}
-		return dr + ndr, nil
+		return dr, nil
 	}
-
+	if err != nil {
+		return 0, err
+	}
 	dv, err := strconv.ParseInt(d, 10, 64)
 	return time.Duration(dv), err
 }
+
 // ------------------------------------------------- --------------------------------------------------------------------
