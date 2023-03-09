@@ -107,10 +107,11 @@ func (x *InitCommandExecutor) initHeaderOutput(providers []string) {
 	//}
 	cli_ui.Successf(`Running with selefra-cli %s
 
-	This command will walk you through creating a new Selefra project
+This command will walk you through creating a new Selefra project
 
-	Enter a value or leave blank to accept the (default), and press <ENTER>.
-	Press ^C at any time to quit.\n\n`, version.Version)
+Enter a value or leave blank to accept the (default), and press <ENTER>.
+Press ^C at any time to quit.`, version.Version)
+	cli_ui.Successf("\n\n")
 }
 
 func (x *InitCommandExecutor) chooseProvidersList(ctx context.Context) ([]*registry.Provider, error) {
