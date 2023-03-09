@@ -272,6 +272,9 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	if utils.HasError(d) {
 		return
 	}
+	defer func() {
+		databaseStorage.Close()
+	}()
 	ownerId := utils.BuildLockOwnerId()
 	tryTimes := 0
 	for {
