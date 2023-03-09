@@ -32,11 +32,23 @@ selefra:
     - name: mock
       source: mock
       version: latest
+    - name: gcp
+      source: gcp
+      version: latest
+    - name: aws
+      source: aws
+      version: latest
+    - name: azure
+      source: azure
+      version: latest
+    - name: tfe
+      source: tfe
+      version: latest
 
 providers:
   - name: mock
     cache: 1d
     provider: mock
     foo-count: 1
-    bar-count: -2
+    bar-count: 1
     sleep-seconds: 1

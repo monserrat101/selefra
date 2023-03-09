@@ -52,12 +52,16 @@ func NewQueryCmd() *cobra.Command {
 			cli_ui.Successf("Connection to you database `%s` ... \n", c.ToDSN(true))
 
 			options := postgresql_storage.NewPostgresqlStorageOptions(dsn)
-			storage, diagnostics := storage_factory.NewStorage(cmd.Context(), storage_factory.StorageTypePostgresql, options)
+			databaseStorage, diagnostics := storage_factory.NewStorage(cmd.Context(), storage_factory.StorageTypePostgresql, options)
 			if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
 				return
 			}
 
-			queryClient, _ := NewQueryClient(ctx, storage_factory.StorageTypePostgresql, storage)
+			defer func() {
+				databaseStorage.Close()
+			}()
+
+			queryClient, _ := NewQueryClient(ctx, storage_factory.StorageTypePostgresql, databaseStorage)
 			queryClient.Run(ctx)
 
 		},
