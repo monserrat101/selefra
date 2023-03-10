@@ -206,7 +206,7 @@ func (x *StreamUploader[Client, ID, Request, Response]) RunUploaderWorker() {
 					logger.ErrorF("stream uploader name %s, send message error: %s, id = %s", x.options.Name, err.Error(), utils.Strava(task.TaskId))
 					//return
 				} else {
-					logger.InfoF("stream uploader name %s, send message success, id = %s", x.options.Name, utils.Strava(task.TaskId)))
+					logger.InfoF("stream uploader name %s, send message success, id = %s", x.options.Name, utils.Strava(task.TaskId))
 				}
 
 			case <-timer.C:
