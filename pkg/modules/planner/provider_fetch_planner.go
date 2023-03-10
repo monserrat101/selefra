@@ -2,6 +2,7 @@ package planner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
@@ -320,7 +321,11 @@ func (x *ProviderFetchPlanner) grabDatabaseSchema(ctx context.Context, plan *Pro
 		for tryTimes := 0; tryTimes < 10; tryTimes++ {
 			err := storage.UnLock(ctx, pgstorage.LockId, lockOwnerId)
 			if err != nil {
-				x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, owner = %s, release database schema lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId, err.Error(), tryTimes))
+				if errors.Is(err, postgresql_storage.ErrLockNotFound) {
+					x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner = %s, release database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
+				} else {
+					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, owner = %s, release database schema lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId, err.Error(), tryTimes))
+				}
 			} else {
 				x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner = %s, release database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
 				break
