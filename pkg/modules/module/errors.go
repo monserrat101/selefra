@@ -34,6 +34,9 @@ func RenderErrorTemplate(errorType string, location *NodeLocation) string {
 	s := strings.Builder{}
 
 	s.WriteString(fmt.Sprintf("%s: %s \n", color.RedString("error[E827890]"), errorType))
+	if location == nil {
+		return s.String()
+	}
 	s.WriteString(fmt.Sprintf("%s %s:%d:%d ( %s ) \n", color.BlueString(" --> "), location.Path, location.Begin.Line, location.Begin.Column, location.YamlSelector))
 
 	file, err := os.ReadFile(location.Path)
