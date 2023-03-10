@@ -21,9 +21,17 @@ func IsCloudEnv() bool {
 
 const SelefraServerHost = "SELEFRA_CLOUD_HOST"
 
+const DefaultCloudHost = "main-grpc.selefra.io"
+
 // GetServerHost Gets the address of the server
 func GetServerHost() string {
-	return os.Getenv(SelefraServerHost)
+
+	// read from env
+	if os.Getenv(SelefraServerHost) != "" {
+		return os.Getenv(SelefraServerHost)
+	}
+
+	return DefaultCloudHost
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
