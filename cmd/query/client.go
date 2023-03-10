@@ -49,7 +49,7 @@ func (x *SQLQueryClient) Run(ctx context.Context) {
 
 		lowerSql := strings.ToLower(s)
 		if lowerSql == "exit" || lowerSql == "exit;" || lowerSql == ".exit" {
-			cli_ui.Successf("Bye.")
+			cli_ui.Infof("Bye.")
 			os.Exit(0)
 		}
 

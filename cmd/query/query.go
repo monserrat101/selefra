@@ -51,7 +51,7 @@ func NewQueryCmd() *cobra.Command {
 				cli_ui.Errorln("Parse dsn %s error: %s", dsn, err.Error())
 				return
 			}
-			cli_ui.Successf("Connection to you database `%s` ... \n", c.ToDSN(true))
+			cli_ui.Infof("Connection to you database `%s` ... \n", c.ToDSN(true))
 
 			options := postgresql_storage.NewPostgresqlStorageOptions(dsn)
 			databaseStorage, diagnostics := storage_factory.NewStorage(cmd.Context(), storage_factory.StorageTypePostgresql, options)
@@ -76,7 +76,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	// 1. load from project workspace
 	dsn, _ := loadDSNFromProjectWorkspace(ctx, projectWorkspace, downloadWorkspace)
 	if dsn != "" {
-		cli_ui.Successf("Find database connection in workspace. %s \n", projectWorkspace)
+		cli_ui.Infof("Find database connection in workspace. %s \n", projectWorkspace)
 		return dsn, nil
 	}
 
@@ -99,7 +99,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 			return "", err
 		}
 		if orgDSN != "" {
-			cli_ui.Successf("Find database connection in you selefra cloud. \n")
+			cli_ui.Infof("Find database connection in you selefra cloud. \n")
 			return orgDSN, nil
 		}
 	}
@@ -107,7 +107,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	// 3. get dsn from env
 	dsn = os.Getenv(env.DatabaseDsn)
 	if dsn != "" {
-		cli_ui.Successf("Find database connection in your env. \n")
+		cli_ui.Infof("Find database connection in your env. \n")
 		return dsn, nil
 	}
 

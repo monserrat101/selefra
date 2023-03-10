@@ -107,7 +107,7 @@ func Install(ctx context.Context, downloadWorkspace string, requiredProviders ..
 //			cli_ui.Errorf("Installed %s@%s failed：%s", p.Name, p.Version, err.Error())
 //			return nil
 //		} else {
-//			cli_ui.Successf("Installed %s@%s verified", p.Name, p.Version)
+//			cli_ui.Infof("Installed %s@%s verified", p.Name, p.Version)
 //		}
 //		cli_ui.Infof("Synchronization %s@%s's config...", p.Name, p.Version)
 //		plug, err := plugin.NewManagedPlugin(p.Filepath, p.Name, p.Version, "", nil)
@@ -146,7 +146,7 @@ func Install(ctx context.Context, downloadWorkspace string, requiredProviders ..
 //			cli_ui.Errorf("Synchronization %s@%s's config failed：%s", p.Name, p.Version, err.Error())
 //			return nil
 //		}
-//		cli_ui.Successf("Synchronization %s@%s's config successful", p.Name, p.Version)
+//		cli_ui.Infof("Synchronization %s@%s's config successful", p.Name, p.Version)
 //		err = tools.AppendProviderDecl(p, configYaml, version)
 //		if err != nil {
 //			cli_ui.Errorln(err.Error())

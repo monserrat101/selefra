@@ -1,11 +1,8 @@
 syntax = "proto3";
-
 option go_package = "proto/log";
-
 package log;
-
 import "google/protobuf/timestamp.proto";
-
+import "common/common.proto";
 // protoc --proto_path=pkg/grpc/pb/log --proto_path=pkg/grpc/tripartite --go_out=pkg/grpc/pb/log --go_opt=paths=source_relative --go-grpc_out=pkg/grpc/pb/log --go-grpc_opt=paths=source_relative  log.proto
 
 
@@ -60,15 +57,12 @@ message UploadLogStatus {
     }
 
     message Response {
-        Diagnosis diagnosis = 1;
+        common.Diagnosis diagnosis = 1;
     }
 }
 
 
-message Diagnosis {
-    int32 code = 1;
-    string msg = 2;
-}
+
 
 
 

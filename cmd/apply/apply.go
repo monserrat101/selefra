@@ -71,7 +71,7 @@ func Apply(ctx context.Context, projectWorkspace, downloadWorkspace string) erro
 		cli_ui.Errorln("Apply failed")
 		return fmt.Errorf("Apply Failed")
 	} else {
-		cli_ui.Successln("Apply done")
+		cli_ui.Infoln("Apply done")
 		return nil
 	}
 }

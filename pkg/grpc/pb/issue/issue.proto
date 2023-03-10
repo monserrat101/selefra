@@ -1,9 +1,6 @@
 syntax = "proto3";
-
 option go_package = "proto/issue";
-
 package issue;
-
 // protoc --proto_path=pkg/grpc/pb/issue --go_out=pkg/grpc/pb/issue --go_opt=paths=source_relative --go-grpc_out=pkg/grpc/pb/issue --go-grpc_opt=paths=source_relative  issue.proto
 
 

@@ -3,6 +3,7 @@ package cloud_sdk
 import (
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/grpc/pb/cloud"
+	"github.com/selefra/selefra/pkg/grpc/pb/common"
 )
 
 // CreateProject Returns the name of the project if the given project name already exists,
@@ -22,7 +23,14 @@ func (x *CloudClient) CreateProject(projectName string) (*cloud.CreateProject_Re
 		return nil, diagnostics.AddErrorMsg("create cloud project error: %s", err.Error())
 	}
 	if response.Diagnosis != nil && response.Diagnosis.Code != 0 {
-		return nil, diagnostics.AddErrorMsg("create cloud project response error, code = %d, message = %s", response.Diagnosis.Code, response.Diagnosis.Msg)
+		switch response.Diagnosis.Code {
+		case common.Diagnosis_NoAuthority:
+			errorMsg := `Free users can only create a project, you can pay in this upgrade at https://app.selefra.io/Settings/planBilling
+Alternatively, you can logout the currently logged user using the command selefra logout, which will not be synchronized to the cloud.`
+			return nil, diagnostics.AddErrorMsg(errorMsg)
+		default:
+			return nil, diagnostics.AddErrorMsg("create cloud project response error, code = %d, message = %s", response.Diagnosis.Code, response.Diagnosis.Msg)
+		}
 	}
 
 	return response, nil

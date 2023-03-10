@@ -35,8 +35,8 @@ package provider
 //		return
 //	}
 //	provider := registry.NewProviderRegistry(namespace)
-//	cli_ui.Successf("Selefra has been successfully installed providers!\n\n")
-//	cli_ui.Successf("Checking Selefra provider updates......\n")
+//	cli_ui.Infof("Selefra has been successfully installed providers!\n\n")
+//	cli_ui.Infof("Checking Selefra provider updates......\n")
 //
 //	for _, decl := range decls {
 //		configVersion := decl.Version
@@ -61,7 +61,7 @@ package provider
 //				continue
 //			}
 //			effects = append(effects, decl)
-//			cli_ui.Successf("	%s@%s all ready updated!\n", decl.Name, decl.Version)
+//			cli_ui.Infof("	%s@%s all ready updated!\n", decl.Name, decl.Version)
 //		}
 //	}
 //
@@ -89,7 +89,7 @@ package provider
 //
 //	providerDecls, errLogs := effectiveDecls(ctx, rootConfig.Selefra.ProviderDecls)
 //
-//	cli_ui.Successf("Selefra has been finished update providers!\n")
+//	cli_ui.Infof("Selefra has been finished update providers!\n")
 //
 //	global.SetStage("pull")
 //	for _, decl := range providerDecls {
@@ -127,9 +127,9 @@ package provider
 //			// check if cache expired
 //			expired, _ := tools.CacheExpired(ctx, store, prvd.Cache)
 //			if !expired {
-//				cli_ui.Successf("%s %s@%s pull infrastructure data:\n", prvd.Name, decl.Name, decl.Version)
+//				cli_ui.Infof("%s %s@%s pull infrastructure data:\n", prvd.Name, decl.Name, decl.Version)
 //				cli_ui.Print(fmt.Sprintf("Pulling %s@%s Please wait for resource information ...", decl.Name, decl.Version), false)
-//				cli_ui.Successf("	%s@%s all ready use cache!\n", decl.Name, decl.Version)
+//				cli_ui.Infof("	%s@%s all ready use cache!\n", decl.Name, decl.Version)
 //				continue
 //			}
 //

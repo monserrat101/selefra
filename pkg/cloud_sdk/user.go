@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/grpc/pb/cloud"
+	"github.com/selefra/selefra/pkg/grpc/pb/common"
 	"time"
 )
 
@@ -36,7 +37,7 @@ func (x *CloudClient) Login(token string) (*CloudCredentials, *schema.Diagnostic
 	}
 	if response.Diagnosis != nil && response.Diagnosis.Code != 0 {
 		switch response.Diagnosis.Code {
-		case cloud.Diagnosis_IllegalToken:
+		case common.Diagnosis_IllegalToken:
 			return nil, diagnostics.AddErrorMsg("Login failed, The Selefra Cloud recognizes that the token you entered is not a valid Token")
 		default:
 			return nil, diagnostics.AddErrorMsg("Login response error, code = %d, message = %s", response.Diagnosis.Code, response.Diagnosis.Msg)

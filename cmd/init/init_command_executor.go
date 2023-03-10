@@ -95,7 +95,7 @@ func (x *InitCommandExecutor) Run(ctx context.Context) error {
 
 	//x.initModulesYaml()
 
-	cli_ui.Successf("Initializing workspace done.\n")
+	cli_ui.Infof("Initializing workspace done.\n")
 
 	return nil
 }
@@ -106,13 +106,13 @@ func (x *InitCommandExecutor) initHeaderOutput(providers []string) {
 	//for i := range providers {
 	//	cli_ui.Successln(" [✔]" + providers[i] + "\n")
 	//}
-	cli_ui.Successf(`Running with selefra-cli %s
+	cli_ui.Infof(`Running with selefra-cli %s
 
 This command will walk you through creating a new Selefra project
 
 Enter a value or leave blank to accept the (default), and press <ENTER>.
 Press ^C at any time to quit.`, version.Version)
-	cli_ui.Successf("\n\n")
+	cli_ui.Infof("\n\n")
 }
 
 func (x *InitCommandExecutor) chooseProvidersList(ctx context.Context) ([]*registry.Provider, error) {
@@ -154,7 +154,7 @@ func (x *InitCommandExecutor) checkWorkspace() bool {
 			cli_ui.Errorf("Create workspace directory: %s failed: %s\n", x.options.ProjectWorkspace, err.Error())
 			return false
 		}
-		cli_ui.Successf("Create workspace directory: %s success\n", x.options.ProjectWorkspace)
+		cli_ui.Infof("Create workspace directory: %s success\n", x.options.ProjectWorkspace)
 	}
 
 	if x.isNeedForceInit() {
@@ -498,7 +498,7 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 	// convert required provider block to
 	for _, requiredProvider := range requiredProvidersBlock {
 
-		cli_ui.Successf("Begin install provider %s \n", requiredProvider.Source)
+		cli_ui.Infof("Begin install provider %s \n", requiredProvider.Source)
 
 		providerInstallPlan := &planner.ProviderInstallPlan{
 			Provider: registry.NewProvider(requiredProvider.Name, requiredProvider.Version),
@@ -532,10 +532,10 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 		if hasError.Load() {
 			return nil, false
 		}
-		cli_ui.Successf("Install provider %s success \n", requiredProvider.Source)
+		cli_ui.Infof("Install provider %s success \n", requiredProvider.Source)
 
 		// init
-		cli_ui.Successf("Begin init provider %s... \n", requiredProvider.Source)
+		cli_ui.Infof("Begin init provider %s... \n", requiredProvider.Source)
 		configuration, b := x.getProviderInitConfiguration(ctx, executor.GetLocalProviderManager(), providerInstallPlan)
 		if !b {
 			return nil, false
@@ -550,7 +550,7 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 
 		//fmt.Println("Provider Block: " + json_util.ToJsonString(providerBlock))
 
-		cli_ui.Successf("Init provider %s done \n", requiredProvider.Source)
+		cli_ui.Infof("Init provider %s done \n", requiredProvider.Source)
 	}
 	return providersBlock, true
 }
@@ -559,7 +559,7 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, localProviderManager *local_providers_manager.LocalProvidersManager, plan *planner.ProviderInstallPlan) (string, bool) {
 
 	// start & get information
-	cli_ui.Successf("Begin init provider %s \n", plan.String())
+	cli_ui.Infof("Begin init provider %s \n", plan.String())
 
 	// Find the local path of the provider
 	localProvider := &local_providers_manager.LocalProvider{
@@ -589,7 +589,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 	// Close the provider at the end of the method execution
 	defer plug.Close()
 
-	cli_ui.Successf("Start provider %s success \n", plan.String())
+	cli_ui.Infof("Start provider %s success \n", plan.String())
 
 	// Database connection option
 	storageOpt := postgresql_storage.NewPostgresqlStorageOptions(x.options.DSN)
@@ -624,7 +624,7 @@ func (x *InitCommandExecutor) getProviderInitConfiguration(ctx context.Context, 
 	if err := cli_ui.PrintDiagnostics(providerInitResponse.Diagnostics); err != nil {
 		return "", false
 	}
-	cli_ui.Successf("Provider %s init success \n", plan.String())
+	cli_ui.Infof("Provider %s init success \n", plan.String())
 
 	// Get information about the started provider
 	information, err := pluginProvider.GetProviderInformation(ctx, &shard.GetProviderInformationRequest{})
