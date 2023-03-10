@@ -28,7 +28,7 @@ func RunFunc(cmd *cobra.Command, args []string) error {
 	diagnostics := schema.NewDiagnostics()
 
 	cloudServerHost := cli_env.GetServerHost()
-	logger.InfoF("Use server address: %s ", cloudServerHost)
+	logger.InfoF("Use server address: %s", cloudServerHost)
 
 	client, d := cloud_sdk.NewCloudClient(cloudServerHost)
 	if err := cli_ui.PrintDiagnostics(diagnostics); err != nil {
