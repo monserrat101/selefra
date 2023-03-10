@@ -431,6 +431,7 @@ func (x *ProjectCloudLifeCycleExecutor) ReportTaskStatus(stage log.StageType, st
 
 func (x *ProjectCloudLifeCycleExecutor) Filter(s string) string {
 	s = strings.ReplaceAll(s, "\u001B[31m", "")
+	s = strings.ReplaceAll(s, "\u001B[34m", "")
 	s = strings.ReplaceAll(s, "\u001B[0m", "")
 	return s
 }
