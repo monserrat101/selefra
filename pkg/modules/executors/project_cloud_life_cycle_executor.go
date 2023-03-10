@@ -331,7 +331,7 @@ func (x *ProjectCloudLifeCycleExecutor) UploadLog(ctx context.Context, diagnosti
 		isSubmitSuccess, d := x.logStreamUploader.Submit(ctx, int(id), &log.UploadLogStream_Request{
 			Index: uint64(id),
 			Stage: x.stage,
-			Msg:   d.Content(),
+			Msg:   x.Filter(d.Content()),
 			Level: x.toGrpcLevel(d.Level()),
 			Time:  timestamppb.Now(),
 		})
@@ -427,6 +427,12 @@ func (x *ProjectCloudLifeCycleExecutor) ReportTaskStatus(stage log.StageType, st
 	} else {
 		logger.InfoF("change task log status success, stage = %d, status = %d", stage, status)
 	}
+}
+
+func (x *ProjectCloudLifeCycleExecutor) Filter(s string) string {
+	s = strings.ReplaceAll(s, "", "\u001B[31m")
+	s = strings.ReplaceAll(s, "", "\u001B[0m")
+	return s
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
