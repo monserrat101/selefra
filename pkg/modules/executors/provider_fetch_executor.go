@@ -568,18 +568,18 @@ func (x *ProviderFetchExecutorWorker) computeAllNeedPullTableCanHitCache(ctx con
 			return false, d
 		}
 		if information == nil {
-			return false, diagnostics.AddInfo("Can not hit cache, still need pull table")
+			return false, x.addProviderNameForMessage(plan, diagnostics.AddInfo("Can not hit cache, still need pull table"))
 		}
 
 		// It has to be from the same batch
 		if pullTaskId == "" {
 			pullTaskId = information.LastPullId
 		} else if pullTaskId != information.LastPullId {
-			return false, diagnostics.AddInfo("Can not hit cache, still need pull table")
+			return false, x.addProviderNameForMessage(plan, diagnostics.AddInfo("Can not hit cache, still need pull table"))
 		}
 
 		if information.LastPullTime.Add(duration).After(databaseTime) {
-			return false, diagnostics.AddInfo("Can not hit cache, still need pull table")
+			return false, x.addProviderNameForMessage(plan, diagnostics.AddInfo("Can not hit cache, still need pull table"))
 		}
 
 		// ok, this table can hit cache
