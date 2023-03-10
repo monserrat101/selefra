@@ -17,19 +17,19 @@ func Default() *Logger {
 }
 
 func DebugF(msg string, args ...any) {
-	defaultLogger.Debug(msg, args)
+	defaultLogger.Debug(msg, args...)
 }
 
 func InfoF(msg string, args ...any) {
-	defaultLogger.Info(msg, args)
+	defaultLogger.Info(msg, args...)
 }
 
 func ErrorF(msg string, args ...any) {
-	defaultLogger.Error(msg, args)
+	defaultLogger.Error(msg, args...)
 }
 
 func FatalF(msg string, args ...any) {
-	defaultLogger.Fatal(msg, args)
+	defaultLogger.Fatal(msg, args...)
 }
 
 var defaultLogger, _ = NewLogger(Config{
