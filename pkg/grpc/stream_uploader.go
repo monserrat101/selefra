@@ -180,7 +180,6 @@ func (x *StreamUploader[Client, ID, Request, Response]) RunUploaderWorker() {
 			err := x.options.Client.CloseSend()
 			if err != nil {
 				logger.ErrorF("stream uploader %s, close stream client error", x.options.Name)
-				x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("stream uploader name %s, close send stream error: %s", x.options.Name, err.Error()))
 			}
 			logger.InfoF("stream uploader %s, close stream client success", x.options.Name)
 			x.workerWg.Done()
@@ -198,22 +197,22 @@ func (x *StreamUploader[Client, ID, Request, Response]) RunUploaderWorker() {
 				continueIdleCount = 0
 
 				if !ok {
-					x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("stream uploader name %s, wait send task queue closed, worker exiting", x.options.Name))
+					logger.InfoF("stream uploader name %s, wait send task queue closed, worker exiting", x.options.Name)
 					return
 				}
 
 				err := x.options.Client.Send(task.Request)
 				if err != nil {
-					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("stream uploader name %s, send message error: %s, id = %s", x.options.Name, err.Error(), utils.Strava(task.TaskId)))
+					logger.ErrorF("stream uploader name %s, send message error: %s, id = %s", x.options.Name, err.Error(), utils.Strava(task.TaskId))
 					//return
 				} else {
-					x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("stream uploader name %s, send message success, id = %s", x.options.Name, utils.Strava(task.TaskId)))
+					logger.InfoF("stream uploader name %s, send message success, id = %s", x.options.Name, utils.Strava(task.TaskId))
 				}
 
 			case <-timer.C:
 
 				continueIdleCount++
-				x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("stream uploader name %s, wait task, idle count %d", x.options.Name, continueIdleCount))
+				logger.InfoF("stream uploader name %s, wait task, idle count %d", x.options.Name, continueIdleCount)
 			}
 		}
 	}()
