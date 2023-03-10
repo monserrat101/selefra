@@ -472,6 +472,8 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		}
 		success = len(res.FinishedTables)
 		errorsN = 0
+
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d ...", plan.String(), success, total)))
 	}
 	_ = success
 	_ = total
