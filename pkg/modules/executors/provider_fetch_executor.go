@@ -295,7 +295,11 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		for tryTimes := 0; tryTimes < 10; tryTimes++ {
 			err := databaseStorage.UnLock(ctx, pgstorage.LockId, ownerId)
 			if err != nil {
-				x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, owner %s, fetch data, release fetch lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, ownerId, err.Error(), tryTimes)))
+				if errors.Is(err, postgresql_storage.ErrLockNotFound) {
+					x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s, schema %s, owner %s, fetch data, release fetch lock success", plan.String(), plan.FetchToDatabaseSchema, ownerId)))
+				} else {
+					x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, owner %s, fetch data, release fetch lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, ownerId, err.Error(), tryTimes)))
+				}
 			} else {
 				x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s, schema %s, owner %s, fetch data, release fetch lock success", plan.String(), plan.FetchToDatabaseSchema, ownerId)))
 				break
