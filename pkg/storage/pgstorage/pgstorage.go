@@ -2,10 +2,15 @@ package pgstorage
 
 import (
 	"context"
+	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra/cli_ui"
+	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/module"
+	"github.com/selefra/selefra/pkg/oci"
+	"github.com/songzhibin97/gkit/tools/pointer"
 	"strings"
+	"sync"
 )
 
 type Option func(pgopts *postgresql_storage.PostgresqlStorageOptions)
@@ -90,35 +95,59 @@ func SetStorageValue(ctx context.Context, storage *postgresql_storage.Postgresql
 	return nil
 }
 
-//func getDsn() (dsn string) {
-//	var err error
-//	if global.Token() != "" && global.RelvPrjName() != "" {
-//		dsn, err = http_client.GetDsn(global.Token())
-//		if err != nil {
-//			ui.Errorln(err.Error())
-//			return ""
-//		}
-//	}
-//
-//	err = oci.RunDB()
-//	if err != nil {
-//		ui.Errorln(err.Error())
-//		return ""
-//	}
-//	db := &config.DB{
-//		Driver:   "",
-//		Type:     "postgres",
-//		Username: "postgres",
-//		Password: "pass",
-//		Host:     "localhost",
-//		Port:     "15432",
-//		Database: "postgres",
-//		SSLMode:  "disable",
-//		Extras:   nil,
-//	}
-//	dsn = "host=" + db.Host + " user=" + db.Username + " password=" + db.Password + " port=" + db.Port + " dbname=" + db.Database + " " + "sslmode=disable"
-//	return
-//}
+// ------------------------------------------------- --------------------------------------------------------------------
+
+var runOCIPostgreSQLOnce sync.Once
+
+// DefaultPostgreSQL
+// 1. If the default Postgresql is not installed, install it
+// 2. If the default Postgresql is not started, start it
+// 3. Return the default Postgresql DSN connection
+func DefaultPostgreSQL(downloadWorkspace string, messageChannel *message.Channel[*schema.Diagnostics]) string {
+
+	defer func() {
+		messageChannel.SenderWaitAndClose()
+	}()
+
+	isRunSuccess := true
+
+	runOCIPostgreSQLOnce.Do(func() {
+		downloader := oci.NewPostgreSQLDownloader(&oci.PostgreSQLDownloaderOptions{
+			MessageChannel:    messageChannel.MakeChildChannel(),
+			DownloadDirectory: downloadWorkspace,
+		})
+		isRunSuccess = downloader.Run(context.Background())
+	})
+
+	// If the built-in Postgresql does not start successfully, a prompt is returned asking what to do next
+	if !isRunSuccess {
+		errorMsg := `Sorry, the built-in Postgresql fails to start, please configure your own Postgresql connection
+export SELEFRA_DATABASE_DSN=host=127.0.0.1 user=postgres password=pass port=15432 dbname=postgres sslmode=disable
+
+If you do not already have Postgresql installed, You can start an instance of Postgresql using Docker:
+sudo docker run -d --name selefra-postgres -p 15432:5432 -e POSTGRES_PASSWORD=pass postgres:14
+
+Or you can download and install Postgresql from its official website: 
+https://www.postgresql.org/download/
+`
+		messageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorMsg))
+		return ""
+	}
+
+	db := &module.ConnectionBlock{
+		Type:     "postgres",
+		Username: "postgres",
+		Password: oci.DefaultPostgreSQLPasswd,
+		Host:     "localhost",
+		Port:     pointer.ToUint64Pointer(oci.DefaultPostgreSQLPort),
+		Database: "postgres",
+		SSLMode:  "disable",
+		Extras:   nil,
+	}
+	return db.BuildDSN()
+}
+
+// ------------------------------------------------- --------------------------------------------------------------------
 
 // GetSchemaKey return provider schema named <required.name>_<required_version>_<provider_name>
 func GetSchemaKey(providerName, providerVersion string, providerConfigurationBlock *module.ProviderBlock) string {
@@ -136,3 +165,5 @@ func GetSchemaKey(providerName, providerVersion string, providerConfigurationBlo
 	}
 	return source
 }
+
+// ------------------------------------------------- --------------------------------------------------------------------

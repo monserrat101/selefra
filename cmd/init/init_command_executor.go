@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 )
 
 // ------------------------------------------------- --------------------------------------------------------------------
@@ -504,8 +505,11 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 		}
 
 		// install providers
+		hasError := atomic.Bool{}
 		messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
-			_ = cli_ui.PrintDiagnostics(message)
+			if err := cli_ui.PrintDiagnostics(message); err != nil {
+				hasError.Store(true)
+			}
 		})
 		executor, d := executors.NewProviderInstallExecutor(&executors.ProviderInstallExecutorOptions{
 			Plans: []*planner.ProviderInstallPlan{
@@ -523,6 +527,9 @@ func (x *InitCommandExecutor) makeProviders(ctx context.Context, requiredProvide
 		d = executor.Execute(ctx)
 		messageChannel.ReceiverWait()
 		if err := cli_ui.PrintDiagnostics(d); err != nil {
+			return nil, false
+		}
+		if hasError.Load() {
 			return nil, false
 		}
 		cli_ui.Successf("Install provider %s success \n", requiredProvider.Source)

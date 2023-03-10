@@ -13,6 +13,7 @@ import (
 	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/executors"
 	"github.com/selefra/selefra/pkg/modules/module_loader"
+	"github.com/selefra/selefra/pkg/storage/pgstorage"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/spf13/cobra"
 	"os"
@@ -124,6 +125,18 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	dsn = os.Getenv(env.DatabaseDsn)
 	if dsn != "" {
 		cli_ui.Successf("Find database connection in your env. \n")
+		return dsn, nil
+	}
+
+	// 4. start default postgresql instance
+	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
+		if utils.IsNotEmpty(message) {
+			_ = cli_ui.PrintDiagnostics(message)
+		}
+	})
+	dsn = pgstorage.DefaultPostgreSQL(downloadWorkspace, messageChannel)
+	messageChannel.ReceiverWait()
+	if dsn != "" {
 		return dsn, nil
 	}
 

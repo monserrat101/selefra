@@ -83,7 +83,9 @@ func (x *ProjectCloudLifeCycleExecutor) getServerHost() string {
 func (x *ProjectCloudLifeCycleExecutor) InitCloudClient(ctx context.Context) bool {
 
 	// 1. create cloud client
-	cloudClient, d := cloud_sdk.NewCloudClient(x.getServerHost())
+	cloudServerHost := x.getServerHost()
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Login to selefra cloud %s", cloudServerHost))
+	cloudClient, d := cloud_sdk.NewCloudClient(cloudServerHost)
 	x.options.MessageChannel.Send(d)
 	if utils.HasError(d) {
 		return false

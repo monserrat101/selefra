@@ -11,6 +11,7 @@ import (
 	"github.com/selefra/selefra/pkg/modules/module_loader"
 	"github.com/selefra/selefra/pkg/modules/planner"
 	"github.com/selefra/selefra/pkg/providers/local_providers_manager"
+	"github.com/selefra/selefra/pkg/storage/pgstorage"
 	"github.com/selefra/selefra/pkg/utils"
 	"os"
 )
@@ -232,8 +233,12 @@ func (x *ProjectLocalLifeCycleExecutor) fixDsn(ctx context.Context) bool {
 		return true
 	}
 
-	// TODO
-	// 5. default local
+	// 5. start default postgresql instance
+	dsn := pgstorage.DefaultPostgreSQL(x.options.DownloadWorkspace, x.options.MessageChannel.MakeChildChannel())
+	if dsn != "" {
+		x.options.DSN = dsn
+		return true
+	}
 
 	return false
 }

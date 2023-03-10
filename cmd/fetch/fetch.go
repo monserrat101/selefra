@@ -11,6 +11,7 @@ import (
 	"github.com/selefra/selefra/pkg/modules/executors"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/spf13/cobra"
+	"sync/atomic"
 )
 
 func NewFetchCmd() *cobra.Command {
@@ -38,9 +39,12 @@ func NewFetchCmd() *cobra.Command {
 
 func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 
+	hasError := atomic.Bool{}
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
-			_ = cli_ui.PrintDiagnostics(message)
+			if err := cli_ui.PrintDiagnostics(message); err != nil {
+				hasError.Store(true)
+			}
 		}
 	})
 	d := executors.NewProjectLocalLifeCycleExecutor(&executors.ProjectLocalLifeCycleExecutorOptions{
@@ -52,10 +56,11 @@ func Fetch(projectWorkspace, downloadWorkspace string) *schema.Diagnostics {
 		ProjectCloudLifeCycleExecutorOptions: nil,
 		//DSN:                                  env.GetDatabaseDsn(),
 		FetchWorkerNum: 1,
-		QueryWorkerNum: 1,
+		QueryWorkerNum: 20,
 	}).Execute(context.Background())
+	messageChannel.ReceiverWait()
 	_ = cli_ui.PrintDiagnostics(d)
-	if utils.HasError(d) {
+	if utils.HasError(d) || hasError.Load() {
 		cli_ui.Errorln("fetch failed!")
 	} else {
 		cli_ui.Infoln("fetch done!")
