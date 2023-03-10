@@ -192,9 +192,9 @@ func (x *ProviderFetchPlanner) expandByConfiguration(ctx context.Context) ([]*Pr
 	providerFetchPlanSlice := make([]*ProviderFetchPlan, 0)
 
 	if x.options.Module.SelefraBlock == nil {
-		return nil, diagnostics.AddErrorMsg("module %s must have selefra block for make fetch plan", x.options.Module.BuildFullName())
+		return nil, diagnostics.AddErrorMsg("Module %s must have selefra block for make fetch plan", x.options.Module.BuildFullName())
 	} else if len(x.options.Module.SelefraBlock.RequireProvidersBlock) == 0 {
-		return nil, diagnostics.AddErrorMsg("module %s selefra block not have providers block", x.options.Module.BuildFullName())
+		return nil, diagnostics.AddErrorMsg("Module %s selefra block not have providers block", x.options.Module.BuildFullName())
 	}
 
 	// Start a task for those that have a task written, some join by fetch start rule
@@ -206,7 +206,7 @@ func (x *ProviderFetchPlanner) expandByConfiguration(ctx context.Context) ([]*Pr
 		requiredProviderBlock, exists := nameToProviderMap[providerBlock.Provider]
 		if !exists {
 			// selefra.providers block not found that name in providers[index] configuration
-			errorTips := fmt.Sprintf("provider name %s not found", providerBlock.Provider)
+			errorTips := fmt.Sprintf("Provider name %s not found", providerBlock.Provider)
 			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, providerBlock.GetNodeLocation("provider"+module.NodeLocationSelfValue)))
 			continue
 		}
@@ -214,7 +214,7 @@ func (x *ProviderFetchPlanner) expandByConfiguration(ctx context.Context) ([]*Pr
 		// find use provider version
 		providerWinnerVersion, exists := x.options.ProviderVersionVoteWinnerMap[requiredProviderBlock.Source]
 		if !exists {
-			errorTips := fmt.Sprintf("provider version %s not found", requiredProviderBlock.Source)
+			errorTips := fmt.Sprintf("Provider version %s not found", requiredProviderBlock.Source)
 			diagnostics.AddErrorMsg(module.RenderErrorTemplate(errorTips, requiredProviderBlock.GetNodeLocation("version")))
 			continue
 		}
@@ -305,14 +305,14 @@ func (x *ProviderFetchPlanner) grabDatabaseSchema(ctx context.Context, plan *Pro
 
 	for {
 
-		x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner %s, make execute plan, begin try get database schema lock...", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Provider %s, schema %s, owner %s, make execute plan, begin try get database schema lock...", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
 
 		tryTimes++
 		err := storage.Lock(ctx, pgstorage.LockId, lockOwnerId)
 		if err != nil {
-			x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, owner %s, make execute plan, get database schema lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId, err.Error(), tryTimes))
+			x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, owner %s, make execute plan, get database schema lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId, err.Error(), tryTimes))
 		} else {
-			x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner %s, make execute plan, get database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
+			x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Provider %s, schema %s, owner %s, make execute plan, get database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
 			break
 		}
 		time.Sleep(time.Second * 10)
@@ -322,12 +322,12 @@ func (x *ProviderFetchPlanner) grabDatabaseSchema(ctx context.Context, plan *Pro
 			err := storage.UnLock(ctx, pgstorage.LockId, lockOwnerId)
 			if err != nil {
 				if errors.Is(err, postgresql_storage.ErrLockNotFound) {
-					x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner = %s, release database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
+					x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Provider %s, schema %s, owner = %s, release database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
 				} else {
-					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("provider %s, schema %s, owner = %s, release database schema lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId, err.Error(), tryTimes))
+					x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("Provider %s, schema %s, owner = %s, release database schema lock error: %s, will sleep & retry, tryTimes = %d", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId, err.Error(), tryTimes))
 				}
 			} else {
-				x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("provider %s, schema %s, owner = %s, release database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
+				x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Provider %s, schema %s, owner = %s, release database schema lock success", plan.String(), plan.FetchToDatabaseSchema, lockOwnerId))
 				break
 			}
 		}

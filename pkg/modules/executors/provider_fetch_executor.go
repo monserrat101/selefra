@@ -452,6 +452,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	success := 0
 	errorsN := 0
 	var total int64
+	recordCount := 0
 	for {
 		res, err := recv.Recv()
 		if err != nil {
@@ -470,14 +471,20 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 			//}
 			x.sendMessage(x.addProviderNameForMessage(plan, res.Diagnostics))
 		}
+
+		// count record pull
+		if utils.NotHasError(res.Diagnostics) {
+			recordCount++
+		}
+
 		success = len(res.FinishedTables)
 		errorsN = 0
 
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d ...", plan.String(), success, total)))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d, record count %d ...", plan.String(), success, total, recordCount)))
 	}
 	_ = success
 	_ = total
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d ...", plan.String(), success, total)))
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d, record count %d ...", plan.String(), success, total, recordCount)))
 	//progbar.ReceiverWait(decl.Name + "@" + decl.Version)
 	if errorsN > 0 {
 		//cli_ui.Errorf("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
@@ -571,21 +578,24 @@ func (x *ProviderFetchExecutorWorker) computeAllNeedPullTableCanHitCache(ctx con
 	for tableName := range needFetchTableNameSet {
 		information, d := pgstorage.ReadTableCacheInformation(ctx, storage, tableName)
 		if utils.HasError(d) {
+			logger.ErrorF("read table cache information error: %s", d.String())
 			return false, d
 		}
 		if information == nil {
-			return false, x.addProviderNameForMessage(plan, diagnostics.AddInfo("Can not hit cache, still need pull table"))
+			logger.ErrorF("read table cache information nil")
+			return false, x.addProviderNameForMessage(plan, diagnostics.AddInfo("Table %s did not find cache information, still need pull table", tableName))
 		}
 
 		// It has to be from the same batch
 		if pullTaskId == "" {
 			pullTaskId = information.LastPullId
 		} else if pullTaskId != information.LastPullId {
-			return false, x.addProviderNameForMessage(plan, diagnostics.AddInfo("Can not hit cache, still need pull table"))
+			return false, x.addProviderNameForMessage(plan, diagnostics.AddInfo("Table %s is not in the same period as the previous data pull, so the cache cannot be hit, still need pull table", tableName))
 		}
 
-		if information.LastPullTime.Add(duration).After(databaseTime) {
-			return false, x.addProviderNameForMessage(plan, diagnostics.AddInfo("Can not hit cache, still need pull table"))
+		if information.LastPullTime.Add(duration).Before(databaseTime) {
+			return false, x.addProviderNameForMessage(plan, diagnostics.AddInfo("Table %s pulls data that is out of date, still need pull table, last pull time %s, database now time %s, cache %s",
+				tableName, information.LastPullTime.String(), databaseTime.String(), duration.String()))
 		}
 
 		// ok, this table can hit cache
