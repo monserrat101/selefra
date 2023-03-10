@@ -480,11 +480,11 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		success = len(res.FinishedTables)
 		errorsN = 0
 
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d, record count %d ...", plan.String(), success, total, recordCount)))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s resource fetch %d/%d, finished task count %d ...", plan.String(), success, total, recordCount)))
 	}
 	_ = success
 	_ = total
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d, record count %d ...", plan.String(), success, total, recordCount)))
+	//x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d, record count %d ...", plan.String(), success, total, recordCount)))
 	//progbar.ReceiverWait(decl.Name + "@" + decl.Version)
 	if errorsN > 0 {
 		//cli_ui.Errorf("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
