@@ -72,14 +72,14 @@ func Test(ctx context.Context, projectWorkspace, downloadWorkspace string) error
 	}).Execute(context.Background())
 	messageChannel.ReceiverWait()
 
-	cli_ui.Successf("RequireProvidersBlock verification completed\n\n")
-	cli_ui.Successf("Profile verification completed\n\n")
+	cli_ui.Infof("RequireProvidersBlock verification completed\n")
+	cli_ui.Infof("Profile verification completed\n")
 
 	if utils.IsNotEmpty(d) {
 		_ = cli_ui.PrintDiagnostics(d)
 		cli_ui.Errorln("Apply failed")
 	} else {
-		cli_ui.Successln("Apply done")
+		cli_ui.Infoln("Apply done")
 	}
 
 	if hasError.Load() {
@@ -93,7 +93,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	// 1. load from project workspace
 	dsn, _ := loadDSNFromProjectWorkspace(ctx, projectWorkspace, downloadWorkspace)
 	if dsn != "" {
-		cli_ui.Successf("Find database connection in workspace. %s \n", projectWorkspace)
+		cli_ui.Infof("Find database connection in workspace. %s \n", projectWorkspace)
 		return dsn, nil
 	}
 
@@ -116,7 +116,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 			return "", err
 		}
 		if orgDSN != "" {
-			cli_ui.Successf("Find database connection in you selefra cloud. \n")
+			cli_ui.Infof("Find database connection in you selefra cloud. \n")
 			return orgDSN, nil
 		}
 	}
@@ -124,7 +124,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	// 3. get dsn from env
 	dsn = os.Getenv(env.DatabaseDsn)
 	if dsn != "" {
-		cli_ui.Successf("Find database connection in your env. \n")
+		cli_ui.Infof("Find database connection in your env. \n")
 		return dsn, nil
 	}
 

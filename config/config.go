@@ -814,7 +814,7 @@ func GetCacheKey() string {
 //		}
 //		for i := range baseRule.Rules {
 //			baseRule.Rules[i].Path = rulePath
-//			cli_ui.Successf("	%s - Rule %s: loading ... \n", rulePath, baseRule.Rules[i].Name)
+//			cli_ui.Infof("	%s - Rule %s: loading ... \n", rulePath, baseRule.Rules[i].Name)
 //		}
 //		rules.Rules = append(rules.Rules, baseRule.Rules...)
 //	}

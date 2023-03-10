@@ -100,7 +100,7 @@ func Remove(ctx context.Context, downloadWorkspace string, names ...string) erro
 //			}
 //			deletedMap[path] = true
 //		}
-//		cli_ui.Successf("Removed %s success", *p.Source)
+//		cli_ui.Infof("Removed %s success", *p.Source)
 //	}
 //	return nil
 //}

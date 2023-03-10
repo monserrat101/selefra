@@ -59,7 +59,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	// 1. load from project workspace
 	dsn, _ := loadDSNFromProjectWorkspace(ctx, projectWorkspace, downloadWorkspace)
 	if dsn != "" {
-		cli_ui.Successf("Find database connection in workspace. %s \n", projectWorkspace)
+		cli_ui.Infof("Find database connection in workspace. %s \n", projectWorkspace)
 		return dsn, nil
 	}
 
@@ -82,7 +82,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 			return "", err
 		}
 		if orgDSN != "" {
-			cli_ui.Successf("Find database connection in you selefra cloud. \n")
+			cli_ui.Infof("Find database connection in you selefra cloud. \n")
 			return orgDSN, nil
 		}
 	}
@@ -90,7 +90,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	// 3. get dsn from env
 	dsn = os.Getenv(env.DatabaseDsn)
 	if dsn != "" {
-		cli_ui.Successf("Find database connection in your env. \n")
+		cli_ui.Infof("Find database connection in your env. \n")
 		return dsn, nil
 	}
 
@@ -101,7 +101,7 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	dsn = pgstorage.DefaultPostgreSQL(downloadWorkspace, messageChannel)
 	messageChannel.ReceiverWait()
 	if dsn != "" {
-		cli_ui.Successf("Start default postgresql. \n")
+		cli_ui.Infof("Start default postgresql. \n")
 		return dsn, nil
 	}
 

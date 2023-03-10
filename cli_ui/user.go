@@ -57,9 +57,7 @@ if login is successful, the token will be stored as a plain text file for future
 func ShowLoginSuccess(serverUrl string, cloudCredentials *cloud_sdk.CloudCredentials) {
 	loginSuccessTemplate := `
 Retrieved token for user: {{.UserName}}.
-
 Welcome to Selefra CloudClient!
-
 Logged in to selefra as {{.UserName}} (https://{{.ServerHost}}/{{.OrgName}})
 `
 	template, err := utils.RenderingTemplate("login-success-tips-template", loginSuccessTemplate, cloudCredentials)

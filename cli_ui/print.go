@@ -106,7 +106,11 @@ func (p *uiPrinter) printf(color *color.Color, format string, args ...any) {
 
 	//p.sync(color, msg)
 
-	_, _ = color.Printf(format, args...)
+	if color == nil {
+		fmt.Printf(format, args...)
+	} else {
+		_, _ = color.Printf(format, args...)
+	}
 
 }
 
@@ -127,7 +131,11 @@ func (p *uiPrinter) println(color *color.Color, args ...any) {
 
 	//p.sync(color, msg)
 
-	_, _ = color.Println(args...)
+	if color == nil {
+		fmt.Println(args...)
+	} else {
+		_, _ = color.Println(args...)
+	}
 
 	return
 }
@@ -173,8 +181,9 @@ const (
 var (
 	ErrorColor   = color.New(color.FgRed, color.Bold)
 	WarningColor = color.New(color.FgYellow, color.Bold)
-	InfoColor    = color.New(color.FgGreen, color.Bold)
-	SuccessColor = color.New(color.FgGreen, color.Bold)
+	//InfoColor    = color.New(color.FgWhite, color.Bold)
+	InfoColor    *color.Color = nil
+	SuccessColor              = color.New(color.FgGreen, color.Bold)
 )
 
 type LogJSON struct {
@@ -213,6 +222,7 @@ func Successf(format string, a ...interface{}) {
 	printer.printf(SuccessColor, format, a...)
 }
 
+// Infof info without color
 func Infof(format string, a ...interface{}) {
 	printer.printf(InfoColor, format, a...)
 }

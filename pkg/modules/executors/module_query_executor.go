@@ -237,10 +237,10 @@ func (x *ModuleQueryExecutorWorker) execStorageQuery(ctx context.Context, rulePl
 
 	// TODO Print log prompt
 	//x.moduleQueryExecutor.options.MessageChannel <- schema.NewDiagnostics().AddInfo("")
-	//cli_ui.Successf("%rootConfig - Rule \"%rootConfig\"\n", rule.Path, rule.Name)
-	//cli_ui.Successln("Schema:")
-	//cli_ui.Successln(schema + "\n")
-	//cli_ui.Successln("Description:")
+	//cli_ui.Infof("%rootConfig - Rule \"%rootConfig\"\n", rule.Path, rule.Name)
+	//cli_ui.Infoln("Schema:")
+	//cli_ui.Infoln(schema + "\n")
+	//cli_ui.Infoln("Description:")
 
 	for {
 		rows, d := resultSet.ReadRows(100)

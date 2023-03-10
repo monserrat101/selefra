@@ -442,7 +442,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	//	cli_ui.Errorf("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
 	//	return nil
 	//}
-	//cli_ui.Successf("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
+	//cli_ui.Infof("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
 	//return nil
 
 	success := 0
@@ -478,7 +478,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 		//return nil
 		return
 	}
-	//cli_ui.Successf("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
+	//cli_ui.Infof("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)
 	//return nil
 	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch done", plan.String())))
 
