@@ -452,6 +452,7 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 	success := 0
 	errorsN := 0
 	var total int64
+	recordCount := 0
 	for {
 		res, err := recv.Recv()
 		if err != nil {
@@ -469,15 +470,17 @@ func (x *ProviderFetchExecutorWorker) executePlan(ctx context.Context, plan *pla
 			//	cli_ui.SaveLogToDiagnostic(res.Diagnostics.GetDiagnosticSlice())
 			//}
 			x.sendMessage(x.addProviderNameForMessage(plan, res.Diagnostics))
+		} else {
+			recordCount++
 		}
 		success = len(res.FinishedTables)
 		errorsN = 0
 
-		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d ...", plan.String(), success, total)))
+		x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d, record count %d ...", plan.String(), success, total, recordCount)))
 	}
 	_ = success
 	_ = total
-	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d ...", plan.String(), success, total)))
+	x.sendMessage(x.addProviderNameForMessage(plan, schema.NewDiagnostics().AddInfo("Provider %s fetch %d/%d, record count %d ...", plan.String(), success, total, recordCount)))
 	//progbar.ReceiverWait(decl.Name + "@" + decl.Version)
 	if errorsN > 0 {
 		//cli_ui.Errorf("\nPull complete! Total Resources pulled:%d        Errors: %d\n", success, errorsN)

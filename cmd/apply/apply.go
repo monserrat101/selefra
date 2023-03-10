@@ -2,7 +2,6 @@ package apply
 
 import (
 	"context"
-	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/config"
@@ -67,9 +66,9 @@ func Apply(ctx context.Context, projectWorkspace, downloadWorkspace string) erro
 	if err := cli_ui.PrintDiagnostics(d); err != nil {
 		cli_ui.Errorln("Apply failed")
 		return err
-	} else if hasError.Load() {
-		cli_ui.Errorln("Apply failed")
-		return fmt.Errorf("Apply Failed")
+		//} else if hasError.Load() {
+		//	cli_ui.Errorln("Apply failed")
+		//	return fmt.Errorf("Apply Failed")
 	} else {
 		cli_ui.Infoln("Apply done")
 		return nil

@@ -142,7 +142,7 @@ func (x *ProjectCloudLifeCycleExecutor) loginByCredentials(ctx context.Context, 
 
 	// so, we can get project name now
 	projectName := x.options.Module.SelefraBlock.CloudBlock.Project
-	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo(fmt.Sprintf("try relative module %s to project %s ", x.options.Module.BuildFullName(), projectName)))
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo(fmt.Sprintf("Try relative module %s to project %s ", x.options.Module.BuildFullName(), projectName)))
 
 	// try to relative project
 	project, d := x.cloudClient.CreateProject(projectName)
@@ -174,9 +174,9 @@ func (x *ProjectCloudLifeCycleExecutor) loginByCredentials(ctx context.Context, 
 	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Init log uploader & issue done"))
 
 	// change task status to begin
-	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("change task status to INITIALIZING"))
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Change task status to INITIALIZING"))
 
-	_ = x.UploadLog(ctx, schema.NewDiagnostics().AddInfo("begin run task %s INITIALIZING stage", task.TaskId))
+	_ = x.UploadLog(ctx, schema.NewDiagnostics().AddInfo("Begin run task %s INITIALIZING stage", task.TaskId))
 	return true
 }
 
