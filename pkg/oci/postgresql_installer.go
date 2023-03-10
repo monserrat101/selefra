@@ -17,6 +17,16 @@ import (
 	"strings"
 )
 
+// ------------------------------------------------- --------------------------------------------------------------------
+
+const (
+
+	// DefaultPostgreSQLPasswd The default password of the startup instance, Maybe I should use a stronger random password?
+	DefaultPostgreSQLPasswd = "pass"
+
+	DefaultPostgreSQLPort = 15432
+)
+
 // ------------------------------------------------ ---------------------------------------------------------------------
 
 //type ProgressTracker interface {
@@ -73,8 +83,12 @@ func (x *PostgreSQLInstaller) Run(ctx context.Context) bool {
 	}()
 
 	// Make sure that postgresql exists locally. If not, install one
-	if !x.IsInstalled() && !x.Install(ctx) {
-		return false
+	if !x.IsInstalled() {
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Postgresql is not installed, it will automatically install..."))
+		if !x.Install(ctx) {
+			return false
+		}
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Postgresql is installed successfully"))
 	}
 
 	_ = x.Stop()
@@ -104,15 +118,18 @@ func (x *PostgreSQLInstaller) DownloadOCIImage(ctx context.Context) bool {
 	postgresqlDirectory := x.buildPgInstallDirectoryPath()
 	_ = os.MkdirAll(postgresqlDirectory, 0755)
 
-	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("download postgresql oci image from %s", imageDownloadURL))
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Download postgresql oci image from %s to %s ...", imageDownloadURL, postgresqlDirectory))
 
 	fileStore := content.NewFile(postgresqlDirectory)
 	dockerResolver := docker.NewResolver(docker.ResolverOptions{})
 	_, err := oras.Copy(ctx, dockerResolver, imageDownloadURL, fileStore, postgresqlDirectory)
 	if err != nil {
-		schema.NewDiagnostics().AddErrorMsg("oci install postgresql failed, download oci image error: %s", err.Error())
+		x.options.MessageChannel.Send(schema.NewDiagnostics().AddErrorMsg("OCI install postgresql failed, download OCI image error: %s", err.Error()))
 		return false
 	}
+
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Download postgresql OCI image success"))
+
 	return true
 }
 
@@ -133,15 +150,19 @@ func (x *PostgreSQLInstaller) Install(ctx context.Context) bool {
 		return false
 	}
 
-	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("begin init postgresql..."))
+	x.options.MessageChannel.Send(schema.NewDiagnostics().AddInfo("Begin init postgresql..."))
 
 	diagnostics := schema.NewDiagnostics()
+	_ = utils.EnsureDirectoryExists(x.buildDataDirectory())
+	// for debug
+	//fmt.Println("path: " + x.buildDataDirectory())
 	stdout, stderr, err := utils.RunCommand(x.buildInitExecutePath(), "-D", x.buildDataDirectory(), "-U", "postgres")
 	if err != nil {
-		diagnostics.AddErrorMsg("init postgres failed: %s", err.Error())
+		diagnostics.AddErrorMsg("Init postgres failed: %s", err.Error())
 	} else {
-		diagnostics.AddInfo("init postgres success")
+		diagnostics.AddInfo("Init postgres success")
 	}
+	diagnostics = x.fixDiagnostics(diagnostics)
 	if stdout != "" {
 		diagnostics.AddInfo(stdout)
 	}
@@ -150,6 +171,8 @@ func (x *PostgreSQLInstaller) Install(ctx context.Context) bool {
 	}
 
 	diagnostics.AddDiagnostics(x.ChangeConfigFilePort(15432))
+	diagnostics = x.fixDiagnostics(diagnostics)
+
 	x.options.MessageChannel.Send(diagnostics)
 
 	return utils.NotHasError(diagnostics)
@@ -160,9 +183,9 @@ func (x *PostgreSQLInstaller) Start() bool {
 	diagnostics := schema.NewDiagnostics()
 	stdout, stderr, err := utils.RunCommand(x.buildPgCtlExecutePath(), "-D", x.buildDataDirectory(), "-l", x.buildPgLogFilePath(), "start")
 	if err != nil {
-		diagnostics.AddErrorMsg("start postgresql error: %s", err.Error())
+		diagnostics.AddErrorMsg("Start postgresql error: %s", err.Error())
 	} else {
-		diagnostics.AddInfo("start postgresql success")
+		diagnostics.AddInfo("Start postgresql success")
 	}
 	if stdout != "" {
 		diagnostics.AddInfo(stdout)
@@ -171,16 +194,16 @@ func (x *PostgreSQLInstaller) Start() bool {
 		diagnostics.AddErrorMsg(stderr)
 	}
 	x.options.MessageChannel.Send(diagnostics)
-	return utils.HasError(diagnostics)
+	return utils.NotHasError(diagnostics)
 }
 
 func (x *PostgreSQLInstaller) Stop() bool {
 	diagnostics := schema.NewDiagnostics()
 	stdout, stderr, err := utils.RunCommand(x.buildPgCtlExecutePath(), "-D", x.buildDataDirectory(), "stop")
 	if err != nil {
-		diagnostics.AddErrorMsg("stop postgresql error: %s", err.Error())
+		diagnostics.AddErrorMsg("Stop postgresql error: %s", err.Error())
 	} else {
-		diagnostics.AddInfo("stop postgresql success")
+		diagnostics.AddInfo("Stop postgresql success")
 	}
 	if stderr != "" {
 		diagnostics.AddErrorMsg(stderr)
@@ -188,48 +211,69 @@ func (x *PostgreSQLInstaller) Stop() bool {
 	if stdout != "" {
 		diagnostics.AddInfo(stdout)
 	}
-	x.options.MessageChannel.Send(diagnostics)
 	return utils.HasError(diagnostics)
+}
+
+// may be
+// [ error ]
+// WARNING: enabling "trust" authentication for local connections
+// You can change this by editing pg_hba.conf or using the option -A, or
+// --auth-local and --auth-host, the next time you run initdb.
+func (x *PostgreSQLInstaller) fixDiagnostics(diagnostics *schema.Diagnostics) *schema.Diagnostics {
+	if diagnostics == nil {
+		return nil
+	}
+	newDiagnostics := schema.NewDiagnostics()
+	// WARNING
+	for _, d := range diagnostics.GetDiagnosticSlice() {
+		level := d.Level()
+		content := strings.TrimSpace(d.Content())
+		if strings.HasPrefix(content, "WARNING:") {
+			level = schema.DiagnosisLevelWarn
+		}
+		newDiagnostics.AddDiagnostic(schema.NewDiagnostic(level, content))
+	}
+	return newDiagnostics
 }
 
 // ------------------------------------------------ ---------------------------------------------------------------------
 
 // get the postgresql installation directory
 func (x *PostgreSQLInstaller) buildPgInstallDirectoryPath() string {
-	return filepath.Join(x.options.DownloadDirectory, "oci/postgresql/pgsql")
+	return filepath.Join(x.options.DownloadDirectory, "oci/postgresql")
 }
 
 // postgresql data storage path
 func (x *PostgreSQLInstaller) buildDataDirectory() string {
-	return filepath.Join(x.buildPgInstallDirectoryPath(), "data")
+	return filepath.Join(x.buildPgInstallDirectoryPath(), "pgsql/data")
 }
 
 // get the location of the initdb exec file path
 func (x *PostgreSQLInstaller) buildInitExecutePath() string {
 	if runtime.GOOS == "windows" {
-		return filepath.Join(x.buildPgInstallDirectoryPath(), "bin/initdb.exe")
+		return filepath.Join(x.buildPgInstallDirectoryPath(), "pgsql/bin/initdb.exe")
 	} else {
-		return filepath.Join(x.buildPgInstallDirectoryPath(), "bin/initdb")
+		return filepath.Join(x.buildPgInstallDirectoryPath(), "pgsql/bin/initdb")
 	}
 }
 
 // get the execution path of the postgresql ctl file
 func (x *PostgreSQLInstaller) buildPgCtlExecutePath() string {
 	if runtime.GOOS == "windows" {
-		return filepath.Join(x.buildPgInstallDirectoryPath(), "bin/pg_ctl.exe")
+		return filepath.Join(x.buildPgInstallDirectoryPath(), "pgsql/bin/pg_ctl.exe")
 	} else {
-		return filepath.Join(x.buildPgInstallDirectoryPath(), "bin/pg_ctl")
+		return filepath.Join(x.buildPgInstallDirectoryPath(), "pgsql/bin/pg_ctl")
 	}
 }
 
 // get the postgresql data location
 func (x *PostgreSQLInstaller) buildPgConfigFilePath() string {
-	return filepath.Join(x.buildPgInstallDirectoryPath(), "data/postgresql.conf")
+	return filepath.Join(x.buildPgInstallDirectoryPath(), "pgsql/data/postgresql.conf")
 }
 
 // get the location where postgresql logs are stored
 func (x *PostgreSQLInstaller) buildPgLogFilePath() string {
-	return filepath.Join(x.buildPgInstallDirectoryPath(), "logfile")
+	return filepath.Join(x.buildPgInstallDirectoryPath(), "pgsql/logfile")
 }
 
 // ------------------------------------------------ ---------------------------------------------------------------------
@@ -242,7 +286,7 @@ func (x *PostgreSQLInstaller) ChangeConfigFilePort(port int) *schema.Diagnostics
 	diagnostics := schema.NewDiagnostics()
 	file, err := os.OpenFile(x.buildPgConfigFilePath(), os.O_RDWR, 0666)
 	if err != nil {
-		return diagnostics.AddErrorMsg("run postgresql error, open config file %s error: %s", x.buildPgConfigFilePath(), err.Error())
+		return diagnostics.AddErrorMsg("Run postgresql error, open config file %s error: %s", x.buildPgConfigFilePath(), err.Error())
 	}
 	defer file.Close()
 
@@ -254,7 +298,7 @@ func (x *PostgreSQLInstaller) ChangeConfigFilePort(port int) *schema.Diagnostics
 			if err == io.EOF {
 				break
 			} else {
-				return diagnostics.AddErrorMsg("oci run postgresql error, open config file %s error: %s", x.buildPgConfigFilePath(), err.Error())
+				return diagnostics.AddErrorMsg("OCI run postgresql error, open config file %s error: %s", x.buildPgConfigFilePath(), err.Error())
 			}
 		}
 		if strings.Contains(line, "#port = 5432") {
@@ -262,7 +306,7 @@ func (x *PostgreSQLInstaller) ChangeConfigFilePort(port int) *schema.Diagnostics
 			portBytes := []byte("port = " + defaultPort)
 			_, err := file.WriteAt(portBytes, pos)
 			if err != nil {
-				return diagnostics.AddErrorMsg("oci run postgresql error, change config file %s error: %s", x.buildPgConfigFilePath(), err.Error())
+				return diagnostics.AddErrorMsg("OCI run postgresql error, change config file %s error: %s", x.buildPgConfigFilePath(), err.Error())
 			}
 		}
 		pos += int64(len(line))

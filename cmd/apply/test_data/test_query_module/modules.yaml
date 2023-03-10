@@ -47,7 +47,7 @@ selefra:
 
 providers:
   - name: aws_001
-    cache: 1dasdasd
+    cache: 1d
     provider: mock
     foo-count: 10
     bar-count: 10
