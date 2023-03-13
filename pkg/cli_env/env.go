@@ -43,3 +43,18 @@ func GetCloudToken() string {
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
+
+const SelefraCloudHttpHost = "SELEFRA_CLOUD_HTTP_HOST"
+
+const DefaultSelefraCloudHttpHost = "https://www.selefra.io"
+
+func GetSelefraCloudHttpHost() string {
+
+	if os.Getenv(SelefraCloudHttpHost) != "" {
+		return os.Getenv(SelefraCloudHttpHost)
+	}
+
+	return DefaultSelefraCloudHttpHost
+}
+
+// ------------------------------------------------ ---------------------------------------------------------------------
