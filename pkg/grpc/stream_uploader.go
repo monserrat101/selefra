@@ -203,7 +203,6 @@ func (x *StreamUploader[Client, ID, Request, Response]) RunUploaderWorker() {
 				}
 
 				err := x.options.Client.Send(task.Request)
-				x.options.Client.CloseAndRecv()
 				if err != nil {
 					logger.ErrorF("stream uploader name %s, send message error: %s, id = %s", x.options.Name, err.Error(), utils.Strava(task.TaskId))
 					//return
