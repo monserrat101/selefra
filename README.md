@@ -28,7 +28,7 @@ See [Docs](https://selefra.io/docs) for best practices and detailed instructions
 
 <img align="right" width="400" src="https://user-images.githubusercontent.com/124020340/224889579-556ee877-28e0-4638-b88f-ee9a4564c33a.png" />
 
-#### 🔥 Olicy As Code
+#### 🔥 Policy As Code
 
 Custom analysis policies (security, compliance, cost) can be written through a combination of SQL and YAML.
 
