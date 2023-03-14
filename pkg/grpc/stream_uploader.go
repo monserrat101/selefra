@@ -177,11 +177,12 @@ func (x *StreamUploader[Client, ID, Request, Response]) RunUploaderWorker() {
 		// Set the exit flag when exiting
 		defer func() {
 			logger.InfoF("stream uploader %s, begin close stream client", x.options.Name)
-			err := x.options.Client.CloseSend()
+			response, err := x.options.Client.CloseAndRecv()
 			if err != nil {
-				logger.ErrorF("stream uploader %s, close stream client error", x.options.Name)
+				logger.ErrorF("stream uploader %s, close stream client error: %s, response = %v", x.options.Name, err.Error(), response)
+			} else {
+				logger.InfoF("stream uploader %s, close stream client success, response = %v", x.options.Name, response)
 			}
-			logger.InfoF("stream uploader %s, close stream client success", x.options.Name)
 			x.workerWg.Done()
 		}()
 
@@ -202,6 +203,7 @@ func (x *StreamUploader[Client, ID, Request, Response]) RunUploaderWorker() {
 				}
 
 				err := x.options.Client.Send(task.Request)
+				x.options.Client.CloseAndRecv()
 				if err != nil {
 					logger.ErrorF("stream uploader name %s, send message error: %s, id = %s", x.options.Name, err.Error(), utils.Strava(task.TaskId))
 					//return
