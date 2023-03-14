@@ -1,10 +1,10 @@
 <!-- Your Title -->
-<p align="center">
+<p align="left">
 <img src="https://user-images.githubusercontent.com/124020340/224677116-44ae9c6c-a543-4813-9ef3-c7cbcacd2fbe.png" width="400">
 </p>
 
 <!-- Badges -->
-  <p align="center">   
+  <p align="left">   
     <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="linkedin" src="https://img.shields.io/badge/LinkedIn-black?logo=LinkedIn"></a>
     <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/badge/Slack-black?logo=slack"></a>
     <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/Twitter-black?logo=Twitter"></a>
@@ -15,7 +15,7 @@
   </p>
 
 <!-- Description -->
-  <p align="center">
+  <p align="left">
     <i>Selefra is an open-source policy-as-code software that provides analytics for multi-cloud and SaaS.</i>
   </p>
 
@@ -83,15 +83,14 @@ For quick start, run this demo, it should take less than a few miniutes:
     
 ## Feature
 
-|    | Language | Status | Runtime |
-| -- | -------- | ------ | ------- |
-| <img src="https://www.pulumi.com/logos/tech/logo-js.png" height=38 />     | [JavaScript](https://www.pulumi.com/docs/intro/languages/javascript/) | Stable  | Node.js 14+  |
-| <img src="https://www.pulumi.com/logos/tech/logo-ts.png" height=38 />     | [TypeScript](https://www.pulumi.com/docs/intro/languages/javascript/) | Stable  | Node.js 14+  |
-| <img src="https://www.pulumi.com/logos/tech/logo-python.svg" height=38 /> | [Python](https://www.pulumi.com/docs/intro/languages/python/)     | Stable  | Python 3.7+ |
-| <img src="https://www.pulumi.com/logos/tech/logo-golang.png" height=38 /> | [Go](https://www.pulumi.com/docs/intro/languages/go/)             | Stable  | Go [supported versions](https://go.dev/doc/devel/release#policy) |
-| <img src="https://www.pulumi.com/logos/tech/dotnet.svg" height=38 />      | [.NET (C#/F#/VB.NET)](https://www.pulumi.com/docs/intro/languages/dotnet/)     | Stable  | .NET Core 3.1+  |
-| <img src="https://www.pulumi.com/logos/tech/java.svg" height=38 />      | [Java](https://www.pulumi.com/docs/intro/languages/java/)     | Public Preview  | JDK 11+  |
-| <img src="https://www.pulumi.com/logos/tech/yaml.svg" height=38 />      | [YAML](https://www.pulumi.com/docs/intro/languages/yaml/)     | Public Preview  | n/a  |
+|    | Language | Status |
+| -- | -------- | ------ |
+| <img src="https://user-images.githubusercontent.com/124020340/224913715-846ee552-1ecf-4ad2-ae62-b59f35a44a75.png" height=38 />     | [AWS](https://www.selefra.io/docs/providers-connector/aws) | Stable |
+| <img src="https://user-images.githubusercontent.com/124020340/224914312-4889ecc5-7389-46c6-b702-5d23e3e1be16.png" height=38 />     | [GCP](https://www.selefra.io/docs/providers-connector/gcp) | Stable |
+| <img src="https://user-images.githubusercontent.com/124020340/224914454-dac803a6-7f1e-4b98-869a-7b72e329f312.png" height=38 />     | [K8S](https://www.selefra.io/docs/providers-connector/k8s) | Stable |
+| <img src="https://user-images.githubusercontent.com/124020340/224914705-ee2f1d63-c4e2-4bce-aea3-72851d65c135.png" height=38 />      | [Microsoft365](https://www.selefra.io/docs/providers-connector/microsoft365)     | Stable |
+| <img src="https://user-images.githubusercontent.com/124020340/224914806-8d6d9f91-e332-47b9-9003-f877081383c0.png" height=38 />      | [Slack](https://www.selefra.io/docs/providers-connector/slack)     | Stable |
+| <img src="https://user-images.githubusercontent.com/124020340/224914970-404a97c9-40eb-432a-b01f-d54f11fdc4c3.png" height=38 />      | [Snowflake](https://www.selefra.io/docs/providers-connector/snowflake)     | Stable |
 
 ## Community
 
