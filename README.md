@@ -5,9 +5,9 @@
 
 <!-- Badges -->
 <p align="left">   
-<a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/badge/Slack-666?logo=slack"></a>
-<a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/downloads/selefra/selefra/total?logo=github"></a>
-<a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/Twitter-666?logo=Twitter"></a>
+<a href="https://www.selefra.io/community/join"><img alt="Slack" src="https://img.shields.io/badge/Slack-666?logo=slack"></a>
+<a href="https://github.com/selefra/selefra"><img alt="Total" src="https://img.shields.io/github/downloads/selefra/selefra/total?logo=github"></a>
+<a href="https://twitter.com/SelefraCorp"><img alt="Twitter" src="https://img.shields.io/badge/Twitter-666?logo=Twitter"></a>
 <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/selefra/selefra?style=social"></a>
   </p>
 
