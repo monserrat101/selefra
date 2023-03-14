@@ -4,69 +4,100 @@
 </p>
 
 <!-- Badges -->
-<p align="center">
-    <a href="https://github.com/selefra/selefra/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/selefra/selefra"></a>
-    <a href="https://github.com/selefra/selefra/pulls"><img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/selefra/selefra"></a>
-    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/selefra/selefra"></a>
-</p>
+  <p align="center">   
+    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="linkedin" src="https://img.shields.io/badge/LinkedIn-black?logo=LinkedIn"></a>
+    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/badge/Slack-black?logo=slack"></a>
+    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/Twitter-black?logo=Twitter"></a>
+    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/AWS-orange?logo=AmazonAWS"></a>
+    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/Datadog-purple?logo=Datadog"></a>
+    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/Microsoft-blue?logo=Microsoft"></a>
+    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/selefra/selefra?style=social"></a>
+  </p>
 
 <!-- Description -->
-<p align="center">
-    Selefra is an open-source policy-as-code software that provides analytics for multi-cloud and SaaS.
-</p>
+  <p align="center">
+    <i>Selefra is an open-source policy-as-code software that provides analytics for multi-cloud and SaaS.</i>
+  </p>
+
+<br/>
 
 <!-- About Selefra -->
+
 ## About Selefra
 
-Selefra is a cloud resource detection tool that ensures cloud security by checking cloud resources using code. It helps users find vulnerabilities in their cloud infrastructure and take action to fix them.
+Selefra is an open-source data integration and analysis tool for developers. You can use Selefra to extract, load, and analyze infrastructure data anywhere from Public Cloud, SaaS platform, development platform, and more.
 
-### Why Selefra
+<img align="right" width="400" src="https://user-images.githubusercontent.com/124020340/224889579-556ee877-28e0-4638-b88f-ee9a4564c33a.png" />
 
-With the increasing use of cloud resources, it has become more important than ever to ensure cloud security. Traditional security tools are not enough to protect cloud infrastructure. Selefra helps to fill this gap by providing a tool that can detect vulnerabilities in cloud infrastructure using code.
+#### 🔥 Olicy As Code
 
-### How Selefra Works
+Custom analysis policies (security, compliance, cost) can be written through a combination of SQL and YAML.
 
-Selefra works by analyzing cloud resources using code. It supports multiple cloud providers and can detect vulnerabilities in resources such as IAM policies, security groups, and more.
+#### 💥 Configuration of Multi-Cloud, Multi-SaaS
 
-### Features
+Unified multi-cloud configuration data integration capabilities that can support analysis of configuration data from any cloud service via SQL.
 
-- Multi-cloud support
-- Detection of vulnerabilities in cloud resources
-- Easy to use
-- Continuous monitoring and alerting
+#### 🌟 Version Control
 
-### Built With
+Analysis policies can be managed through VCS such as GitHub/Gitlab.
 
-- Go
-- AWS SDK
-- Google Cloud SDK
-- Azure SDK
+#### 🥤 Automation
 
-<!-- Getting Started -->
-## Getting Started
+Policies can be automated to enforce compliance, security, and cost optimization rules through Scheduled tasks and cloud automation tools.
 
-Instructions on how to get started with Selefra.
+## Welcome
 
-### Prerequisites
+Read detailed documentation for how to [get started](https://selefra.io/docs/get-started/) with Selefra.
 
-List any prerequisites needed to use Selefra here.
+For quick start, run this demo, it should take less than a few miniutes:
 
-### Installation
+### 1. Install Selefra
 
-Instructions on how to install Selefra.
+For non macOS users, [download packages](https://github.com/selefra/selefra/releases) to install Selefra.
 
-## Usage
+On macOS, tap Selefra with Homebrew:
 
-Instructions on how to use Selefra.
+```bash
+brew tap selefra/tap
+```
+
+Next, install Selefra:
+
+```bash
+brew install selefra/tap/selefra
+```
+
+### 2. Initialization project
+
+```bash
+selefra init selefra-demo && cd selefra-demo
+```
+
+### 3. Build code
+
+```bash
+selefra apply 
+```
+
+
+## Documentation
+
+See [Docs](https://selefra.io/docs) for best practices and detailed instructions. In docs, you will find info on installation, CLI usage, project workflow and more guides on how to accomplish cloud inspection tasks.
 
 ## Contributing
 
-Instructions on how others can contribute to Selefra.
+For developers interested in building Selefra codebase, read through [Contributing.md](https://github.com/selefra/selefra/blob/main/CONTRIBUTING.md) and [Selefra Roadmap](https://github.com/orgs/selefra/projects/1).
+Let us know what you would like to work on!
 
 ## License
 
-Information about the license of Selefra.
 
-## Contact
+[Mozilla Public License v2.0](https://github.com/selefra/selefra/blob/main/LICENSE)
 
-Ways to contact Selefra's development team.
+## Community
+
+Selefra is a community-driven project, we welcome you to open a [GitHub Issue](https://github.com/selefra/selefra/issues/new/choose) to report a bug, suggest an improvement, or request new feature.
+
+-  Join [Selefra Community](https://selefra.io/community/join) on Slack. We host `Community Hour` for tutorials and Q&As on regular basis.
+-  Follow us on [Twitter](https://twitter.com/SelefraCorp) and share your thoughts！
+-  Email us at support@selefra.io
