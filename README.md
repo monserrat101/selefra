@@ -4,14 +4,11 @@
 </p>
 
 <!-- Badges -->
-  <p align="left">   
-    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="linkedin" src="https://img.shields.io/badge/LinkedIn-black?logo=LinkedIn"></a>
-    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/badge/Slack-black?logo=slack"></a>
-    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/Twitter-black?logo=Twitter"></a>
-    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/AWS-orange?logo=AmazonAWS"></a>
-    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/Datadog-purple?logo=Datadog"></a>
-    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/Microsoft-blue?logo=Microsoft"></a>
-    <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/selefra/selefra?style=social"></a>
+<p align="left">   
+<a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/badge/Slack-666?logo=slack"></a>
+<a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/downloads/selefra/selefra/total?logo=github"></a>
+<a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="Twitter" src="https://img.shields.io/badge/Twitter-666?logo=Twitter"></a>
+<a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/selefra/selefra?style=social"></a>
   </p>
 
 <!-- Description -->
