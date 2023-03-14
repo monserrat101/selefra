@@ -142,7 +142,9 @@ func (x *CloudClient) NewLogStreamUploader(messageChannel *message.Channel[*sche
 }
 
 func (x *CloudClient) DialCloudHost() (*grpc.ClientConn, error) {
-	return grpc.Dial(x.serverUrl, grpc.WithTransportCredentials(insecure.NewCredentials()),
+	return grpc.Dial(x.serverUrl,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                3 * time.Second,
 			Timeout:             3 * time.Minute,
