@@ -27,6 +27,8 @@
 
 Selefra is an open-source data integration and analysis tool for developers. You can use Selefra to extract, load, and analyze infrastructure data anywhere from Public Cloud, SaaS platform, development platform, and more.
 
+See [Docs](https://selefra.io/docs) for best practices and detailed instructions. In docs, you will find info on installation, CLI usage, project workflow and more guides on how to accomplish cloud inspection tasks.
+
 <img align="right" width="400" src="https://user-images.githubusercontent.com/124020340/224889579-556ee877-28e0-4638-b88f-ee9a4564c33a.png" />
 
 #### 🔥 Olicy As Code
@@ -51,48 +53,45 @@ Read detailed documentation for how to [get started](https://selefra.io/docs/get
 
 For quick start, run this demo, it should take less than a few miniutes:
 
-### 1. Install Selefra
+1. **Install Selefra**
 
-For non macOS users, [download packages](https://github.com/selefra/selefra/releases) to install Selefra.
+    For non macOS users, [download packages](https://github.com/selefra/selefra/releases) to install Selefra.
 
-On macOS, tap Selefra with Homebrew:
+    On macOS, tap Selefra with Homebrew:
 
-```bash
-brew tap selefra/tap
-```
+    ```bash
+    brew tap selefra/tap
+    ```
 
-Next, install Selefra:
+    Next, install Selefra:
 
-```bash
-brew install selefra/tap/selefra
-```
+    ```bash
+    brew install selefra/tap/selefra
+    ```
 
-### 2. Initialization project
+2. **Initialization project**
 
-```bash
-selefra init selefra-demo && cd selefra-demo
-```
+    ```bash
+    selefra init selefra-demo && cd selefra-demo
+    ```
 
-### 3. Build code
+3. **Build code**
 
-```bash
-selefra apply 
-```
+    ```bash
+    selefra apply 
+    ```
+    
+## Feature
 
-
-## Documentation
-
-See [Docs](https://selefra.io/docs) for best practices and detailed instructions. In docs, you will find info on installation, CLI usage, project workflow and more guides on how to accomplish cloud inspection tasks.
-
-## Contributing
-
-For developers interested in building Selefra codebase, read through [Contributing.md](https://github.com/selefra/selefra/blob/main/CONTRIBUTING.md) and [Selefra Roadmap](https://github.com/orgs/selefra/projects/1).
-Let us know what you would like to work on!
-
-## License
-
-
-[Mozilla Public License v2.0](https://github.com/selefra/selefra/blob/main/LICENSE)
+|    | Language | Status | Runtime |
+| -- | -------- | ------ | ------- |
+| <img src="https://www.pulumi.com/logos/tech/logo-js.png" height=38 />     | [JavaScript](https://www.pulumi.com/docs/intro/languages/javascript/) | Stable  | Node.js 14+  |
+| <img src="https://www.pulumi.com/logos/tech/logo-ts.png" height=38 />     | [TypeScript](https://www.pulumi.com/docs/intro/languages/javascript/) | Stable  | Node.js 14+  |
+| <img src="https://www.pulumi.com/logos/tech/logo-python.svg" height=38 /> | [Python](https://www.pulumi.com/docs/intro/languages/python/)     | Stable  | Python 3.7+ |
+| <img src="https://www.pulumi.com/logos/tech/logo-golang.png" height=38 /> | [Go](https://www.pulumi.com/docs/intro/languages/go/)             | Stable  | Go [supported versions](https://go.dev/doc/devel/release#policy) |
+| <img src="https://www.pulumi.com/logos/tech/dotnet.svg" height=38 />      | [.NET (C#/F#/VB.NET)](https://www.pulumi.com/docs/intro/languages/dotnet/)     | Stable  | .NET Core 3.1+  |
+| <img src="https://www.pulumi.com/logos/tech/java.svg" height=38 />      | [Java](https://www.pulumi.com/docs/intro/languages/java/)     | Public Preview  | JDK 11+  |
+| <img src="https://www.pulumi.com/logos/tech/yaml.svg" height=38 />      | [YAML](https://www.pulumi.com/docs/intro/languages/yaml/)     | Public Preview  | n/a  |
 
 ## Community
 
@@ -101,3 +100,12 @@ Selefra is a community-driven project, we welcome you to open a [GitHub Issue](h
 -  Join [Selefra Community](https://selefra.io/community/join) on Slack. We host `Community Hour` for tutorials and Q&As on regular basis.
 -  Follow us on [Twitter](https://twitter.com/SelefraCorp) and share your thoughts！
 -  Email us at support@selefra.io
+
+## Contributing
+
+For developers interested in building Selefra codebase, read through [Contributing.md](https://github.com/selefra/selefra/blob/main/CONTRIBUTING.md) and [Selefra Roadmap](https://github.com/orgs/selefra/projects/1).
+Let us know what you would like to work on!
+
+## License
+
+[Mozilla Public License v2.0](https://github.com/selefra/selefra/blob/main/LICENSE)
