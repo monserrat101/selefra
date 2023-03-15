@@ -2,6 +2,7 @@ package http_client
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"time"
 
@@ -54,6 +55,15 @@ var httpGetter = &getter.HttpGetter{
 	ReadTimeout:           10 * time.Minute,
 	MaxBytes:              1_000_000_000,
 	XTerraformGetDisabled: true,
+	//Client: &http.Client{
+	//	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	//		return nil
+	//	},
+	//},
+	Header: http.Header{
+		"User-Agent": []string{MyUserAgent()},
+	},
+	//DoNotCheckHeadFirst: true,
 }
 
 func DownloadToDirectory(ctx context.Context, saveDirectory, targetUrl string, progressListener getter.ProgressTracker, options ...getter.ClientOption) error {

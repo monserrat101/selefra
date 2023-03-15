@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
+	"github.com/selefra/selefra/cmd/version"
 	"gopkg.in/yaml.v3"
 	"io"
 	"net/http"
@@ -173,9 +174,13 @@ const DefaultUserAgent = "selefra-cli"
 
 func DefaultUserAgentRequestSetting() RequestSetting {
 	return func(httpRequest *http.Request) error {
-		httpRequest.Header.Set("User-Agent", DefaultUserAgent)
+		httpRequest.Header.Set("User-Agent", MyUserAgent())
 		return nil
 	}
+}
+
+func MyUserAgent() string {
+	return fmt.Sprintf("%s/%s", DefaultUserAgent, version.Version)
 }
 
 // ------------------------------------------------- --------------------------------------------------------------------
