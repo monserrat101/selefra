@@ -1,7 +1,7 @@
 name: 🚀 Feature Request
 description: Suggest a new feature or improvement
 title: "[Feature]: "
-labels: [feature]
+labels: [enhancement]
 assignees:
   - selefra-bot
 body:
