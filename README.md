@@ -44,7 +44,7 @@ Analysis policies can be managed through VCS such as GitHub/Gitlab.
 
 Policies can be automated to enforce compliance, security, and cost optimization rules through Scheduled tasks and cloud automation tools.
 
-## Welcome
+## Getting started
 
 Read detailed documentation for how to [get started](https://selefra.io/docs/get-started/) with Selefra.
 
@@ -78,16 +78,24 @@ For quick start, run this demo, it should take less than a few miniutes:
     selefra apply 
     ```
     
-## Feature
+## Selefra Community Ecosystem
+
+
+
+
+
+
+
+
 
 |    | Language | Status |
 | -- | -------- | ------ |
-| <img src="https://user-images.githubusercontent.com/124020340/224913715-846ee552-1ecf-4ad2-ae62-b59f35a44a75.png" height=38 />     | [AWS](https://www.selefra.io/docs/providers-connector/aws) | Stable |
-| <img src="https://user-images.githubusercontent.com/124020340/224914312-4889ecc5-7389-46c6-b702-5d23e3e1be16.png" height=38 />     | [GCP](https://www.selefra.io/docs/providers-connector/gcp) | Stable |
-| <img src="https://user-images.githubusercontent.com/124020340/224914454-dac803a6-7f1e-4b98-869a-7b72e329f312.png" height=38 />     | [K8S](https://www.selefra.io/docs/providers-connector/k8s) | Stable |
-| <img src="https://user-images.githubusercontent.com/124020340/224914705-ee2f1d63-c4e2-4bce-aea3-72851d65c135.png" height=38 />      | [Microsoft365](https://www.selefra.io/docs/providers-connector/microsoft365)     | Stable |
-| <img src="https://user-images.githubusercontent.com/124020340/224914806-8d6d9f91-e332-47b9-9003-f877081383c0.png" height=38 />      | [Slack](https://www.selefra.io/docs/providers-connector/slack)     | Stable |
-| <img src="https://user-images.githubusercontent.com/124020340/224914970-404a97c9-40eb-432a-b01f-d54f11fdc4c3.png" height=38 />      | [Snowflake](https://www.selefra.io/docs/providers-connector/snowflake)     | Stable |
+| <img width="38" alt="aws logo" src="https://user-images.githubusercontent.com/124020340/225558573-35579326-0fc8-4100-8c30-7aad82788d61.png">     | [AWS](https://www.selefra.io/docs/providers-connector/aws) | Stable |
+| <img width="38" alt="Google logo" src="https://user-images.githubusercontent.com/124020340/225558584-6309e72b-b92c-405c-90dd-64516f6965ef.png">    | [GCP](https://www.selefra.io/docs/providers-connector/gcp) | Stable |
+| <img width="38" alt="k8s" src="https://user-images.githubusercontent.com/124020340/225558598-09e03a70-b4ea-47ec-890c-d110d2eb5b5d.png">    | [K8S](https://www.selefra.io/docs/providers-connector/k8s) | Stable |
+| <img width="38" alt="Microsoft" src="https://user-images.githubusercontent.com/124020340/225558609-4aac1a66-92b7-4c9b-9ccb-75948f86b61c.png">      | [Microsoft365](https://www.selefra.io/docs/providers-connector/microsoft365)     | Stable |
+| <img width="38" alt="slack" src="https://user-images.githubusercontent.com/124020340/225558623-50850a40-7505-44dc-b255-a2574ae4216f.png">     | [Slack](https://www.selefra.io/docs/providers-connector/slack)     | Stable |
+| <img width="38" alt="snowflake" src="https://user-images.githubusercontent.com/124020340/225558631-c7b26728-bc7b-495a-8b48-efd846e703c8.png"> | [Snowflake](https://www.selefra.io/docs/providers-connector/snowflake)     | Stable |
 
 ## Community
 
