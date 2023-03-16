@@ -11,7 +11,8 @@ import (
 
 func TestLocalDirectoryModuleLoader_Load(t *testing.T) {
 
-	source := "./test_data/contains_sub_module"
+	//source := "./test_data/contains_sub_module"
+	source := "./test_data/dead_loop_module"
 
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {

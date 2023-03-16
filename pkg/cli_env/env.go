@@ -58,3 +58,25 @@ func GetSelefraCloudHttpHost() string {
 }
 
 // ------------------------------------------------ ---------------------------------------------------------------------
+
+const SelefraTelemetryEnable = "SELEFRA_TELEMETRY_ENABLE"
+
+func GetSelefraTelemetryEnable() string {
+	return strings.ToLower(os.Getenv(SelefraTelemetryEnable))
+}
+
+// ------------------------------------------------ ---------------------------------------------------------------------
+
+// SelefraTelemetryToken Compile-time injection
+var SelefraTelemetryToken = ""
+
+const SelefraTelemetryTokenEnvName = "SELEFRA_TELEMETRY_TOKEN"
+
+func GetSelefraTelemetryToken() string {
+	if SelefraTelemetryToken != "" {
+		return SelefraTelemetryToken
+	}
+	return os.Getenv(SelefraTelemetryTokenEnvName)
+}
+
+// ------------------------------------------------ ---------------------------------------------------------------------

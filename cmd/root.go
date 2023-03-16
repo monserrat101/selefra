@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/selefra/selefra/cli_ui"
 	"github.com/selefra/selefra/cmd/apply"
 	"github.com/selefra/selefra/cmd/fetch"
 	initCmd "github.com/selefra/selefra/cmd/init"
@@ -12,6 +13,8 @@ import (
 	"github.com/selefra/selefra/cmd/test"
 	"github.com/selefra/selefra/cmd/version"
 	"github.com/selefra/selefra/global"
+	"github.com/selefra/selefra/pkg/cli_env"
+	"github.com/selefra/selefra/pkg/telemetry"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/spf13/cobra"
 	"log"
@@ -32,8 +35,33 @@ For details see the selefra document https://selefra.io/docs
 If you like selefra, give us a star https://github.com/selefra/selefra
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+
 		level, _ := cmd.Flags().GetString("loglevel")
 		global.SetLogLevel(level)
+
+		// get telemetry from command params
+		telemetryEnable, err := cmd.Flags().GetBool("telemetry")
+		if err == nil {
+			// user give telemetry param
+			telemetry.TelemetryEnable = telemetryEnable
+		} else {
+			// try find it in env variables
+			telemetryEnableString := cli_env.GetSelefraTelemetryEnable()
+			if telemetryEnableString != "" {
+				if telemetryEnableString == "true" || telemetryEnableString == "t" {
+					telemetry.TelemetryEnable = true
+				} else if telemetryEnableString == "false" || telemetryEnableString == "f" {
+					telemetry.TelemetryEnable = false
+				}
+			} else {
+				// keep default value
+			}
+		}
+	},
+	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+		// need close telemetry on exit
+		diagnostics := telemetry.Close(cmd.Context())
+		return cli_ui.PrintDiagnostics(diagnostics)
 	},
 }
 
@@ -52,6 +80,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringP("loglevel", "l", "info", "log level")
+	rootCmd.PersistentFlags().BoolP("telemetry ", "t", true, "Whether to enable telemetry. This parameter is enabled by default")
 	//rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.test.yaml)")
 	group["main"] = []*cobra.Command{
 		initCmd.NewInitCmd(),

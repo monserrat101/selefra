@@ -1,4 +1,4 @@
-package analytics
+package telemetry
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestSubmit(t *testing.T) {
-	d := Submit(context.Background(), NewEvent("do-something", "do it"))
+	d := Submit(context.Background(), NewEvent("do-something").Add("foo", "bar"))
 	if utils.IsNotEmpty(d) {
 		t.Log(d.String())
 	}

@@ -10,11 +10,11 @@ ifeq ($(origin SELEFRA_VERSION),undefined)
 	SELEFRA_VERSION := $(shell git rev-parse HEAD)
 endif
 
-.PHONY: selefra
-selefra:
-	@sed -i 's/{{version}}/$(SELEFRA_VERSION)/' cmd/version/version.go
-	@go build -o $(GOBIN) main.go
-
+build:
+	@echo "GOBIN=${GOBIN}"
+	@echo "SELEFRA_VERSION=$(SELEFRA_VERSION)"
+	@#go build -o $(GOBIN)  -ldflags "-X 'github.com/selefra/selefra/cmd/version.Version=$(SELEFRA_VERSION)'" main.go
+	@go build -o selefra -ldflags "-X 'github.com/selefra/selefra/cmd/version.Version=$(SELEFRA_VERSION)' -X 'github.com/selefra/selefra/pkg/cli_env.SelefraTelemetryToken=${SELEFRA_TELEMETRY_TOKEN}'" main.go
 
 PROTO_FILES ?= issue log
 .PHONY: protoc
