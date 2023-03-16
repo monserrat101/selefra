@@ -89,12 +89,12 @@ For quick start, run this demo, it should take less than a few miniutes:
 
 
 |    | Language | Status |
-| -- | -------- | ------ |
-| <img width="120" alt="aws logo" src="https://user-images.githubusercontent.com/124020340/225558573-35579326-0fc8-4100-8c30-7aad82788d61.png">     | [AWS](https://www.selefra.io/docs/providers-connector/aws) | Stable |
+| :-: | -------- | ------ |
+| <img width="52" alt="aws logo" src="https://user-images.githubusercontent.com/124020340/225558573-35579326-0fc8-4100-8c30-7aad82788d61.png">     | [AWS](https://www.selefra.io/docs/providers-connector/aws) | Stable |
 | <img width="120" alt="Google logo" src="https://user-images.githubusercontent.com/124020340/225558584-6309e72b-b92c-405c-90dd-64516f6965ef.png">    | [GCP](https://www.selefra.io/docs/providers-connector/gcp) | Stable |
 | <img width="120" alt="k8s" src="https://user-images.githubusercontent.com/124020340/225558598-09e03a70-b4ea-47ec-890c-d110d2eb5b5d.png">    | [K8S](https://www.selefra.io/docs/providers-connector/k8s) | Stable |
 | <img width="120" alt="Microsoft" src="https://user-images.githubusercontent.com/124020340/225558609-4aac1a66-92b7-4c9b-9ccb-75948f86b61c.png">      | [Microsoft365](https://www.selefra.io/docs/providers-connector/microsoft365)     | Stable |
-| <img width="120" alt="slack" src="https://user-images.githubusercontent.com/124020340/225558623-50850a40-7505-44dc-b255-a2574ae4216f.png">     | [Slack](https://www.selefra.io/docs/providers-connector/slack)     | Stable |
+| <img width="80" alt="slack" src="https://user-images.githubusercontent.com/124020340/225558623-50850a40-7505-44dc-b255-a2574ae4216f.png">     | [Slack](https://www.selefra.io/docs/providers-connector/slack)     | Stable |
 | <img width="120" alt="snowflake" src="https://user-images.githubusercontent.com/124020340/225558631-c7b26728-bc7b-495a-8b48-efd846e703c8.png"> | [Snowflake](https://www.selefra.io/docs/providers-connector/snowflake)     | Stable |
 
 ## Community
