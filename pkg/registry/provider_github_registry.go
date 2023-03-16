@@ -6,6 +6,8 @@ import (
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra-utils/pkg/pointer"
 	"github.com/selefra/selefra/pkg/http_client"
+	"github.com/selefra/selefra/pkg/logger"
+	"github.com/selefra/selefra/pkg/telemetry"
 	"github.com/selefra/selefra/pkg/utils"
 	"github.com/songzhibin97/gkit/ternary"
 	"path/filepath"
@@ -282,8 +284,18 @@ func downloadProvider(ctx context.Context, registryUrl string, provider *Provide
 		githubReleaseAssertURL += "?checksum=sha256:" + checksum
 	}
 
-	//err = http_client.DownloadToDirectory(ctx, options.ProviderDownloadDirectoryPath, githubReleaseAssertURL, options.ProgressTracker)
-	err = http_client.DownloadToDirectory(context.Background(), options.ProviderDownloadDirectoryPath, githubReleaseAssertURL, options.ProgressTracker)
+	event := telemetry.NewEvent("provider-install").
+		Add("url", githubReleaseAssertURL).
+		Add("provider_name", provider.Name).
+		Add("provider_version", provider.Version)
+	d := telemetry.Submit(ctx, event)
+	if utils.IsNotEmpty(d) {
+		logger.ErrorF("telemetry provider install, msg = %s", d.String())
+	}
+
+	//targetUrl := cli_env.GetSelefraCloudHttpHost() + "/diagnosis.tar.gz?url=" + base64.StdEncoding.EncodeToString([]byte(githubReleaseAssertURL))
+	err = http_client.DownloadToDirectory(ctx, options.ProviderDownloadDirectoryPath, githubReleaseAssertURL, options.ProgressTracker)
+	//err = http_client.DownloadToDirectory(ctx, options.ProviderDownloadDirectoryPath, targetUrl, options.ProgressTracker)
 	if err != nil {
 		return "", err
 	}

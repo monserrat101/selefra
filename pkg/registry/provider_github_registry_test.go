@@ -17,6 +17,7 @@ func newTestProviderGithubRegistry() *ProviderGithubRegistry {
 }
 
 func TestProviderGithubRegistry_Download(t *testing.T) {
+	// TODO
 	download, err := newTestProviderGithubRegistry().Download(context.Background(), NewProvider("aws", "v0.0.1"), &ProviderRegistryDownloadOptions{
 		ProviderDownloadDirectoryPath: "./test_download/providers/aws/v0.0.1",
 	})
