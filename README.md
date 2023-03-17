@@ -93,14 +93,14 @@ For quick start, run this demo, it should take less than a few minutes:
 
 
 
-|    | Language | Status |
-| :-: | -------- | ------ |
-| <img height="24" alt="aws logo" src="https://user-images.githubusercontent.com/124020340/225558573-35579326-0fc8-4100-8c30-7aad82788d61.png">     | [AWS](https://www.selefra.io/docs/providers-connector/aws) | Stable |
-| <img height="24" alt="Google logo" src="https://user-images.githubusercontent.com/124020340/225558584-6309e72b-b92c-405c-90dd-64516f6965ef.png">    | [GCP](https://www.selefra.io/docs/providers-connector/gcp) | Stable |
-| <img height="24" alt="k8s" src="https://user-images.githubusercontent.com/124020340/225558598-09e03a70-b4ea-47ec-890c-d110d2eb5b5d.png">    | [K8S](https://www.selefra.io/docs/providers-connector/k8s) | Stable |
-| <img height="24" alt="Microsoft" src="https://user-images.githubusercontent.com/124020340/225558609-4aac1a66-92b7-4c9b-9ccb-75948f86b61c.png">      | [Microsoft365](https://www.selefra.io/docs/providers-connector/microsoft365)     | Stable |
-| <img height="24" alt="slack" src="https://user-images.githubusercontent.com/124020340/225558623-50850a40-7505-44dc-b255-a2574ae4216f.png">     | [Slack](https://www.selefra.io/docs/providers-connector/slack)     | Stable |
-| <img height="24" alt="snowflake" src="https://user-images.githubusercontent.com/124020340/225558631-c7b26728-bc7b-495a-8b48-efd846e703c8.png"> | [Snowflake](https://www.selefra.io/docs/providers-connector/snowflake)     | Stable |
+ Provider | Introduce | Status |
+ | --------| ----- | ------ |
+ | [AWS](https://www.selefra.io/docs/providers-connector/aws)|The AWS Provider for Selefra can be used to extract data from many of the cloud services by AWS. The provider must be configured with credentials to extract and analyze infrastructure data from AWS. | Stable |
+| [GCP](https://www.selefra.io/docs/providers-connector/gcp)|The GCP Provider for Selefra can be used to extract data from many of the cloud services by GCP. The provider must be configured with credentials to extract and analyze infrastructure data from GCP. | Stable |
+| [K8S](https://www.selefra.io/docs/providers-connector/k8s)|The K8s Provider for Selefra can be used to extract data from many of the cloud services by K8s. The provider must be configured with credentials to extract and analyze infrastructure data from K8s. | Stable |
+| [Microsoft365](https://www.selefra.io/docs/providers-connector/microsoft365)| The Microsoft365 Provider for Selefra can be used to extract data from many of the cloud services by Microsoft365. The provider must be configured with credentials to extract and analyze infrastructure data from Microsoft365.    | Stable |
+| [Slack](https://www.selefra.io/docs/providers-connector/slack)|  The Slack Provider for Selefra can be used to extract data from many of the cloud services by Slack. The provider must be configured with credentials to extract and analyze infrastructure data from Slack.   | Stable |
+| [Snowflake](https://www.selefra.io/docs/providers-connector/snowflake)|  The snowflake Provider for Selefra can be used to extract data from many of the cloud services by snowflake. The provider must be configured with credentials to extract and analyze infrastructure data from snowflake.   | Stable |
 
 ## Community
 
