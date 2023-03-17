@@ -1,6 +1,8 @@
 <!-- Your Title -->
 <p align="center">
+<a href="https://www.selefra.io/" target="_blank">
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/124020340/225567784-61adb5e7-06ae-402a-9907-69c1e6f1aa9e.png"><source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/124020340/224677116-44ae9c6c-a543-4813-9ef3-c7cbcacd2fbe.png"><img width="400px" alt="Steampipe Logo" src="https://user-images.githubusercontent.com/124020340/224677116-44ae9c6c-a543-4813-9ef3-c7cbcacd2fbe.png"></picture>
+<a/>
 </p>
 
 <!-- Description -->
@@ -10,16 +12,26 @@
   
   <!-- Badges -->
 <p align="center">   
+<img alt="go" src="https://img.shields.io/badge/go-1.19-1E90FF"></a>
 <a href="https://github.com/selefra/selefra"><img alt="Total" src="https://img.shields.io/github/downloads/selefra/selefra/total?logo=github"></a>
 <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/selefra/selefra?style=social"></a>
   </p>
   
   <!-- Badges -->
-<p align="center">   
-<a href="https://www.selefra.io/community/join"><img alt="Slack" src="https://img.shields.io/badge/Slack-666?logo=slack"></a>
-<a href="https://twitter.com/SelefraCorp"><img alt="Twitter" src="https://img.shields.io/badge/Twitter-666?logo=Twitter"></a>
-  </p>
+  <p align="center">
+<a href="https://selefra.io/community/join"><img src="https://img.shields.io/badge/-Slack-424549?style=social&logo=Slack" height=25></a>
+    &nbsp;
+    <a href="https://twitter.com/SelefraCorp"><img src="https://img.shields.io/badge/-Twitter-red?style=social&logo=twitter" height=25></a>
+    &nbsp;
+    <a href="https://www.reddit.com/r/Selefra"><img src="https://img.shields.io/badge/-Reddit-red?style=social&logo=reddit" height=25></a>
+    &nbsp;
+    <a href="https://selefra.medium.com/"><img src="https://img.shields.io/badge/-Medium-red?style=social&logo=medium" height=25></a>
 
+  </p>
+  
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/124020340/225897757-188f1a50-2efa-4a9e-9199-7cb7f68485be.png">
+</p>
 <br/>
 
 <!-- About Selefra -->
