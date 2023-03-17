@@ -1,20 +1,23 @@
 <!-- Your Title -->
-<p align="left">
+<p align="center">
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/124020340/225567784-61adb5e7-06ae-402a-9907-69c1e6f1aa9e.png"><source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/124020340/224677116-44ae9c6c-a543-4813-9ef3-c7cbcacd2fbe.png"><img width="400px" alt="Steampipe Logo" src="https://user-images.githubusercontent.com/124020340/224677116-44ae9c6c-a543-4813-9ef3-c7cbcacd2fbe.png"></picture>
 </p>
 
-
-<!-- Badges -->
-<p align="left">   
-<a href="https://www.selefra.io/community/join"><img alt="Slack" src="https://img.shields.io/badge/Slack-666?logo=slack"></a>
+<!-- Description -->
+  <p align="center">
+    <i>Selefra is an open-source policy-as-code software that provides analytics for multi-cloud and SaaS.</i>
+  </p>
+  
+  <!-- Badges -->
+<p align="center">   
 <a href="https://github.com/selefra/selefra"><img alt="Total" src="https://img.shields.io/github/downloads/selefra/selefra/total?logo=github"></a>
-<a href="https://twitter.com/SelefraCorp"><img alt="Twitter" src="https://img.shields.io/badge/Twitter-666?logo=Twitter"></a>
 <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/selefra/selefra?style=social"></a>
   </p>
-
-<!-- Description -->
-  <p align="left">
-    <i>Selefra is an open-source policy-as-code software that provides analytics for multi-cloud and SaaS.</i>
+  
+  <!-- Badges -->
+<p align="center">   
+<a href="https://www.selefra.io/community/join"><img alt="Slack" src="https://img.shields.io/badge/Slack-666?logo=slack"></a>
+<a href="https://twitter.com/SelefraCorp"><img alt="Twitter" src="https://img.shields.io/badge/Twitter-666?logo=Twitter"></a>
   </p>
 
 <br/>
@@ -27,7 +30,8 @@ Selefra is an open-source data integration and analysis tool for developers. You
 
 See [Docs](https://selefra.io/docs/introduction) for best practices and detailed instructions. In docs, you will find info on installation, CLI usage, project workflow and more guides on how to accomplish cloud inspection tasks.
 
-<img align="right" width="400" src="https://user-images.githubusercontent.com/124020340/224889579-556ee877-28e0-4638-b88f-ee9a4564c33a.png" />
+
+<img align="right" width="520" alt="img_code" src="https://user-images.githubusercontent.com/124020340/225893407-40e5df4a-7ddd-439c-b5fc-f6d1dfac68bf.png">
 
 #### 🔥 Policy As Code
 
@@ -47,13 +51,13 @@ Policies can be automated to enforce compliance, security, and cost optimization
 
 ## Getting started
 
-Read detailed documentation for how to [get started](https://selefra.io/docs/get-started/) with Selefra.
+Read detailed documentation for how to [Get Started](https://selefra.io/docs/get-started/) with Selefra.
 
-For quick start, run this demo, it should take less than a few miniutes:
+For quick start, run this demo, it should take less than a few minutes:
 
 1. **Install Selefra**
 
-    For non macOS users, [download packages](https://github.com/selefra/selefra/releases) to install Selefra.
+    For non-macOS users, [download packages](https://github.com/selefra/selefra/releases) to install Selefra.
 
     On macOS, tap Selefra with Homebrew:
 
@@ -70,7 +74,7 @@ For quick start, run this demo, it should take less than a few miniutes:
 2. **Initialization project**
 
     ```bash
-    selefra init selefra-demo && cd selefra-demo
+    mkdir selefra-demo & cd selefra-demo & selefra init
     ```
 
 3. **Build code**
