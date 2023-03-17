@@ -45,7 +45,7 @@ See [Docs](https://selefra.io/docs/introduction) for best practices and detailed
 
 <img align="right" width="520" alt="img_code" src="https://user-images.githubusercontent.com/124020340/225893407-40e5df4a-7ddd-439c-b5fc-f6d1dfac68bf.png">
 
-#### 🔥 Policy As Code
+#### 🔥 Policy as Code
 
 Custom analysis policies (security, compliance, cost) can be written through a combination of SQL and YAML.
 
