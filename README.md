@@ -38,9 +38,9 @@
 
 ## About Selefra
 
-Selefra is an open-source data integration and analysis tool for developers. You can use Selefra to extract, load, and analyze infrastructure data anywhere from Public Cloud, SaaS platform, development platform, and more.
+Selefra means "select * from infrastructure". It is an open-source infrastructure-as-code software that provides analysis for multi-cloud and SaaS environments, including over 30 services such as AWS, GCP, Azure, Alibaba Cloud, Kubernetes, Github, Cloudflare, and Slack.
 
-See [Docs](https://selefra.io/docs/introduction) for best practices and detailed instructions. In docs, you will find info on installation, CLI usage, project workflow and more guides on how to accomplish cloud inspection tasks.
+For best practices and detailed instructions, refer to the Docs. Within the [Docs](https://selefra.io/docs/introduction), you will find information on installation, CLI usage, project workflow, and more guides on how to accomplish cloud inspection tasks.
 
 
 <img align="right" width="520" alt="img_code" src="https://user-images.githubusercontent.com/124020340/225893407-40e5df4a-7ddd-439c-b5fc-f6d1dfac68bf.png">
