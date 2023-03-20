@@ -38,7 +38,7 @@ func NewModuleLoaderBySource(source string) ModuleLoaderType {
 		return ModuleLoaderTypeS3Bucket
 	case strings.HasPrefix(formatSource, "http://") || strings.HasPrefix(formatSource, "https://"):
 		return ModuleLoaderTypeURL
-	case strings.HasPrefix(source, "./"):
+	case strings.HasPrefix(source, "./") || strings.HasPrefix(source, "../"):
 		return ModuleLoaderTypeLocalDirectory
 	case Pattern.MatchString(source):
 		return ModuleLoaderTypeGitHubRegistry

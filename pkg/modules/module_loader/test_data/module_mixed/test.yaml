@@ -50,20 +50,12 @@ selefra:
       source: selefra/gcp
       version: ">=0.0.9,<=0.0.10"
 
-#modules:
-#  - name: Misconfiguration-S3
-#    uses:
-#      - ./sub_module_b/sub_module_b_1
-#  - name: example_module
-#    #    uses: ./rules/
-#    input:
-#      name: selefra
 modules:
-  name: Misconfiguration-S3
-  uses:
-    - ./sub_module_local
-    - rules-aws-misconfigure-s3
-    - 
+  - name: Misconfiguration-S3
+    uses:
+      - ./sub_module_local
+      - rules-aws-misconfigure-s3
+
 
 
 variables:
