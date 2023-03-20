@@ -21,7 +21,7 @@ const (
 )
 
 // ModuleGithubRegistryDefaultRepoFullName The default official module registry
-const ModuleGithubRegistryDefaultRepoFullName = "select/registry"
+const ModuleGithubRegistryDefaultRepoFullName = "selefra/registry"
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
