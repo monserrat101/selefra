@@ -28,7 +28,7 @@ const (
 
 // ------------------------------------------------- --------------------------------------------------------------------
 
-var Pattern = regexp.MustCompile("^[A-Za-z_-]?[\\w-]$")
+var Pattern = regexp.MustCompile("^[A-Za-z_-]?[\\w\\-_]+$")
 
 // NewModuleLoaderBySource Distributed to different module loaders based on load options
 func NewModuleLoaderBySource(source string) ModuleLoaderType {
