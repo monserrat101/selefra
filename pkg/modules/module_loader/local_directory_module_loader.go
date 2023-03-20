@@ -7,6 +7,7 @@ import (
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/pkg/modules/module"
 	"github.com/selefra/selefra/pkg/modules/parser"
+	"github.com/selefra/selefra/pkg/registry"
 	"github.com/selefra/selefra/pkg/utils"
 	"os"
 	"path"
@@ -264,7 +265,7 @@ func (x *LocalDirectoryModuleLoader) loadGitHubRegistryModule(ctx context.Contex
 			MessageChannel:    x.options.MessageChannel.MakeChildChannel(),
 			DependenciesTree:  x.options.DeepDependenciesTree(useModuleSource),
 		},
-		RegistryRepoFullName: useModuleSource,
+		RegistryRepoFullName: registry.ModuleGithubRegistryDefaultRepoFullName,
 	}
 
 	loader, err := NewGitHubRegistryModuleLoader(githubOptions)
