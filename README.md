@@ -12,7 +12,7 @@
   
   <!-- Badges -->
 <p align="center">   
-<img alt="go" src="https://img.shields.io/badge/go-1.19-1E90FF"></a>
+<a href="https://pkg.go.dev/github.com/selefra/selefra"><img alt="go" src="https://img.shields.io/badge/go-1.19-1E90FF" /></a>
 <a href="https://github.com/selefra/selefra"><img alt="Total" src="https://img.shields.io/github/downloads/selefra/selefra/total?logo=github"></a>
 <a href="https://github.com/selefra/selefra/blob/master/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/selefra/selefra?style=social"></a>
   </p>
