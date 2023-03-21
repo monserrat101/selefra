@@ -11,6 +11,7 @@ import (
 	"github.com/selefra/selefra-provider-sdk/storage/database_storage/postgresql_storage"
 	"github.com/selefra/selefra-utils/pkg/pointer"
 	"github.com/selefra/selefra/cli_ui"
+	"github.com/selefra/selefra/cmd/init/rule_example"
 	"github.com/selefra/selefra/cmd/version"
 	"github.com/selefra/selefra/pkg/cloud_sdk"
 	"github.com/selefra/selefra/pkg/message"
@@ -91,7 +92,7 @@ func (x *InitCommandExecutor) Run(ctx context.Context) error {
 		x.initProvidersYaml(ctx, selefraBlock.RequireProvidersBlock)
 	}
 
-	x.initRulesYaml()
+	x.initRulesYaml(providerSlice)
 
 	//x.initModulesYaml()
 
@@ -318,71 +319,29 @@ func (x *InitCommandExecutor) getCloudBlock(projectName string) *module.CloudBlo
 //}
 
 
-// TODO
-//var rulesMap map[string]string
-//
-//func init() {
-//	rulesMap = make(map[string]string)
-//
-//	rulesMap[""] = ``
-//}
+var rulesMap map[string]string
 
-func (x *InitCommandExecutor) initRulesYaml() {
-	//	const ruleComment = `
-	//rules:
-	//  - name: example_rule_name
-	//    query: |
-	//      SELECT
-	//        *
-	//      FROM
-	//        aws_ec2_ebs_volumes
-	//      WHERE
-	//        encrypted = FALSE;
-	//    labels:
-	//      resource_type: EC2
-	//      resource_account_id : '{{.account_id}}'
-	//      resource_id: '{{.id}}'
-	//      resource_region: '{{.availability_zone}}'
-	//    metadata:
-	//      id: SF010302
-	//      severity: Low
-	//      provider: AWS
-	//      tags:
-	//        - Misconfigure
-	//      author: Selefra
-	//      remediation: remediation/ec2/ebs_volume_are_unencrypted.md
-	//      title: EBS volume are unencrypted
-	//      description: Ensure that EBS volumes are encrypted.
-	//    output: 'EBS volume are unencrypted, EBS id: {{.id}}, availability zone: {{.availability_zone}}'
-	//`
-	//	ruleDirectory := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "rules")
-	//	_ = utils.EnsureDirectoryExists(ruleDirectory)
-	//	ruleFullPath := filepath.Join(ruleDirectory, "rule.yaml")
-	//	err := os.WriteFile(ruleFullPath, []byte(ruleComment), 0644)
-	//	if err != nil {
-	//		cli_ui.Errorf("Write %s error: %s\n", ruleFullPath, err.Error())
-	//	} else {
-	//		cli_ui.Successf("Write %s success\n", ruleFullPath)
-	//	}
+func init() {
+	rulesMap = make(map[string]string)
+	rulesMap["aws"] = rule_example.Aws
+	rulesMap["azure"] = rule_example.Azure
+	rulesMap["gcp"] = rule_example.GCP
+	rulesMap["k8s"] = rule_example.K8S
+}
 
-	const ruleComment = `rules:
-  - name: bucket_versioning_is_disabled
-    query: |-
-      SELECT
-        *
-      FROM
-        aws_s3_buckets
-      WHERE
-        versioning_status IS DISTINCT
-      FROM
-        'Enabled';
-    output: "S3 bucket versioning is disabled, arn: {{.arn}}"`
-	ruleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), "rules.yaml")
-	err := os.WriteFile(ruleFullPath, []byte(ruleComment), 0644)
-	if err != nil {
-		cli_ui.Errorf("Write %s error: %s \n", ruleFullPath, err.Error())
-	} else {
-		cli_ui.Successf("Write %s success \n", ruleFullPath)
+func (x *InitCommandExecutor) initRulesYaml(providerSlice []*registry.Provider) {
+	for _, provider := range providerSlice {
+		ruleYamlString, exists := rulesMap[provider.Name]
+		if !exists {
+			ruleYamlString = rule_example.DefaultTemplate
+		}
+		ruleFullPath := filepath.Join(utils.AbsPath(x.options.ProjectWorkspace), fmt.Sprintf("rules_%s.yaml", provider.Name))
+		err := os.WriteFile(ruleFullPath, []byte(ruleYamlString), 0644)
+		if err != nil {
+			cli_ui.Errorf("Write %s error: %s \n", ruleFullPath, err.Error())
+		} else {
+			cli_ui.Successf("Write %s success \n", ruleFullPath)
+		}
 	}
 }
 
