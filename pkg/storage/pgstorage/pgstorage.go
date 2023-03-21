@@ -121,7 +121,9 @@ func DefaultPostgreSQL(downloadWorkspace string, messageChannel *message.Channel
 
 	// If the built-in Postgresql does not start successfully, a prompt is returned asking what to do next
 	if !isRunSuccess {
-		errorMsg := `Sorry, the built-in Postgresql fails to start, please configure your own Postgresql connection
+		errorMsg := `
+
+Sorry, the built-in Postgresql fails to start, please configure your own Postgresql connection
 export SELEFRA_DATABASE_DSN='host=127.0.0.1 user=postgres password=pass port=15432 dbname=postgres sslmode=disable'
 
 If you do not already have Postgresql installed, You can start an instance of Postgresql using Docker:
@@ -129,6 +131,9 @@ sudo docker run -d --name selefra-postgres -p 15432:5432 -e POSTGRES_PASSWORD=pa
 
 Or you can download and install Postgresql from its official website: 
 https://www.postgresql.org/download/
+
+You can check out our documentation: https://www.selefra.io/docs/faq#how-to-use-postgresql
+
 `
 		messageChannel.Send(schema.NewDiagnostics().AddErrorMsg(errorMsg))
 		return ""
