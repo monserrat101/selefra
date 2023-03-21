@@ -111,14 +111,20 @@ func DefaultPostgreSQL(downloadWorkspace string, messageChannel *message.Channel
 
 	isRunSuccess := true
 
-	runOCIPostgreSQLOnce.Do(func() {
-		messageChannel.Send(schema.NewDiagnostics().AddInfo("Use built-in PostgreSQL database..."))
-		downloader := oci.NewPostgreSQLDownloader(&oci.PostgreSQLDownloaderOptions{
-			MessageChannel:    messageChannel.MakeChildChannel(),
-			DownloadDirectory: downloadWorkspace,
-		})
-		isRunSuccess = downloader.Run(context.Background())
+	//runOCIPostgreSQLOnce.Do(func() {
+	//	messageChannel.Send(schema.NewDiagnostics().AddInfo("Use built-in PostgreSQL database..."))
+	//	downloader := oci.NewPostgreSQLDownloader(&oci.PostgreSQLDownloaderOptions{
+	//		MessageChannel:    messageChannel.MakeChildChannel(),
+	//		DownloadDirectory: downloadWorkspace,
+	//	})
+	//	isRunSuccess = downloader.Run(context.Background())
+	//})
+	messageChannel.Send(schema.NewDiagnostics().AddInfo("Use built-in PostgreSQL database..."))
+	downloader := oci.NewPostgreSQLDownloader(&oci.PostgreSQLDownloaderOptions{
+		MessageChannel:    messageChannel.MakeChildChannel(),
+		DownloadDirectory: downloadWorkspace,
 	})
+	isRunSuccess = downloader.Run(context.Background())
 
 	// If the built-in Postgresql does not start successfully, a prompt is returned asking what to do next
 	if !isRunSuccess {
