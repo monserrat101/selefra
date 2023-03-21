@@ -219,8 +219,7 @@ func downloadModule(ctx context.Context, registryUrl string, module *Module, opt
 
 	// search download file
 	if utils.Exists(options.ModuleDownloadDirectoryPath) {
-		// TODO Temporary solution, the path will be repaired later
-		return filepath.Join(options.ModuleDownloadDirectoryPath, supplement.PackageName), nil
+		return filepath.Join(options.ModuleDownloadDirectoryPath), nil
 	}
 
 	return "", fmt.Errorf("module %s download failed", supplement.PackageName)

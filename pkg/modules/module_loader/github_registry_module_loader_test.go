@@ -13,7 +13,7 @@ const testDownloadDirectory = "./test_download"
 
 func TestGitHubRegistryModuleLoader_Load(t *testing.T) {
 
-	source := "rules-aws-misconfigure-s3@v0.0.1"
+	source := "rules-aws-misconfiguration-s3@v0.0.4"
 
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
 		if utils.IsNotEmpty(message) {
