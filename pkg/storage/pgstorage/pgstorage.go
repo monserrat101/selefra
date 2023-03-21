@@ -112,7 +112,7 @@ func DefaultPostgreSQL(downloadWorkspace string, messageChannel *message.Channel
 	isRunSuccess := true
 
 	runOCIPostgreSQLOnce.Do(func() {
-		messageChannel.Send(schema.NewDiagnostics().Add("Use built-in PostgreSQL database..."))
+		messageChannel.Send(schema.NewDiagnostics().AddInfo("Use built-in PostgreSQL database..."))
 		downloader := oci.NewPostgreSQLDownloader(&oci.PostgreSQLDownloaderOptions{
 			MessageChannel:    messageChannel.MakeChildChannel(),
 			DownloadDirectory: downloadWorkspace,
