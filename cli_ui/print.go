@@ -271,7 +271,7 @@ func SaveLogToDiagnostic(diagnostics []*schema.Diagnostic) {
 func PrintDiagnostic(diagnostics []*schema.Diagnostic) error {
 	var err error
 	for i := range diagnostics {
-		if int(diagnostics[i].Level()) >= int(hclog.LevelFromString(global.LogLevel())) {
+		if int(diagnostics[i].Level()+1) >= int(hclog.LevelFromString(global.LogLevel())) {
 			defaultLogger.Log(hclog.Level(int(hclog.LevelFromString(global.LogLevel()))+1), diagnostics[i].Content())
 			Println(levelColor[diagnostics[i].Level()], diagnostics[i].Content())
 			if diagnostics[i].Level() == schema.DiagnosisLevelError {
