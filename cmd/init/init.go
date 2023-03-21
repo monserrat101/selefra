@@ -35,6 +35,7 @@ func NewInitCmd() *cobra.Command {
 
 			dsn, err := getDsn(cmd.Context(), projectWorkspace, downloadDirectory)
 			if err != nil {
+				cli_ui.Errorf("Get dsn error: %s \n", err.Error())
 				return err
 			}
 
