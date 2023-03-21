@@ -159,6 +159,7 @@ var levelColor = []*color.Color{
 	InfoColor,
 	InfoColor,
 	InfoColor,
+	InfoColor,
 	WarningColor,
 	ErrorColor,
 	ErrorColor,
