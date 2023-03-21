@@ -2,6 +2,7 @@ package executors
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/go-getter"
 	"github.com/selefra/selefra-provider-sdk/grpc/shard"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
@@ -214,7 +215,8 @@ func (x *ModuleQueryExecutorWorker) execRulePlan(ctx context.Context, rulePlan *
 
 	storages := x.moduleQueryExecutor.options.ProviderExpandMap[rulePlan.BindingProviderName]
 	if len(storages) == 0 {
-		// TODO Error report
+		errorMsg := fmt.Sprintf("Rule %s binding provider %s not found, can not exec query", rulePlan.String(), rulePlan.BindingProviderName)
+		x.sendMessage(schema.NewDiagnostics().AddErrorMsg(errorMsg))
 		return
 	}
 	for _, storage := range storages {

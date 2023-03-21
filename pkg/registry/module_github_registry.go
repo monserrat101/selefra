@@ -209,6 +209,9 @@ func downloadModule(ctx context.Context, registryUrl string, module *Module, opt
 	//	githubReleaseAssertURL += "?checksum=sha256:" + checksum
 	//}
 
+	// Example URL:
+	// https://github.com/selefra/rules-aws-misconfiguration-s3/archive/refs/tags/v0.0.2.zip
+	// https://github.com/selefra/rules-aws-misconfigure-s3/releases/download/v0.0.4/rules-aws-misconfigure-s3.zip
 	err = http_client.DownloadToDirectory(ctx, options.ModuleDownloadDirectoryPath, githubReleaseAssertURL, options.ProgressTracker)
 	if err != nil {
 		return "", err

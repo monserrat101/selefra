@@ -317,6 +317,16 @@ func (x *InitCommandExecutor) getCloudBlock(projectName string) *module.CloudBlo
 //	}
 //}
 
+
+// TODO
+//var rulesMap map[string]string
+//
+//func init() {
+//	rulesMap = make(map[string]string)
+//
+//	rulesMap[""] = ``
+//}
+
 func (x *InitCommandExecutor) initRulesYaml() {
 	//	const ruleComment = `
 	//rules:

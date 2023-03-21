@@ -4,9 +4,7 @@ rules:
       SELECT
         *
       FROM
-        aws_s3_buckets
+        auth0_rule
       WHERE
-        versioning_status IS DISTINCT
-      FROM
-        'Enabled';
+        script LIKE '%const % = context;%';
     output: "S3 bucket versioning is disabled, arn: {{.arn}}"
