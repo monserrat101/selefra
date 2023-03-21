@@ -159,7 +159,16 @@ if [[ $PATH =~ "/usr/local/bin" ]]; then
 
 	# If it already exists, try to remove it
 	if  [ -f "${copy_to_path}" ]; then
+
+		case $OS in
+		"linux")
+		sudo rm -rf $copy_to_path
+		;;
+	    	"darwin")
 		rm -rf $copy_to_path
+		;;
+		esac
+
 		if [ $? -ne 0 ]; then
       say_red "The ${copy_to_path} file already exists and cannot be deleted. please manually update the ${copy_to_path}"
 		  exit
@@ -167,7 +176,16 @@ if [[ $PATH =~ "/usr/local/bin" ]]; then
 	fi
 
 	# Then make a copy of selefra to the target path
+
+	case $OS in
+	"linux")
+	sudo cp ./selefra /usr/local/bin/selefra
+	;;
+    	"darwin")
 	cp ./selefra /usr/local/bin/selefra
+	;;
+	esac
+
 	if [ $? -ne 0 ]; then
         	say_red 'copy selefra to $PATH failed. please add it manually'
 		exit
