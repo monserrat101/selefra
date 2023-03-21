@@ -268,14 +268,36 @@ func SaveLogToDiagnostic(diagnostics []*schema.Diagnostic) {
 	}
 }
 
+var sdkLogLevelToCLILevelMap map[schema.DiagnosticLevel]hclog.Level
+
+func init() {
+	sdkLogLevelToCLILevelMap = make(map[schema.DiagnosticLevel]hclog.Level)
+	sdkLogLevelToCLILevelMap[schema.DiagnosisLevelTrace] = hclog.Trace
+	sdkLogLevelToCLILevelMap[schema.DiagnosisLevelDebug] = hclog.Debug
+	sdkLogLevelToCLILevelMap[schema.DiagnosisLevelInfo] = hclog.Info
+	sdkLogLevelToCLILevelMap[schema.DiagnosisLevelWarn] = hclog.Warn
+	sdkLogLevelToCLILevelMap[schema.DiagnosisLevelError] = hclog.Error
+	sdkLogLevelToCLILevelMap[schema.DiagnosisLevelFatal] = hclog.Error
+}
+
+func SDKLogLevelToCliLevel(level schema.DiagnosticLevel) hclog.Level {
+	logLevel, exists := sdkLogLevelToCLILevelMap[level]
+	if exists {
+		return logLevel
+	} else {
+		return hclog.Info
+	}
+}
+
 func PrintDiagnostic(diagnostics []*schema.Diagnostic) error {
 	var err error
-	for i := range diagnostics {
-		if int(diagnostics[i].Level()+1) >= int(hclog.LevelFromString(global.LogLevel())) {
-			defaultLogger.Log(hclog.Level(int(hclog.LevelFromString(global.LogLevel()))+1), diagnostics[i].Content())
-			Println(levelColor[diagnostics[i].Level()], diagnostics[i].Content())
-			if diagnostics[i].Level() == schema.DiagnosisLevelError {
-				err = errors.New(diagnostics[i].Content())
+	for _, diagnostic := range diagnostics {
+		logLevel := SDKLogLevelToCliLevel(diagnostic.Level())
+		if  int(logLevel)>= int(hclog.LevelFromString(global.LogLevel())) {
+			defaultLogger.Log(logLevel, diagnostic.Content())
+			Println(levelColor[logLevel], diagnostic.Content())
+			if diagnostic.Level() == schema.DiagnosisLevelError {
+				err = errors.New(diagnostic.Content())
 			}
 		}
 	}
