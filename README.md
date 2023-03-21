@@ -38,7 +38,7 @@
 
 ## About Selefra
 
-Selefra means "select * from infrastructure". It is an open-source infrastructure-as-code software that provides analysis for multi-cloud and SaaS environments, including over 30 services such as AWS, GCP, Azure, Alibaba Cloud, Kubernetes, Github, Cloudflare, and Slack.
+Selefra means "select * from infrastructure". It is an open-source policy-as-code software that provides analysis for multi-cloud and SaaS environments, including over 30 services such as AWS, GCP, Azure, Alibaba Cloud, Kubernetes, Github, Cloudflare, and Slack.
 
 For best practices and detailed instructions, refer to the Docs. Within the [Docs](https://selefra.io/docs/introduction), you will find information on installation, CLI usage, project workflow, and more guides on how to accomplish cloud inspection tasks.
 
