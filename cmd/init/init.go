@@ -3,6 +3,7 @@ package init
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/selefra/selefra-provider-sdk/env"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/selefra/selefra/cli_ui"
@@ -12,8 +13,10 @@ import (
 	"github.com/selefra/selefra/pkg/message"
 	"github.com/selefra/selefra/pkg/modules/module_loader"
 	"github.com/selefra/selefra/pkg/storage/pgstorage"
+	"github.com/selefra/selefra/pkg/utils"
 	"github.com/spf13/cobra"
 	"os"
+	"sync/atomic"
 )
 
 func NewInitCmd() *cobra.Command {
@@ -96,8 +99,14 @@ func getDsn(ctx context.Context, projectWorkspace, downloadWorkspace string) (st
 	}
 
 	// 4. start default postgresql instance
+	hasError := atomic.Bool{}
 	messageChannel := message.NewChannel[*schema.Diagnostics](func(index int, message *schema.Diagnostics) {
-		_ = cli_ui.PrintDiagnostics(message)
+		if utils.IsNotEmpty(message) {
+			fmt.Println(message.String())
+		}
+		if err := cli_ui.PrintDiagnostics(message); err != nil {
+			hasError.Store(true)
+		}
 	})
 	dsn = pgstorage.DefaultPostgreSQL(downloadWorkspace, messageChannel)
 	messageChannel.ReceiverWait()
