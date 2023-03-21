@@ -156,7 +156,11 @@ func (x *PostgreSQLInstaller) Install(ctx context.Context) bool {
 	_ = utils.EnsureDirectoryExists(x.buildDataDirectory())
 	// for debug
 	//fmt.Println("path: " + x.buildDataDirectory())
-	stdout, stderr, err := utils.RunCommand(x.buildInitExecutePath(), "-D", x.buildDataDirectory(), "-U", "postgres")
+	stdout, stderr, err := utils.RunCommand(x.buildInitExecutePath(),
+		"-D", x.buildDataDirectory(),
+		"-U", "postgres",
+		"-E", "UTF-8",
+		"--locale", "en_US.UTF-8")
 	if err != nil {
 		diagnostics.AddErrorMsg("Init postgres failed: %s", err.Error())
 	} else {
