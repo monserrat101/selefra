@@ -42,8 +42,7 @@ Selefra means "select * from infrastructure". It is an open-source policy-as-cod
 
 For best practices and detailed instructions, refer to the Docs. Within the [Docs](https://selefra.io/docs/introduction), you will find information on installation, CLI usage, project workflow, and more guides on how to accomplish cloud inspection tasks.
 
-
-<img align="right" width="520" alt="img_code" src="https://user-images.githubusercontent.com/124020340/225893407-40e5df4a-7ddd-439c-b5fc-f6d1dfac68bf.png">
+<img align="right" width="520" alt="img_code" src="https://user-images.githubusercontent.com/124020340/226554137-bdb0afe8-ed57-449a-94bb-010aad9818ec.gif">
 
 #### 🔥 Policy as Code
 
@@ -86,7 +85,7 @@ For quick start, run this demo, it should take less than a few minutes:
 2. **Initialization project**
 
     ```bash
-    mkdir selefra-demo & cd selefra-demo & selefra init
+    mkdir selefra-demo && cd selefra-demo && selefra init
     ```
 
 3. **Build code**
